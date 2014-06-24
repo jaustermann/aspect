@@ -158,7 +158,11 @@ namespace aspect
          {
            return order;
          }
+<<<<<<< HEAD
 
+=======
+ 
+>>>>>>> 6b7c137fa297caa534f0c498bb594d05ed012a95
          private:
            int order;
            std::vector<double> coeffs;

@@ -717,13 +717,44 @@ namespace aspect
     if (parameters.pressure_normalization == "no")
       return;
 
-    // TODO: pressure normalization currently does not work if velocity and
-    // pressure are in the same block.
-    Assert(introspection.block_indices.velocities != introspection.block_indices.pressure,
-           ExcNotImplemented());
-
     if (parameters.use_locally_conservative_discretization == false)
-      vector.block (introspection.block_indices.pressure).add (-1.0 * pressure_adjustment);
+      {
+        if (introspection.block_indices.velocities != introspection.block_indices.pressure)
+          vector.block(introspection.block_indices.pressure).add(-1.0 * pressure_adjustment);
+        else
+          {
+            // velocity and pressure are in the same block, so we have to modify the values manually
+
+            const unsigned int block_idx = introspection.block_indices.pressure;
+            LinearAlgebra::BlockVector distributed_vector (introspection.index_sets.stokes_partitioning,
+                                                           mpi_communicator);
+            distributed_vector.block(block_idx) = vector.block(block_idx);
+
+            std::vector<types::global_dof_index> local_dof_indices (finite_element.dofs_per_cell);
+            typename DoFHandler<dim>::active_cell_iterator
+            cell = dof_handler.begin_active(),
+            endc = dof_handler.end();
+            for (; cell != endc; ++cell)
+              if (cell->is_locally_owned())
+                {
+                  cell->get_dof_indices (local_dof_indices);
+                  for (unsigned int j=0; j<finite_element.base_element(introspection.base_elements.pressure).dofs_per_cell; ++j)
+                    {
+                      const unsigned int local_dof_index
+                        = finite_element.component_to_system_index(introspection.component_indices.pressure,
+                                                                   /*dof index within component=*/ j);
+
+                      // then adjust its value. Note that because we end up touching
+                      // entries more than once, we are not simply incrementing
+                      // distributed_vector but copy from the unchanged vector.
+                      distributed_vector(local_dof_indices[local_dof_index])
+                        = vector(local_dof_indices[local_dof_index]) - pressure_adjustment;
+                    }
+                }
+            distributed_vector.compress(VectorOperation::insert);
+            vector.block(block_idx) = distributed_vector.block(block_idx);
+          }
+      }
     else
       {
         // this case is a bit more complicated: if the condition above is false
