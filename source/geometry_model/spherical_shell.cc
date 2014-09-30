@@ -34,7 +34,7 @@ namespace aspect
     SphericalShell<dim>::
     create_coarse_mesh (parallel::distributed::Triangulation<dim> &coarse_grid) const
     {
-      AssertThrow (phi == 360 || phi == 90 || dim!=3, ExcNotImplemented());
+      AssertThrow (phi == 360 || phi == 90 || phi == 100 || dim!=3, ExcNotImplemented());
 
       if (phi == 360)
         {
@@ -43,6 +43,15 @@ namespace aspect
                                       R0,
                                       R1,
                                       (dim==3) ? 96 : 12,
+                                      true);
+        }
+      else if (phi == 100)
+        {          GridGenerator::hyper_shell (coarse_grid,
+                                      Point<dim>(),
+                                      R0,
+                                      R1,
+                                      100,
+                                      refinement,
                                       true);
         }
       else if (phi == 90)
@@ -167,6 +176,11 @@ namespace aspect
       return phi;
     }
 
+    template <int dim>
+    int SphericalShell<dim>::sph_ref () const
+    {
+      return refinement;
+    }
 
     template <int dim>
     void
@@ -186,6 +200,9 @@ namespace aspect
                              Patterns::Double (0, 360),
                              "Opening angle in degrees of the section of the shell "
                              "that we want to build. Units: degrees.");
+          prm.declare_entry ("Spherical grid refinement", "4",
+                             Patterns::Integer (0),
+                             "Refinement number for a grid with spherical layers.");
         }
         prm.leave_subsection();
       }
@@ -205,6 +222,7 @@ namespace aspect
           R0  = prm.get_double ("Inner radius");
           R1  = prm.get_double ("Outer radius");
           phi = prm.get_double ("Opening angle");
+          refinement = prm.get_integer ("Spherical grid refinement");
         }
         prm.leave_subsection();
       }
