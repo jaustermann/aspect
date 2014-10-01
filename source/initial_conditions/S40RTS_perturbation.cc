@@ -159,10 +159,8 @@ namespace aspect
          {
            return order;
          }
-<<<<<<< HEAD
-         
-=======
->>>>>>> spherical_grid
+
+         spherical_grid
          private:
            int order;
            std::vector<double> coeffs;
