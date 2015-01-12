@@ -554,11 +554,15 @@ namespace aspect
 
        temperature = InterpolVal * dT + temperature_perturbation;
       }
- 
+
+
      // option to either take simplified geotherm or read one in from file
-      if(read_geotherm_in == true)
+     if(read_geotherm_in == true)
          temperature = geotherm_lookup->geotherm(depth) + temperature_perturbation;
    
+     if(constant_temp == true)
+        temperature = reference_temperature + temperature_perturbation;
+
      return temperature;
 
     }
@@ -862,7 +866,10 @@ namespace aspect
           prm.declare_entry ("Vs to density scaling constant","false",
                              Patterns::Bool(),
                              "Switch to set the vs to density scalind to a constant value.");
-
+          prm.declare_entry ("Constant background temperature","false",
+                             Patterns::Bool(),
+                             "Switch to make the background temp. constant. Good to check "
+                             "initial perturbation.");
         }
         prm.leave_subsection ();
       }
@@ -899,6 +906,7 @@ namespace aspect
           reference_temperature   = prm.get_double ("Reference temperature");
           thermal_alpha_constant  = prm.get_bool ("Thermal expansion constant");
           vs_to_depth_constant    = prm.get_bool ("Vs to density scaling constant");
+          constant_temp           = prm.get_bool ("Constant background temperature");
         }
         prm.leave_subsection ();
       }

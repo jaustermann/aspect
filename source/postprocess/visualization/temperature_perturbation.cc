@@ -79,7 +79,7 @@ namespace aspect
               fe_values[this->introspection().extractors.temperature].get_function_values (this->get_solution(),temperature_values);
 
               const double depth = this->get_geometry_model().depth(fe_values.quadrature_point(0));
-              const unsigned int idx = static_cast<unsigned int>((depth*num_slices)/max_depth);
+              unsigned int idx = static_cast<unsigned int>((depth*num_slices-1)/max_depth);
 
               (*return_value.second)(cell_index) =  temperature_values[0] - avg_temp[idx];
 //std::cout << " temperature at point  " << temperature_values[0] << std::flush;
