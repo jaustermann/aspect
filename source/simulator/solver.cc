@@ -264,6 +264,8 @@ namespace aspect
     {
       LinearAlgebra::Vector utmp(src.block(0));
 
+      // first solve with the bottom left block, which we have built
+      // as a mass matrix with the inverse of the viscosity
       {
         SolverControl solver_control(1000, 1e-6 * src.block(1).l2_norm());
 
@@ -280,66 +282,70 @@ namespace aspect
         // solving in this case.
         if (src.block(1).l2_norm() > 1e-50 || dst.block(1).l2_norm() > 1e-50)
           {
-	    try
-	      {
-		solver.solve(stokes_preconditioner_matrix.block(1,1),
-			     dst.block(1), src.block(1),
-			     mp_preconditioner);
-		n_iterations_S_ += solver_control.last_step();
-	      }
-	    // if the solver fails, report the error from processor 0 with some additional
-	    // information about its location, and throw a quiet exception on all other
-	    // processors
-	    catch (const SolverControl::NoConvergence &exc)
-	      {
-		if (Utilities::MPI::this_mpi_process(src.block(0).get_mpi_communicator()) == 0)
-		  AssertThrow (false,
-			  ExcMessage (std::string("The iterative solver in BlockSchurPreconditioner::vmult "
-						  "did not converge. It reported the following error:\n\n")
-				      +
-				      exc.what()))
-		else
-		  throw QuietException();
-	      }
+            try
+              {
+                solver.solve(stokes_preconditioner_matrix.block(1,1),
+                             dst.block(1), src.block(1),
+                             mp_preconditioner);
+                n_iterations_S_ += solver_control.last_step();
+              }
+            // if the solver fails, report the error from processor 0 with some additional
+            // information about its location, and throw a quiet exception on all other
+            // processors
+            catch (const SolverControl::NoConvergence &exc)
+              {
+                if (Utilities::MPI::this_mpi_process(src.block(0).get_mpi_communicator()) == 0)
+                  AssertThrow (false,
+                               ExcMessage (std::string("The iterative (bottom right) solver in BlockSchurPreconditioner::vmult "
+                                                       "did not converge. It reported the following error:\n\n")
+                                           +
+                                           exc.what()))
+                  else
+                    throw QuietException();
+              }
           }
 
         dst.block(1) *= -1.0;
       }
 
+      // apply the top right block
       {
         stokes_matrix.block(0,1).vmult(utmp, dst.block(1)); //B^T
         utmp*=-1.0;
         utmp.add(src.block(0));
       }
 
+      // now either solve with the top left block (if do_solve_A==true)
+      // or just apply one preconditioner sweep (for the first few
+      // iterations of our two-stage outer GMRES iteration)
       if (do_solve_A == true)
         {
-          SolverControl solver_control(1000, utmp.l2_norm()*1e-2);
+          SolverControl solver_control(10000, utmp.l2_norm()*1e-2);
 #ifdef ASPECT_USE_PETSC
           SolverCG<LinearAlgebra::Vector> solver(solver_control);
 #else
           TrilinosWrappers::SolverCG solver(solver_control);
 #endif
-	  try
-	    {
-	      solver.solve(stokes_matrix.block(0,0), dst.block(0), utmp,
-			   a_preconditioner);
-	      n_iterations_A_ += solver_control.last_step();
-	    }
-	    // if the solver fails, report the error from processor 0 with some additional
-	    // information about its location, and throw a quiet exception on all other
-	    // processors
-	    catch (const SolverControl::NoConvergence &exc)
-	      {
-		if (Utilities::MPI::this_mpi_process(src.block(0).get_mpi_communicator()) == 0)
-		  AssertThrow (false,
-			  ExcMessage (std::string("The iterative solver in BlockSchurPreconditioner::vmult "
-						  "did not converge. It reported the following error:\n\n")
-				      +
-				      exc.what()))
-		else
-		  throw QuietException();
-	      }	  
+          try
+            {
+              solver.solve(stokes_matrix.block(0,0), dst.block(0), utmp,
+                           a_preconditioner);
+              n_iterations_A_ += solver_control.last_step();
+            }
+          // if the solver fails, report the error from processor 0 with some additional
+          // information about its location, and throw a quiet exception on all other
+          // processors
+          catch (const SolverControl::NoConvergence &exc)
+            {
+              if (Utilities::MPI::this_mpi_process(src.block(0).get_mpi_communicator()) == 0)
+                AssertThrow (false,
+                             ExcMessage (std::string("The iterative (top left) solver in BlockSchurPreconditioner::vmult "
+                                                     "did not converge. It reported the following error:\n\n")
+                                         +
+                                         exc.what()))
+                else
+                  throw QuietException();
+            }
         }
       else
         {
@@ -391,6 +397,8 @@ namespace aspect
       introspection.index_sets.system_partitioning[block_idx],
       mpi_communicator);
 
+    current_constraints.set_zero(distributed_solution);
+
     // Compute the residual before we solve and return this at the end.
     // This is used in the nonlinear solver.
     const double initial_residual = system_matrix.block(block_idx,block_idx).residual
@@ -399,33 +407,32 @@ namespace aspect
                                      system_rhs.block(block_idx));
 
     // solve the linear system:
-    current_constraints.set_zero(distributed_solution);
     try
       {
-	solver.solve (system_matrix.block(block_idx,block_idx),
-		      distributed_solution.block(block_idx),
-		      system_rhs.block(block_idx),
-		      (advection_field.is_temperature()
-		       ?
-		       *T_preconditioner
-		       :
-		       *C_preconditioner));
+        solver.solve (system_matrix.block(block_idx,block_idx),
+                      distributed_solution.block(block_idx),
+                      system_rhs.block(block_idx),
+                      (advection_field.is_temperature()
+                       ?
+                       *T_preconditioner
+                       :
+                       *C_preconditioner));
       }
     // if the solver fails, report the error from processor 0 with some additional
     // information about its location, and throw a quiet exception on all other
     // processors
     catch (const SolverControl::NoConvergence &exc)
       {
-	if (Utilities::MPI::this_mpi_process(mpi_communicator) == 0)
-	  AssertThrow (false,
-		  ExcMessage (std::string("The iterative advection solver "
-					  "did not converge. It reported the following error:\n\n")
-			      +
-			      exc.what()))
-	else
-	  throw QuietException();
+        if (Utilities::MPI::this_mpi_process(mpi_communicator) == 0)
+          AssertThrow (false,
+                       ExcMessage (std::string("The iterative advection solver "
+                                               "did not converge. It reported the following error:\n\n")
+                                   +
+                                   exc.what()))
+          else
+            throw QuietException();
       }
-    
+
     current_constraints.distribute (distributed_solution);
     solution.block(block_idx) = distributed_solution.block(block_idx);
 
@@ -485,16 +492,16 @@ namespace aspect
           }
         distributed_stokes_solution.compress(VectorOperation::insert);
 
-        if (material_model->is_compressible ())
+        if (do_pressure_rhs_compatibility_modification)
           make_pressure_rhs_compatible(system_rhs);
 
         // we need a temporary vector for the residual (even if we don't care about it)
         LinearAlgebra::Vector residual (introspection.index_sets.stokes_partitioning[0], mpi_communicator);
 
         const double initial_residual = system_matrix.block(0,0).residual(
-            residual,
-            distributed_stokes_solution.block(0),
-            system_rhs.block(0));
+                                          residual,
+                                          distributed_stokes_solution.block(0),
+                                          system_rhs.block(0));
 
         SolverControl cn;
         // TODO: can we re-use the direct solver?
@@ -503,27 +510,27 @@ namespace aspect
 #else
         TrilinosWrappers::SolverDirect solver(cn);
 #endif
-	try
-	  {
-	    solver.solve(system_matrix.block(0,0),
-			 distributed_stokes_solution.block(0),
-			 system_rhs.block(0));
-	  }
-	// if the solver fails, report the error from processor 0 with some additional
-	// information about its location, and throw a quiet exception on all other
-	// processors
-	catch (const std::exception &exc)
-	  {
-	    if (Utilities::MPI::this_mpi_process(mpi_communicator) == 0)
-	      AssertThrow (false,
-		      ExcMessage (std::string("The direct Stokes solver "
-					      "did not succeed. It reported the following error:\n\n")
-				  +
-				  exc.what()))
-	    else
-	      throw QuietException();
-	  }
-	
+        try
+          {
+            solver.solve(system_matrix.block(0,0),
+                         distributed_stokes_solution.block(0),
+                         system_rhs.block(0));
+          }
+        // if the solver fails, report the error from processor 0 with some additional
+        // information about its location, and throw a quiet exception on all other
+        // processors
+        catch (const std::exception &exc)
+          {
+            if (Utilities::MPI::this_mpi_process(mpi_communicator) == 0)
+              AssertThrow (false,
+                           ExcMessage (std::string("The direct Stokes solver "
+                                                   "did not succeed. It reported the following error:\n\n")
+                                       +
+                                       exc.what()))
+              else
+                throw QuietException();
+          }
+
 
         current_constraints.distribute (distributed_stokes_solution);
 
@@ -582,7 +589,7 @@ namespace aspect
     // if the model is compressible then we need to adjust the right hand
     // side of the equation to make it compatible with the matrix on the
     // left
-    if (material_model->is_compressible ())
+    if (do_pressure_rhs_compatibility_modification)
       make_pressure_rhs_compatible(system_rhs);
 
     // (ab)use the distributed solution vector to temporarily put a residual in
@@ -649,10 +656,10 @@ namespace aspect
         solver(solver_control_cheap, mem,
                SolverFGMRES<LinearAlgebra::BlockVector>::
                AdditionalData(30, true));
-	solver.solve (stokes_block,
-		      distributed_stokes_solution,
-		      distributed_stokes_rhs,
-		      preconditioner);
+        solver.solve (stokes_block,
+                      distributed_stokes_solution,
+                      distributed_stokes_rhs,
+                      preconditioner);
 
         its_A += preconditioner.n_iterations_A();
         its_S += preconditioner.n_iterations_S();
@@ -673,29 +680,29 @@ namespace aspect
                SolverFGMRES<LinearAlgebra::BlockVector>::
                AdditionalData(50, true));
 
-	try
-	  {
-	    solver.solve(stokes_block,
-			 distributed_stokes_solution,
-			 distributed_stokes_rhs,
-			 preconditioner);
-	  }
-	// if the solver fails, report the error from processor 0 with some additional
-	// information about its location, and throw a quiet exception on all other
-	// processors
-	catch (const SolverControl::NoConvergence &exc)
-	  {
-	    if (Utilities::MPI::this_mpi_process(mpi_communicator) == 0)
-	      AssertThrow (false,
-		      ExcMessage (std::string("The iterative Stokes solver "
-					      "did not converge. It reported the following error:\n\n")
-				  +
-				  exc.what()))
-	    else
-	      throw QuietException();
-	  }
-	
-	
+        try
+          {
+            solver.solve(stokes_block,
+                         distributed_stokes_solution,
+                         distributed_stokes_rhs,
+                         preconditioner);
+          }
+        // if the solver fails, report the error from processor 0 with some additional
+        // information about its location, and throw a quiet exception on all other
+        // processors
+        catch (const SolverControl::NoConvergence &exc)
+          {
+            if (Utilities::MPI::this_mpi_process(mpi_communicator) == 0)
+              AssertThrow (false,
+                           ExcMessage (std::string("The iterative Stokes solver "
+                                                   "did not converge. It reported the following error:\n\n")
+                                       +
+                                       exc.what()))
+              else
+                throw QuietException();
+          }
+
+
         its_A += preconditioner.n_iterations_A();
         its_S += preconditioner.n_iterations_S();
       }

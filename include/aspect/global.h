@@ -84,7 +84,7 @@ namespace aspect
    */
   class QuietException {};
 
-  
+
   /**
    * A namespace that contains typedefs for classes used in the linear algebra
    * description.
@@ -209,11 +209,9 @@ void print_aspect_header(Stream &stream)
          << "--     . running in OPTIMIZED mode\n"
 #endif
          << "--     . running with " << n_tasks << " MPI process" << (n_tasks == 1 ? "\n" : "es\n");
-#if (DEAL_II_MAJOR*100 + DEAL_II_MINOR) >= 801
   const int n_threads = dealii::multithread_info.n_threads();
   if (n_threads>1)
     stream << "--     . using " << n_threads << " threads " << (n_tasks == 1 ? "\n" : "each\n");
-#endif
 #ifdef ASPECT_USE_PETSC
   stream << "--     . using PETSc\n";
 #else

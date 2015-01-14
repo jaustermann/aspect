@@ -38,6 +38,11 @@ namespace aspect
 
     template <int dim>
     void
+    Interface<dim>::update ()
+    {}
+
+    template <int dim>
+    void
     Interface<dim>::initialize ()
     {}
 
@@ -94,8 +99,7 @@ namespace aspect
       prm.leave_subsection ();
 
       return std_cxx1x::get<dim>(registered_plugins).create_plugin (model_name,
-                                                                    "Boundary composition model::Model name",
-                                                                    prm);
+                                                                    "Boundary composition model::Model name");
     }
 
 

@@ -25,6 +25,8 @@
 #include <iostream>
 #include <cstring>
 
+
+
 namespace aspect
 {
   namespace InitialConditions
@@ -41,6 +43,13 @@ namespace aspect
                    != 0,
                    ExcMessage ("This initial condition can only be used if the geometry "
                                "is a spherical shell."));
+
+      // this initial condition only makes sense if a boundary temperature
+      // is prescribed. verify that it is indeed
+      AssertThrow (&this->get_boundary_temperature()
+                   != 0,
+                   ExcMessage ("This initial condition can only be used if a boundary "
+                               "temperature is prescribed."));
 
       const double R1 = dynamic_cast<const GeometryModel::SphericalShell<dim>&>
                         (this->get_geometry_model()).outer_radius();
@@ -59,6 +68,8 @@ namespace aspect
          For a plot, see
          http://www.wolframalpha.com/input/?i=plot+%28%282*sqrt%28x^2%2By^2%29-1%29%2B0.2*%282*sqrt%28x^2%2By^2%29-1%29*%281-%282*sqrt%28x^2%2By^2%29-1%29%29*sin%286*atan2%28x%2Cy%29%29%29%2C+x%3D-1+to+1%2C+y%3D-1+to+1
       */
+
+
       const double scale = ((dim==3)
                             ?
                             std::max(0.0,
@@ -68,12 +79,57 @@ namespace aspect
       const double phi   = std::atan2(position(0),position(1));
       const double s_mod = s
                            +
-                           0.2 * s * (1-s) * std::sin(6*phi) * scale;
+                           0.2 * s * (1-s) * std::sin(angular_mode*phi +(90 + 2*rotation_offset)*numbers::PI/180 ) * scale;
 
       return (this->get_boundary_temperature().maximal_temperature()*(s_mod)
               +
-              this->get_boundary_temperature().minimal_temperature()*(1e0-s_mod));
+              this->get_boundary_temperature().minimal_temperature()*(1-s_mod));
     }
+
+
+
+    template <int dim>
+    void
+    SphericalHexagonalPerturbation<dim>::declare_parameters (ParameterHandler &prm)
+    {
+      prm.enter_subsection("Initial conditions");
+      {
+        prm.enter_subsection("Spherical hexagonal perturbation");
+        {
+
+          prm.declare_entry ("Angular mode", "6",
+                             Patterns::Integer (),
+                             "The number of convection cells to perturb the system with.");
+
+          prm.declare_entry  ("Rotation offset", "-45",
+                              Patterns::Double (),
+                              "Amount of clockwise rotation in degrees to apply to "
+                              "the perturbations. Default is set to -45 in order "
+                              "to provide backwards compatibility.");
+        }
+        prm.leave_subsection ();
+      }
+      prm.leave_subsection ();
+    }
+
+
+
+    template <int dim>
+    void
+    SphericalHexagonalPerturbation<dim>::parse_parameters (ParameterHandler &prm)
+    {
+      prm.enter_subsection("Initial conditions");
+      {
+        prm.enter_subsection("Spherical hexagonal perturbation");
+        {
+          angular_mode = prm.get_integer ("Angular mode");
+          rotation_offset = prm.get_double  ("Rotation offset");
+        }
+        prm.leave_subsection ();
+      }
+      prm.leave_subsection ();
+    }
+
 
 
     template <int dim>
@@ -109,6 +165,13 @@ namespace aspect
                    != 0,
                    ExcMessage ("This initial condition can only be used if the geometry "
                                "is a spherical shell."));
+
+      // this initial condition only makes sense if a boundary temperature
+      // is prescribed. verify that it is indeed
+      AssertThrow (&this->get_boundary_temperature()
+                   != 0,
+                   ExcMessage ("This initial condition can only be used if a boundary "
+                               "temperature is prescribed."));
       const double
       R0 = dynamic_cast<const GeometryModel::SphericalShell<dim>&> (this->get_geometry_model()).inner_radius(),
       R1 = dynamic_cast<const GeometryModel::SphericalShell<dim>&> (this->get_geometry_model()).outer_radius();
@@ -166,6 +229,7 @@ namespace aspect
     }
 
 
+
     template <int dim>
     void
     SphericalGaussianPerturbation<dim>::declare_parameters (ParameterHandler &prm)
@@ -201,7 +265,6 @@ namespace aspect
       prm.leave_subsection ();
     }
 
-
     template <int dim>
     void
     SphericalGaussianPerturbation<dim>::parse_parameters (ParameterHandler &prm)
@@ -232,9 +295,10 @@ namespace aspect
     ASPECT_REGISTER_INITIAL_CONDITIONS(SphericalHexagonalPerturbation,
                                        "spherical hexagonal perturbation",
                                        "An initial temperature field in which the temperature "
-                                       "is perturbed following a six-fold pattern in angular "
+                                       "is perturbed following an $N$-fold pattern in a specified "
                                        "direction from an otherwise spherically symmetric "
-                                       "state.")
+                                       "state. The class's name comes from previous versions "
+                                       "when the only option was $N=6$.")
 
     ASPECT_REGISTER_INITIAL_CONDITIONS(SphericalGaussianPerturbation,
                                        "spherical gaussian perturbation",

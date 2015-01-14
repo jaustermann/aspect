@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2014 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2015 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -1027,8 +1027,18 @@ namespace aspect
     Amg_data.constant_modes = constant_modes;
     Amg_data.elliptic = true;
     Amg_data.higher_order_elements = true;
+
+    // set the AMG parameters in a way that minimizes the run
+    // time. compared to some of the deal.II tutorial programs, we
+    // found that it pays off to set the aggregration threshold to
+    // zero, especially for ill-conditioned problems with large
+    // variations in the viscosity
+    //
+    // for extensive benchmarking of various settings of these
+    // parameters and others, see
+    // https://github.com/geodynamics/aspect/pull/234
     Amg_data.smoother_sweeps = 2;
-    Amg_data.aggregation_threshold = 0.02;
+    Amg_data.aggregation_threshold = 0.001;
 #endif
 
     /*  The stabilization term for the free surface (Kaus et. al., 2010)
@@ -1342,9 +1352,16 @@ namespace aspect
           0)
          +
          // add the term from adiabatic compression heating
-         //   - drho/dT T (u . g)
+	 //   + alpha T (u . nabla p)
          // where we use the definition of
          //   alpha = - 1/rho drho/dT
+	 // Note: this term is often simplified using the relationship
+	 //   rho g = -nabla p
+	 // to yield
+	 //   - alpha rho T (u . g)
+	 // However, we do not use this simplification here, see the
+	 // comment in the manual in the section on the governing
+	 // equations
          (parameters.include_adiabatic_heating
           ?
           (current_u * current_grad_p) * alpha * current_T

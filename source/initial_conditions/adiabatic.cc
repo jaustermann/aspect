@@ -40,18 +40,35 @@ namespace aspect
       const double age_bottom = (this->convert_output_to_years() ? age_bottom_boundary_layer * year_in_seconds
                                  : age_bottom_boundary_layer);
 
-      // first, get the temperature at the top and bottom boundary of the model
-      const double T_surface = this->get_boundary_temperature().minimal_temperature(
-                                 this->get_fixed_temperature_boundary_indicators());
-      const double T_bottom = this->get_boundary_temperature().maximal_temperature(
-                                this->get_fixed_temperature_boundary_indicators());
-
-      // then, get the temperature of the adiabatic profile at a representative
+      // First, get the temperature of the adiabatic profile at a representative
       // point at the top and bottom boundary of the model
+      // if adiabatic heating is switched off, assume a constant profile
       const Point<dim> surface_point = this->get_geometry_model().representative_point(0.0);
       const Point<dim> bottom_point = this->get_geometry_model().representative_point(this->get_geometry_model().maximal_depth());
       const double adiabatic_surface_temperature = this->get_adiabatic_conditions().temperature(surface_point);
-      const double adiabatic_bottom_temperature = this->get_adiabatic_conditions().temperature(bottom_point);
+      const double adiabatic_bottom_temperature = (this->include_adiabatic_heating())
+                                                  ?
+                                                  this->get_adiabatic_conditions().temperature(bottom_point)
+                                                  :
+                                                  adiabatic_surface_temperature;
+
+      // then, get the temperature at the top and bottom boundary of the model
+      // if no boundary temperature is prescribed simply use the adiabatic.
+      // This implementation assumes that the top and bottom boundaries have
+      // prescribed temperatures and minimal_temperature() returns the value
+      // at the surface and maximal_temperature() the value at the bottom.
+      const double T_surface = (&this->get_boundary_temperature() != 0)
+                               ?
+                                   this->get_boundary_temperature().minimal_temperature(
+                                       this->get_fixed_temperature_boundary_indicators())
+                               :
+                                   adiabatic_surface_temperature;
+      const double T_bottom = (&this->get_boundary_temperature() != 0)
+                              ?
+                                  this->get_boundary_temperature().maximal_temperature(
+                                      this->get_fixed_temperature_boundary_indicators())
+                              :
+                                  adiabatic_surface_temperature;
 
       // get a representative profile of the compositional fields as an input
       // for the material model
@@ -210,7 +227,9 @@ namespace aspect
                              "The function object in the Function subsection "
                              "represents the compositional fields that will be used as a reference "
                              "profile for calculating the thermal diffusivity. "
-                             "The function depends only on depth.");
+                             "This function is one-dimensional and depends only on depth. The format of this "
+                             "functions follows the syntax understood by the "
+                             "muparser library, see Section~\\ref{sec:muparser-format}.");
           prm.enter_subsection("Function");
           {
             Functions::ParsedFunction<1>::declare_parameters (prm, 1);
@@ -257,9 +276,9 @@ namespace aspect
               catch (...)
                 {
                   std::cerr << "ERROR: FunctionParser failed to parse\n"
-                            << "\t'Initial conditions.Adiabatic.Function'\n"
+                            << "\t<Initial conditions/Adiabatic/Function>\n"
                             << "with expression\n"
-                            << "\t'" << prm.get("Function expression") << "'";
+                            << "\t<" << prm.get("Function expression") << ">";
                   throw;
                 }
 
