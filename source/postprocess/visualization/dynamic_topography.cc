@@ -44,6 +44,8 @@ namespace aspect
         const QMidpoint<dim> quadrature_formula;
         const QMidpoint<dim-1> quadrature_formula_face; 
 
+        Assert(quadrature_formula_face.size()==1, ExcInternalError());
+
         FEValues<dim> fe_values (this->get_mapping(),
                                  this->get_fe(),
                                  quadrature_formula,
@@ -79,12 +81,11 @@ namespace aspect
                 {
                   bool is_at_top = false;
                   for (unsigned int f=0; f<GeometryInfo<dim>::faces_per_cell; ++f)
-                    if (cell->at_boundary(f))
-                      if (this->get_geometry_model().depth (cell->face(f)->center()) < cell->face(f)->minimum_vertex_distance()/3)
-                        {
-                          is_at_top = true;
-                          break;
-                        }
+                    if (cell->at_boundary(f) && this->get_geometry_model().depth (cell->face(f)->center()) < cell->face(f)->minimum_vertex_distance()/3)
+                      {
+                        is_at_top = true;
+                        break;
+                      }
 
                   if (is_at_top == false)
                     {
@@ -153,12 +154,11 @@ namespace aspect
                  // Compute the associated surface area to later compute the surfaces weighted integral
                  double surface = 0;
                  for (unsigned int f = 0; f < GeometryInfo<dim>::faces_per_cell; ++f)
-                   if (cell->at_boundary(f))
-                     if (this->get_geometry_model().depth (cell->face(f)->center()) < cell->face(f)->minimum_vertex_distance()/3)
-                       {
+                   if (cell->at_boundary(f) && this->get_geometry_model().depth (cell->face(f)->center()) < cell->face(f)->minimum_vertex_distance()/3)
+                     {
                        fe_face_values.reinit(cell,f);
                        surface = fe_face_values.JxW(0);
-                       }
+                     }
 
                  integrated_topography += dynamic_topography_total*surface;
                  integrated_surface_area += surface;
