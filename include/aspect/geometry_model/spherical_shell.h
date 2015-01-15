@@ -132,6 +132,9 @@ namespace aspect
         double
         opening_angle () const;
 
+        int
+        sph_ref () const;
+    
       public:
         /**
          * Inner and outer radii of the spherical shell.

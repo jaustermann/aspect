@@ -33,9 +33,10 @@ namespace aspect
 
     namespace internal
     {
-
-      class SphericalHarmonicsLookup;
-      class SplineDepthsLookup;
+       class SphericalHarmonicsLookup;
+       class SplineDepthsLookup;
+       class VsToDensityLookup;
+       class GeothermLookup;
     }
 
     /**
@@ -86,7 +87,11 @@ namespace aspect
          */
         std::string datadirectory;
         std::string spline_depth_file_name;
+<<<<<<< HEAD
 
+=======
+        
+>>>>>>> material_model
         /**
          * This parameter allows setting the input file for the shear-wave perturbation. Options so far
          * are S20RTS.sph and S40RTS.sph. For S40RTS there are different versions available that differ
@@ -95,6 +100,8 @@ namespace aspect
          */
         std::string harmonics_coeffs_file_name;
 
+
+        std::string geotherm_file_name;
         /**
          * The parameters below describe the perturbation of shear wave velocity into a temperatures perturbation
          * The first parameter is constant so far but could be made depth dependent as constraint
@@ -102,6 +109,8 @@ namespace aspect
          * dimensional structure, vertical flow, and heat transfer in the mantle, J. Geophys. Res.
          * 102 (B8), 17,981-17,994.
          */
+
+        std::string vs_to_density_file_name;
         double vs_to_density;
         double thermal_alpha;
 
@@ -111,6 +120,7 @@ namespace aspect
          */
         bool zero_out_degree_0;
 
+        bool read_geotherm_in;
         /**
          * This parameter gives the reference temperature, which will be perturbed. In the compressional case
          * the background temperature will be the adiabat.
@@ -129,6 +139,13 @@ namespace aspect
          */
         std_cxx1x::shared_ptr<internal::SplineDepthsLookup> spline_depths_lookup;
 
+        std_cxx1x::shared_ptr<internal::VsToDensityLookup> vs_to_density_lookup;
+
+        std_cxx1x::shared_ptr<internal::GeothermLookup> geotherm_lookup;
+
+        bool thermal_alpha_constant;
+        bool vs_to_depth_constant;
+        bool constant_temp;
     };
 
   }
