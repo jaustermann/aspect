@@ -40,7 +40,7 @@ namespace aspect
                const Point<dim> &position) const
     {
       const double depth = this->get_geometry_model().depth(position);
-      double visc = 0.;
+      double visc;
 
       if (depth <= 90000)
          visc = 1e26;

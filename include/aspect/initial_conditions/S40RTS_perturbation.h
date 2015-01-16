@@ -87,11 +87,7 @@ namespace aspect
          */
         std::string datadirectory;
         std::string spline_depth_file_name;
-<<<<<<< HEAD
-
-=======
         
->>>>>>> material_model
         /**
          * This parameter allows setting the input file for the shear-wave perturbation. Options so far
          * are S20RTS.sph and S40RTS.sph. For S40RTS there are different versions available that differ

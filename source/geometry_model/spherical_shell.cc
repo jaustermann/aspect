@@ -277,12 +277,6 @@ namespace aspect
     }
 
     template <int dim>
-    int SphericalShell<dim>::sph_ref () const
-    {
-      return refinement;
-    }
-
-    template <int dim>
     void
     SphericalShell<dim>::declare_parameters (ParameterHandler &prm)
     {
