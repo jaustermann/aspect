@@ -6,6 +6,34 @@
  *
  *
  * <ol>
+ * <li> The default for the number of zones in "depth average" got reduced
+ * from 100 to 10. A large number of zones causes erroneous output on coarse
+ * meshes.
+ * <br>
+ * (Timo Heister, 2015/01/19)
+ *
+ * <li> New: ASPECT now uses meshes for the spherical shell where each node is
+ * placed on concentric shells. Previously, upon mesh refinement, new vertices
+ * were placed at an averaged location of the vertices of the mother cell,
+ * leading to a certain degree of distortion of cells. It also led to a
+ * situation where not all cells are equally shaped due to this
+ * distortion. The new mesh, in contrast, is completely
+ * symmetric. Addtionally, a higher order mapping to represent curved faces is
+ * now also used for the interior cells using the manifold description of the
+ * shell/sphere.
+ * <br>
+ * (Wolfgang Bangerth, Timo Heister, 2015/01/16)
+ *
+ * <li> New: GeometryModel::has_curved_elements() will allow for optimizations
+ * if all boundaries (and manifold description) are straight.
+ * <br>
+ * (Timo Heister, 2015/01/16)
+ *
+ * <li> Fixed: the inner solvers for the Stokes block preconditioner now start
+ * with a zero initial guess. This should make the solvers more robust.
+ * <br>
+ * (Timo Heister, 2015/01/16)
+ *
  * <li> ASPECT now requires deal.II version 8.2 or later.
  * <br>
  * (Timo Heister, 2015/01/13)
@@ -29,7 +57,6 @@
  * output time step will produce output. Old checkpoint files will continue
  * to work, only with a possible short gap in visualization output right
  * after restart.
- * 
  * <br>
  * (Rene Gassmoeller, 2014/12/03)
  *

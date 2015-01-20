@@ -44,7 +44,7 @@ namespace aspect
                                update_values |
                                update_gradients |
                                update_q_points);
- 
+
       FEFaceValues<dim> fe_face_values (this->get_mapping(),
                                         this->get_fe(),
                                         quadrature_formula_face,
@@ -79,10 +79,10 @@ namespace aspect
                 bool is_at_top = false;
                 for (unsigned int f=0; f<GeometryInfo<dim>::faces_per_cell; ++f)
                   if (cell->at_boundary(f) && this->get_geometry_model().depth (cell->face(f)->center()) < cell->face(f)->minimum_vertex_distance()/3)
-                    {
-                      is_at_top = true;
-                      break;
-                    }
+                      {
+                        is_at_top = true;
+                        break;
+                      }
 
                 if (is_at_top == false)
                   continue;
@@ -120,11 +120,13 @@ namespace aspect
               
               double dynamic_topography_x_volume = 0;
               double volume = 0;
-              Point<dim> location;
 
+              // Compute the integral of the dynamic topography function 
+              // over the entire cell, by looping over all quadrature points 
+              // (currently, there is only one, but the code is generic).
               for (unsigned int q=0; q<quadrature_formula.size(); ++q)
                 {
-                  location = fe_values.quadrature_point(q);
+                  Point<dim> location = fe_values.quadrature_point(q);
                   const double viscosity = out.viscosities[q];
                   const double density   = out.densities[q];
 
@@ -145,20 +147,22 @@ namespace aspect
                  volume += fe_values.JxW(q);  
                }
                
-               const double dynamic_topography_total = dynamic_topography_x_volume / volume;
+               const double dynamic_topography_cell_average = dynamic_topography_x_volume / volume;
                // Compute the associated surface area to later compute the surfaces weighted integral
-               double surface = 0;  
+               double surface;
+               Point<dim> midpoint_at_surface;  
                for (unsigned int f = 0; f < GeometryInfo<dim>::faces_per_cell; ++f)
                  if (cell->at_boundary(f) && this->get_geometry_model().depth (cell->face(f)->center()) < cell->face(f)->minimum_vertex_distance()/3)
-                   {
+                     {
                      fe_face_values.reinit(cell,f);
                      surface = fe_face_values.JxW(0);
-                   }
+                     midpoint_at_surface = cell->face(f)->center(); 
+                     }
 
-               integrated_topography += dynamic_topography_total*surface;
+               integrated_topography += dynamic_topography_cell_average*surface;
                integrated_surface_area += surface;
 
-               stored_values.push_back (std::make_pair(location, dynamic_topography_total));
+               stored_values.push_back (std::make_pair(midpoint_at_surface, dynamic_topography_cell_average));
             }
 
       // Calculate surface weighted average dynamic topography
