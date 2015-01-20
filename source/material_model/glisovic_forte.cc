@@ -254,7 +254,10 @@ namespace aspect
     GlisovicForte<dim>::
     reference_thermal_diffusivity () const
     {
-      return k_value/(reference_rho*reference_specific_heat);
+      if(thermal_diff_off == true)
+        return 0;
+      else 
+        return k_value/(reference_rho*reference_specific_heat);
     }
 
     template <int dim>
@@ -540,6 +543,10 @@ namespace aspect
           prm.declare_entry ("Thermal expansion constant", "false",
                              Patterns::Bool(),
                              "Switch to leave the thermal expansion constant.");
+          prm.declare_entry ("Thermal diffusivity zero", "false",
+                             Patterns::Bool(),
+                             "Switch to set the thermal diffusivity to zero for the "
+                             "purpose of simulating backward advection.");
         }
         prm.leave_subsection();
       }
@@ -579,6 +586,7 @@ namespace aspect
           thermal_cond_constant        = prm.get_bool ("Thermal conductivity constant");
           reference_rho_constant       = prm.get_bool ("Reference density constant");
           thermal_alpha_constant       = prm.get_bool ("Thermal expansion constant");
+          thermal_diff_off             = prm.get_bool ("Thermal diffusivity zero");
         }
         prm.leave_subsection();
       }
