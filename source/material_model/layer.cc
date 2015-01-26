@@ -43,11 +43,11 @@ namespace aspect
       double visc;
 
       if (depth <= 90000)
-         visc = 1e26;
-      else if (depth > 90000 && depth <= 670000)
-         visc = 0.5e21;
+         visc = visc_lith;
+      if (depth <= 670000)
+         visc = visc_um;
       else
-         visc = 5e21;
+         visc = visc_lm;
 
       return visc;
       
@@ -234,6 +234,18 @@ namespace aspect
                              Patterns::Double (0),
                              "The value of the thermal expansion coefficient $\\beta$. "
                              "Units: $1/K$.");
+          prm.declare_entry ("Viscosity of the lithosphere", "1e21",
+                             Patterns::Double (0),
+                             "The value of viscosity for the lithospere, which is "
+                             "assigned to be the uppermost 90km.");
+          prm.declare_entry ("Viscosity of the upper mantle", "1e21",
+                             Patterns::Double (0),
+                             "The value of viscosity for the upper mantle, which is "
+                             "assigned to be between 90km and 660km.");
+          prm.declare_entry ("Viscosity of the lower mantle", "1e21",
+                             Patterns::Double (0),
+                             "The value of viscosity for the lower mantle, which is "
+                             "assigned to be below 660km.");
         }
         prm.leave_subsection();
       }
@@ -256,7 +268,9 @@ namespace aspect
           k_value                    = prm.get_double ("Thermal conductivity");
           reference_specific_heat    = prm.get_double ("Reference specific heat");
           thermal_alpha              = prm.get_double ("Thermal expansion coefficient");
-
+          visc_lith                  = prm.get_double ("Viscosity of the lithosphere");
+          visc_um                    = prm.get_double ("Viscosity of the upper mantle");
+          visc_lm                    = prm.get_double ("Viscosity of the lower mantle");
         }
         prm.leave_subsection();
       }

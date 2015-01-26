@@ -458,13 +458,30 @@ namespace aspect
      // vs_to_density is an input parameter
      const double depth = this->get_geometry_model().depth(position);
 
-     const double dens_scaling = 
-                  (vs_to_depth_constant
-                   ?
-                   vs_to_density
-                   :
-                   vs_to_density_lookup -> vstodensity_scaling(depth));
+     double vs_to_density_depth;
+      if (depth <= 660000)
+        vs_to_density_depth = 0;
+      else if (depth <= 1500000)
+        vs_to_density_depth = 0.1;
+      else if (depth <= 2500000)
+        vs_to_density_depth = 0.2;
+      else
+        vs_to_density_depth = -0.2;
 
+     vs_to_density_depth *= 1.97;
+
+     double dens_scaling;
+     if (vs_to_depth_constant == true)
+       dens_scaling = vs_to_density;
+     else if (vs_to_density_S4 == true)
+       dens_scaling = vs_to_density_depth;
+     else
+       dens_scaling = vs_to_density_lookup -> vstodensity_scaling(depth);
+
+     if (take_upper_660km_out == true)
+       if (depth <= 660000)
+         dens_scaling = 0;
+     
      const double density_perturbation = dens_scaling * perturbation;
 
      //get thermal alpha
@@ -900,6 +917,13 @@ namespace aspect
                              Patterns::Bool(),
                              "Switch to make the background temp. constant. Good to check "
                              "initial perturbation.");
+          prm.declare_entry ("vs to density scaling S4", "false",
+                             Patterns::Bool(),
+                             "Switch to choose Gurnis S4 model.");
+          prm.declare_entry ("Zero out heterogeneity within 660km of surface", "false",
+                             Patterns::Bool(),
+                             "Switch to zero out density heterogeneities in upper "
+                             "660km of Earth's mantle.");
         }
         prm.leave_subsection ();
       }
@@ -937,6 +961,8 @@ namespace aspect
           thermal_alpha_constant  = prm.get_bool ("Thermal expansion constant");
           vs_to_depth_constant    = prm.get_bool ("Vs to density scaling constant");
           constant_temp           = prm.get_bool ("Constant background temperature");
+          vs_to_density_S4          = prm.get_bool ("vs to density scaling S4");
+          take_upper_660km_out    = prm.get_bool ("Zero out heterogeneity within 660km of surface");
         }
         prm.leave_subsection ();
       }

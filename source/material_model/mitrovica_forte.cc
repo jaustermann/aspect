@@ -135,23 +135,24 @@ namespace aspect
     {
       const double depth = this->get_geometry_model().depth(position);
 
-      const unsigned int idx = static_cast<unsigned int>((avg_temp.size()-1) * depth / this->get_geometry_model().maximal_depth());
-      const double delta_temperature = temperature-avg_temp[idx];
+      // For now limit viscosity model to only vary with depth. 
+
+      //const unsigned int idx = static_cast<unsigned int>((avg_temp.size()-1) * depth / this->get_geometry_model().maximal_depth());
+      //const double delta_temperature = temperature-avg_temp[idx];
 
       // If you want the adiabatic temperature as your reference temp.
       // const double adiabatic_temperature = this->get_adiabatic_conditions().temperature(position);
       // double delta_temperature = temperature-adiabatic_temperature;
 
       // Scaling from temperature to viscosity
-      const double vis_lateral_exp = - temp_to_visc * delta_temperature;
+      //const double vis_lateral_exp = - temp_to_visc * delta_temperature;
      
       // Limit the lateral viscosity variation to a reasonable interval
-      const double vis_lateral = std::max(std::min(std::exp(vis_lateral_exp),max_lateral_eta_variation),1/max_lateral_eta_variation);
+      //const double vis_lateral = std::max(std::min(std::exp(vis_lateral_exp),max_lateral_eta_variation),1/max_lateral_eta_variation);
 
       // Get radial viscosity
       const double vis_radial = radial_viscosity_lookup->radial_viscosity(depth);
       const double eta = vis_radial;
-      // NEED TO MAKE SURE THAT AVERAGE IS DEPTH RADIAL PROFILE ??!!
       //const double eta = std::max(std::min(vis_lateral * vis_radial,max_eta),min_eta);
       return eta;
     }
@@ -509,7 +510,7 @@ namespace aspect
                              "in which the ASPECT source files were located when ASPECT was "
                              "compiled. This interpretation allows, for example, to reference "
                              "files located in the 'data/' subdirectory of ASPECT. ");
-          prm.declare_entry("Radial viscosity file name", "rad_viscosity_MF.txt",
+          prm.declare_entry("Radial viscosity file name", "Gurnis_Z50.txt",
           //prm.declare_entry ("Radial viscosity file name", "rad_viscosity-source-data.txt",
                              Patterns::Anything (),
                              "The file name of the radial viscosity data. ");  

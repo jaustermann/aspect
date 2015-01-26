@@ -148,6 +148,7 @@ namespace aspect
         bool thermal_alpha_constant;
         bool vs_to_depth_constant;
         bool constant_temp;
+        bool take_upper_200km_out;
     };
 
   }

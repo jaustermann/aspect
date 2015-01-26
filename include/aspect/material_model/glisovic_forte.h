@@ -273,6 +273,7 @@ namespace aspect
         bool reference_rho_constant;
         bool thermal_alpha_constant;
         bool thermal_diff_off;
+        bool adiabat_temp;
     };
 
   }

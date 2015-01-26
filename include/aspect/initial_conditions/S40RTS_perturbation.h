@@ -142,6 +142,8 @@ namespace aspect
         bool thermal_alpha_constant;
         bool vs_to_depth_constant;
         bool constant_temp;
+        bool vs_to_density_S4;
+        bool take_upper_660km_out;
     };
 
   }

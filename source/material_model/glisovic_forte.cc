@@ -353,11 +353,15 @@ namespace aspect
  
        // Again calculate termperature in reference to average not adiabatic (questionable if correct)
        // do we need to make sure the depth average is actually PREM?
-       unsigned int idx = static_cast<unsigned int>((avg_temp.size()-1) * depth / this->get_geometry_model().maximal_depth());
 
-       rho *= (1 - thermal_alpha_val * (temperature - avg_temp[idx]));
-       //rho *= (1 - thermal_alpha * (temperature - this->get_adiabatic_conditions().temperature(position)));
-    
+       if (adiabat_temp == true)
+         rho *= (1 - thermal_alpha_val * (temperature - this->get_adiabatic_conditions().temperature(position)));
+       else
+         {
+          unsigned int idx = static_cast<unsigned int>((avg_temp.size()-1) * depth / this->get_geometry_model().maximal_depth());
+          rho *= (1 - thermal_alpha_val * (temperature - avg_temp[idx]));
+         }
+
        return rho;
     }
 
@@ -547,6 +551,10 @@ namespace aspect
                              Patterns::Bool(),
                              "Switch to set the thermal diffusivity to zero for the "
                              "purpose of simulating backward advection.");
+          prm.declare_entry ("Use adiabat as background temperature","true",
+                             Patterns::Bool(),
+                             "Calculate density perturbations relative to the adiabatic "
+                             "background temperature rather than a depth average temperature.");
         }
         prm.leave_subsection();
       }
@@ -587,6 +595,7 @@ namespace aspect
           reference_rho_constant       = prm.get_bool ("Reference density constant");
           thermal_alpha_constant       = prm.get_bool ("Thermal expansion constant");
           thermal_diff_off             = prm.get_bool ("Thermal diffusivity zero");
+          adiabat_temp                 = prm.get_bool ("Use adiabat as background temperature");
         }
         prm.leave_subsection();
       }

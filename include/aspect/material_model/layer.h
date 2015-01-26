@@ -185,7 +185,9 @@ namespace aspect
         double eta;
         double thermal_alpha;
         double reference_specific_heat;
-
+        double visc_lith;
+        double visc_um;
+        double visc_lm;
         /**
          * The thermal conductivity.
          */

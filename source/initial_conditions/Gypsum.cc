@@ -277,10 +277,10 @@ namespace aspect
      int y2 = ceil(theta);
 
      std::vector<int> index_lonlat (4,0);
-     index_lonlat[1] = (x1+180) + 361*(y1 + 90);
-     index_lonlat[2] = (x2+180) + 361*(y1 + 90);
-     index_lonlat[3] = (x1+180) + 361*(y2 + 90);
-     index_lonlat[4] = (x2+180) + 361*(y2 + 90);
+     index_lonlat[0] = (x1+180) + 361*(y1 + 90);
+     index_lonlat[1] = (x2+180) + 361*(y1 + 90);
+     index_lonlat[2] = (x1+180) + 361*(y2 + 90);
+     index_lonlat[3] = (x2+180) + 361*(y2 + 90);
 
      const std::vector<double>  coeffs = gypsum_lookup->shear_values();
 
@@ -296,10 +296,10 @@ namespace aspect
      
 
      // bilinear interpolation from http://en.wikipedia.org/wiki/Bilinear_interpolation
-     const double Q11 = shear_pert[depth_index][index_lonlat[1]];
-     const double Q21 = shear_pert[depth_index][index_lonlat[2]];
-     const double Q12 = shear_pert[depth_index][index_lonlat[3]];
-     const double Q22 = shear_pert[depth_index][index_lonlat[4]];
+     const double Q11 = shear_pert[depth_index][index_lonlat[0]];
+     const double Q21 = shear_pert[depth_index][index_lonlat[1]];
+     const double Q12 = shear_pert[depth_index][index_lonlat[2]];
+     const double Q22 = shear_pert[depth_index][index_lonlat[3]];
 
      // The last term (0.01) is necessary to convert percent perturbations to absolute values
      const double perturbation = 1/((x2-x1) * (y2-y1)) *
@@ -314,12 +314,17 @@ namespace aspect
      // depth already asigned earlier
      // const double depth = this->get_geometry_model().depth(position);
 
-     const double dens_scaling = 
+     double dens_scaling = 
                   (vs_to_depth_constant
                    ?
                    vs_to_density
                    :
                    vs_to_density_lookup -> vstodensity_scaling(depth));
+
+
+     if (take_upper_200km_out == true)
+       if (depth <= 200000)
+          dens_scaling = 0;
 
      const double density_perturbation = dens_scaling * perturbation;
 
@@ -502,6 +507,10 @@ namespace aspect
                              Patterns::Bool(),
                              "Switch to make the background temp. constant. Good to check "
                              "initial perturbation.");
+          prm.declare_entry ("Zero out heterogeneity within 200km of surface", "false",
+                             Patterns::Bool(),
+                             "Switch to zero out density heterogeneities in upper "
+                             "200km of Earth's mantle.");
         }
         prm.leave_subsection ();
       }
@@ -537,6 +546,7 @@ namespace aspect
           thermal_alpha_constant  = prm.get_bool ("Thermal expansion constant");
           vs_to_depth_constant    = prm.get_bool ("Vs to density scaling constant");
           constant_temp           = prm.get_bool ("Constant background temperature");
+          take_upper_200km_out    = prm.get_bool ("Zero out heterogeneity within 200km of surface");
         }
         prm.leave_subsection ();
       }
