@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2014 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2015 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -195,6 +195,12 @@ namespace aspect
       return extents[dim-1];
     }
 
+    template <int dim>
+    bool
+    Box<dim>::has_curved_elements() const
+    {
+      return false;
+    }
 
     template <int dim>
     void

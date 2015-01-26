@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2014 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2015 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -153,9 +153,18 @@ namespace aspect
                     Triangulation<dim>::smoothing_on_coarsening),
                    parallel::distributed::Triangulation<dim>::mesh_reconstruction_after_repartitioning),
 
-    //Fourth order mapping doesn't really make sense for free surface calculations, since we detatch the
-    //boundary indicators anyways.
-    mapping (parameters.free_surface_enabled?1:4),
+    //Fourth order mapping doesn't really make sense for free surface
+    //calculations (we disable curved boundaries) or we we only have straight
+    //boundaries. So we either pick MappingQ(4,true) or MappingQ(1,false)
+    mapping (
+      (parameters.free_surface_enabled
+       ||
+       geometry_model->has_curved_elements() == false
+      )?1:4,
+      (parameters.free_surface_enabled
+       ||
+       geometry_model->has_curved_elements() == false
+      )?false:true),
 
     // define the finite element. obviously, what we do here needs
     // to match the data we provide in the Introspection class
@@ -703,7 +712,7 @@ namespace aspect
         }
     }
 
-      // now do the same for the composition variable:
+    // now do the same for the composition variable:
     {
       // If there are fixed boundary compositions,
       // update the composition boundary condition.
