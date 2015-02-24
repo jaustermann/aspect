@@ -20,8 +20,8 @@
 
 
 
-#ifndef __aspect__model_glisovic_forte_h
-#define __aspect__model_glisovic_forte_h
+#ifndef __aspect__model_gurnis_h
+#define __aspect__model_gurnis_h
 
 #include <aspect/material_model/interface.h>
 #include <aspect/simulator_access.h>
@@ -34,7 +34,9 @@ namespace aspect
 
     namespace internal
     {
-      class RadialViscosityLookup;
+       class SphericalHarmonicsLookup;
+       class SplineDepthsLookup;
+       class RadialViscosityLookup;
     }
 
     /**
@@ -48,14 +50,13 @@ namespace aspect
      * @ingroup MaterialModels
      */
     template <int dim>
-    class GlisovicForte : public MaterialModel::InterfaceCompatibility<dim>, public ::aspect::SimulatorAccess<dim>
+    class Gurnis_lat : public MaterialModel::InterfaceCompatibility<dim>, public ::aspect::SimulatorAccess<dim>
     {
      public:
         /**
         * Initialization function. Loads the material data and sets up
         * pointers.
         */
-        virtual
         void
         initialize ();
 
@@ -99,7 +100,6 @@ namespace aspect
                                              const double pressure,
                                              const std::vector<double> &compositional_fields,
                                              const Point<dim> &position) const;
-
         /**
          * @}
          */
@@ -261,22 +261,25 @@ namespace aspect
          */ 
         std::string datadirectory;
         std::string radial_viscosity_file_name;
-
+        std::string harmonics_coeffs_file_name;
+        std::string spline_depth_file_name;
         /**
          * Pointer to an object that reads and processes data for the radial
          * viscosity profile.
          */
         std_cxx1x::shared_ptr<internal::RadialViscosityLookup> radial_viscosity_lookup;
+        std_cxx1x::shared_ptr<internal::SphericalHarmonicsLookup> spherical_harmonics_lookup;
+        std_cxx1x::shared_ptr<internal::SplineDepthsLookup> spline_depths_lookup;
            
-        bool thermal_cond_constant;
-        bool reference_rho_constant;
-        bool thermal_alpha_constant;
-        bool thermal_diff_off;
-        bool adiabat_temp;
-        double vis_lat_cutoff;
+        bool lateral_visc_variations;
+        double reference_temperature;
+        bool zero_out_degree_0;
+        double depth_zero_lat;
+        bool perturbations_regional;
     };
 
   }
 }
 
 #endif
+

@@ -343,10 +343,10 @@ namespace aspect
        temperature = InterpolVal * dT + temperature_perturbation;
       }
  
-     // option to either take simplified geotherm or read one in from file
+ */    // option to either take simplified geotherm or read one in from file
      if(read_geotherm_in == true)
          temperature = geotherm_lookup->geotherm(depth) + temperature_perturbation;
- */
+ 
      
      if(adiabat_temp == true)
          temperature = this->get_adiabatic_conditions().temperature(position) + temperature_perturbation;                                                

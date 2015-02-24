@@ -22,6 +22,7 @@
 
 #include <aspect/material_model/glisovic_forte.h>
 #include <deal.II/base/parameter_handler.h>
+#include <aspect/utilities.h>
 
 using namespace dealii;
 
@@ -129,28 +130,40 @@ namespace aspect
       const double depth = this->get_geometry_model().depth(position);
 
       // Get temperature perturbation relative to average temperature
-      unsigned int idx = static_cast<unsigned int>((avg_temp.size()-1) * depth / this->get_geometry_model().maximal_depth());
+      // unsigned int idx = static_cast<unsigned int>((avg_temp.size()-1) * depth / this->get_geometry_model().maximal_depth());
 
-      const double delta_temperature = temperature-avg_temp[idx];
+      // const double delta_temperature = temperature-avg_temp[idx];
 
       // If you want the adiabatic temperature as your reference temp use the following
-      // const double adiabatic_temperature = this->get_adiabatic_conditions().temperature(position);
-      // double delta_temperature = temperature-adiabatic_temperature;
+      const double adiabatic_temperature = this->get_adiabatic_conditions().temperature(position);
+      double delta_temperature = temperature-adiabatic_temperature;
 
       // Scaling from temperature to viscosity
       const double vis_lateral_exp = - temp_to_visc * delta_temperature;
      
       // Limit the lateral viscosity variation to a reasonable interval
-      const double vis_lateral = std::max(std::min(std::exp(vis_lateral_exp),max_lateral_eta_variation),1/max_lateral_eta_variation);
+      double vis_lateral = std::max(std::min(std::exp(vis_lateral_exp),max_lateral_eta_variation),1/max_lateral_eta_variation);
 
       // Get radial viscosity
       const double vis_radial = radial_viscosity_lookup->radial_viscosity(depth);
 
+
+
+      std_cxx1x::array<double,dim> scoord = aspect::Utilities::spherical_coordinates(position);
+
+      double theta = scoord[2] * 180/numbers::PI;
+      theta -= 90.;
+      theta *= -1.;
+
+      if (theta >= vis_lat_cutoff)
+        vis_lateral = 1;
+
+
       // For now just 1D density profile (no lateral variations in viscosity)
-      const double eta = vis_radial;
+      // const double eta = vis_radial;
       // For lateral variations use the following. Also then make sure that the depth average 
-      // actually the depth dependent viscosity(?)
-      // const double eta = std::max(std::min(vis_lateral * vis_radial,max_eta),min_eta);
+      // actually the depth dependent viscosity(?)     
+      const double eta = std::max(std::min(vis_lateral * vis_radial,max_eta),min_eta);
       return eta;
     }
 
@@ -255,7 +268,7 @@ namespace aspect
     reference_thermal_diffusivity () const
     {
       if(thermal_diff_off == true)
-        return 0;
+        return k_value/(reference_rho*reference_specific_heat)/1000.;
       else 
         return k_value/(reference_rho*reference_specific_heat);
     }
@@ -534,7 +547,7 @@ namespace aspect
                              "The relative cutoff value for lateral viscosity variations "
                              "caused by temperature deviations. The viscosity may vary "
                              "laterally by this factor squared.");
-          prm.declare_entry ("Temperature to viscosity scaling", "0.3",
+          prm.declare_entry ("Temperature to viscosity scaling", "0",
                              Patterns::Double(0),
                              "Scales the lateral variations in temperature into lateral "
                              "variations in viscosity.");
@@ -555,6 +568,9 @@ namespace aspect
                              Patterns::Bool(),
                              "Calculate density perturbations relative to the adiabatic "
                              "background temperature rather than a depth average temperature.");
+          prm.declare_entry ("Latitude cutoff for lateral variations in viscosity","-45.0",
+                             Patterns::Double(),
+                             "Latitude after which the lateral variations in viscosity are assumerd.");
         }
         prm.leave_subsection();
       }
@@ -596,6 +612,7 @@ namespace aspect
           thermal_alpha_constant       = prm.get_bool ("Thermal expansion constant");
           thermal_diff_off             = prm.get_bool ("Thermal diffusivity zero");
           adiabat_temp                 = prm.get_bool ("Use adiabat as background temperature");
+          vis_lat_cutoff               = prm.get_double ("Latitude cutoff for lateral variations in viscosity");
         }
         prm.leave_subsection();
       }

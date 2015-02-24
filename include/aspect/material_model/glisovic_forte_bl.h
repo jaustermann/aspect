@@ -35,6 +35,7 @@ namespace aspect
     namespace internal
     {
       class RadialViscosityLookup;
+      class GeothermLookup;
     }
 
     /**
@@ -48,7 +49,7 @@ namespace aspect
      * @ingroup MaterialModels
      */
     template <int dim>
-    class GlisovicForte : public MaterialModel::InterfaceCompatibility<dim>, public ::aspect::SimulatorAccess<dim>
+    class GlisovicForteBL : public MaterialModel::InterfaceCompatibility<dim>, public ::aspect::SimulatorAccess<dim>
     {
      public:
         /**
@@ -261,12 +262,13 @@ namespace aspect
          */ 
         std::string datadirectory;
         std::string radial_viscosity_file_name;
-
+        std::string geotherm_file_name;
         /**
          * Pointer to an object that reads and processes data for the radial
          * viscosity profile.
          */
         std_cxx1x::shared_ptr<internal::RadialViscosityLookup> radial_viscosity_lookup;
+        std_cxx1x::shared_ptr<internal::GeothermLookup> geotherm_lookup;
            
         bool thermal_cond_constant;
         bool reference_rho_constant;

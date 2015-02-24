@@ -20,10 +20,12 @@
 
 
 #include <aspect/mesh_refinement/topography.h>
+#include <aspect/utilities.h>
 
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/numerics/error_estimator.h>
 #include <deal.II/fe/fe_values.h>
+
 
 namespace aspect
 {
@@ -31,8 +33,8 @@ namespace aspect
   {
     template <int dim>
     void
-    UpperMantle<dim>::execute(Vector<float> &indicators) const
-    {
+    Antarctica<dim>::execute(Vector<float> &indicators) const
+    { 
       // For calculating surface topography in the respective postprocessor
       // we use the pressure in the middle of the cell. Thus, to get an
       // accurate result, all the cells at the upper boundary should have
@@ -59,40 +61,21 @@ namespace aspect
       endc = this->get_dof_handler().end();
       unsigned int i=0;
 
-/*      // Find volume of surface cell
-      double vol_surface_cell;
-      for (; cell!=endc; ++cell, ++i)
-        if (cell->is_locally_owned())
-          if (cell->at_boundary())
-          { 
-            for (unsigned int f=0; f<GeometryInfo<dim>::faces_per_cell; ++f)
-               if (cell->at_boundary(f) && this->get_geometry_model().depth (cell->face(f)->center()) < cell->face(f)->minimum_vertex_distance()/3) 
-                  {
-                    vol_surface_cell = fe_values.JxW(0);
-                    break;
-                  }
-             break;
-           }
-
-      const double ref_depth = std::pow(vol_surface_cell, 1/3.) * 4.0;
-*/
       const double ref_depth = 1000000;     
+      const double theta_cutoff = -45.0;
 
       for (; cell!=endc; ++cell, ++i)
         if (cell->is_locally_owned())
           { 
             fe_values.reinit (cell);
+            std_cxx1x::array<double,dim> scoord = aspect::Utilities::spherical_coordinates(fe_values.quadrature_point(0));
+            double theta = scoord[2] * 180/numbers::PI;
+            theta -= 90.;
+            theta *= -1.; 
             const double depth = this->get_geometry_model().depth(fe_values.quadrature_point(0));
-            if (depth <= ref_depth)//1000000)
+            
+            if (depth <= ref_depth && theta < theta_cutoff )//1000000)
               indicators(i) = 1.0;
-         //   else
-         //     indicators(i) = 0.1;
-
-         //   if (depth <= 1125000 && depth > 655)
-         //     indicators(i) = 0.5;
-
-         //   if (cell->at_boundary() && depth < cell->diameter())
-         //     indicators(i) = 1.0;
           }
     }
   }
@@ -103,8 +86,8 @@ namespace aspect
 {
   namespace MeshRefinement
   {
-    ASPECT_REGISTER_MESH_REFINEMENT_CRITERION(UpperMantle,
-                                              "uppermantle",
+    ASPECT_REGISTER_MESH_REFINEMENT_CRITERION(Antarctica,
+                                              "antarctica",
                                               "A class that implements a mesh refinement criterion, which "
                                               "always flags all cells in the uppermost layer for refinement. "
                                               "This is useful to provide high accuracy for processes at or "

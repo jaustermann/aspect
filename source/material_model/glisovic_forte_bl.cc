@@ -20,24 +20,16 @@
 
 
 
-#include <aspect/material_model/gurnis.h>
+#include <aspect/material_model/glisovic_forte_bl.h>
 #include <deal.II/base/parameter_handler.h>
-#include <aspect/geometry_model/spherical_shell.h>
 #include <aspect/utilities.h>
-#include <fstream>
-#include <iostream>
-#include <deal.II/base/std_cxx1x/array.h>
-
-#include <boost/math/special_functions/spherical_harmonic.hpp>
-
 
 using namespace dealii;
 
 namespace aspect
 {
   namespace MaterialModel
-  { 
-    
+  {  
     namespace internal
     {
       class RadialViscosityLookup
@@ -45,6 +37,7 @@ namespace aspect
         public:
           RadialViscosityLookup(const std::string &filename)
           {
+            // read in depth dependent viscosity
             std::string temp;
             std::ifstream in(filename.c_str(), std::ios::in);
             AssertThrow (in,
@@ -53,8 +46,6 @@ namespace aspect
             min_depth=1e20;
             max_depth=-1;
 
-            //getline(in,temp);  //eat first line
-
             while (!in.eof())
               {
                 double visc, depth;
@@ -62,7 +53,6 @@ namespace aspect
                 if (in.eof())
                   break;
                 in >> depth;
-		//depth *= 6371000; //don't hard code it?
                 depth *=1000.0;
                 getline(in, temp);
 
@@ -72,19 +62,17 @@ namespace aspect
                 values.push_back(visc);
                 depthvalues.push_back(depth);
               }
-           // delta_depth = (max_depth-min_depth)/(values.size()-1);
           }
+
 
        double radial_viscosity(double depth)
           {
-
+            // Do nearest neighbour approach to find which viscosity should be assigned. 
+            // Make sure the viscosity file is set up in a way that this makes sense.
             std::vector<double> depth_diff (values.size(), 0);
-            //depth=std::max(min_depth, depth);
-            //depth=std::min(depth, max_depth);
 
             Assert(depth>=min_depth, ExcMessage("not in range"));
             Assert(depth<=max_depth, ExcMessage("not in range"));
-            //const unsigned int idx = static_cast<unsigned int>((depth-min_depth)/delta_depth);
             
             for (int i = 0; i < values.size(); i++)
                depth_diff[i] = std::abs(depthvalues[i] - depth);
@@ -106,27 +94,89 @@ namespace aspect
 	  std::vector<double> depthvalues;
           std::vector<double> values;
           double min_depth;
-          //double delta_depth;
           double max_depth;
 
       };
 
+   class GeothermLookup
+      {
+        public:
+          GeothermLookup(const std::string &filename)
+          {
+            std::string temp;
+            std::ifstream in(filename.c_str(), std::ios::in);
+            AssertThrow (in,
+                         ExcMessage (std::string("Couldn't open file <") + filename));
 
+            min_depth=1e20;
+            max_depth=-1;
+
+            getline(in,temp);  //eat first line
+
+            while (!in.eof())
+              {
+                double val, depth;
+                in >> depth;
+                if (in.eof())
+                  break;
+                in >> val;
+                depth *=1000.0;
+                getline(in, temp);
+
+                min_depth = std::min(depth, min_depth);
+                max_depth = std::max(depth, max_depth);
+
+                values.push_back(val);
+                depthvalues.push_back(depth);
+              }
+          }
+
+double geotherm(double depth)
+          {
+
+            std::vector<double> depth_diff (values.size(), 0);
+
+            Assert(depth>=min_depth, ExcMessage("not in range"));
+            Assert(depth<=max_depth, ExcMessage("not in range"));
+
+            for (int i = 0; i < values.size(); i++)
+               depth_diff[i] = std::abs(depthvalues[i] - depth);
+
+            double depth_val = 1e6;
+            for (int i = 0; i < values.size(); i++)
+               depth_val = std::min(depth_diff[i],depth_val);
+
+            unsigned int idx = values.size();
+            for (int i = 0; i < values.size(); i++)
+               if (depth_val == std::abs(depthvalues[i] - depth))
+                  idx = i;
+
+            Assert(idx<values.size(), ExcMessage("not in range"));
+            return values[idx];
+          }
+
+        private:
+          std::vector<double> depthvalues;
+          std::vector<double> values;
+          double min_depth;
+          double max_depth;
+
+       };
     }
 
     template <int dim>
     void
-    Gurnis<dim>::initialize()
+    GlisovicForteBL<dim>::initialize()
     {
       radial_viscosity_lookup.reset(new internal::RadialViscosityLookup(datadirectory+radial_viscosity_file_name));
-      // calculate average temperature at 100 depth slices. If resolution is increased this value should be set up
       avg_temp.resize(100);
+      geotherm_lookup.reset(new internal::GeothermLookup(datadirectory+geotherm_file_name));
     }
 
 
     template <int dim>
     void
-    Gurnis<dim>::
+    GlisovicForteBL<dim>::
     update()
     {
       this->get_depth_average_temperature(avg_temp);
@@ -135,7 +185,7 @@ namespace aspect
 
     template <int dim>
     double
-    Gurnis<dim>::
+    GlisovicForteBL<dim>::
     viscosity (const double temperature,
                const double /*pressure*/,
                const std::vector<double> &, /*compositional_fields, */
@@ -144,67 +194,41 @@ namespace aspect
     {
       const double depth = this->get_geometry_model().depth(position);
 
-      // For now limit viscosity model to only vary with depth. 
+      // Get temperature perturbation relative to average temperature
+      // unsigned int idx = static_cast<unsigned int>((avg_temp.size()-1) * depth / this->get_geometry_model().maximal_depth());
 
-      //const unsigned int idx = static_cast<unsigned int>((avg_temp.size()-1) * depth / this->get_geometry_model().maximal_depth());
-      //const double delta_temperature = temperature-avg_temp[idx];
+      // const double delta_temperature = temperature-avg_temp[idx];
 
-      // If you want the adiabatic temperature as your reference temp.
-      // const double adiabatic_temperature = this->get_adiabatic_conditions().temperature(position);
-      // double delta_temperature = temperature-adiabatic_temperature;
+      // If you want the adiabatic temperature as your reference temp use the following
+      const double adiabatic_temperature = this->get_adiabatic_conditions().temperature(position);
+      double delta_temperature = temperature-adiabatic_temperature;
 
       // Scaling from temperature to viscosity
-      //const double vis_lateral_exp = - temp_to_visc * delta_temperature;
+      const double vis_lateral_exp = - temp_to_visc * delta_temperature;
      
       // Limit the lateral viscosity variation to a reasonable interval
-      //const double vis_lateral = std::max(std::min(std::exp(vis_lateral_exp),max_lateral_eta_variation),1/max_lateral_eta_variation);
-
-      // Get lateral dependency on vs
-      const double E_activation = 115.075;
-      const double T_0 = 0.5;
-      const double gamma = 1.97;
-      const double eta_star = 2.194e-17;
-      //
-      
-      double vs_to_density_depth;
-      if (depth <= 660000)
-        vs_to_density_depth = 0;
-      else if (depth <= 1500000)
-        vs_to_density_depth = 0.1;
-      else if (depth <= 2500000)
-        vs_to_density_depth = 0.2;
-      else
-        vs_to_density_depth = -0.2;
-
-      vs_to_density_depth *= 1.97; // beta-bar over reference density
- 
-      double dens_scaling =
-                  (vs_to_depth_constant
-                   ?
-                   vs_to_density
-                   :
-                   vs_to_density_depth);
-
-      if (depth <= 660000)
-        dens_scaling = 0;
-      
-      const double dvs = 1/dens_scaling * (-thermal_alpha *(temperature - reference_temperature));
-      //
-      const double T_eff = 0.5 + gamma * dvs;
-      double vis_lateral_exp = std::exp(E_activation/(T_eff + T_0) - E_activation/(1+T_0));
-
-      // T2 model!! Set lateral variations to 0 in uppermost 200 km
-      if (depth <= 200000)
-        vis_lateral_exp = 1.0/eta_star;
+      double vis_lateral = std::max(std::min(std::exp(vis_lateral_exp),max_lateral_eta_variation),1/max_lateral_eta_variation);
 
       // Get radial viscosity
       const double vis_radial = radial_viscosity_lookup->radial_viscosity(depth);
-      double eta = vis_radial;
 
-      if (lateral_visc_variations == true)
-        eta = eta_star * vis_radial * vis_lateral_exp;
 
-      eta = std::max(std::min(eta,max_eta),min_eta);
+
+      std_cxx1x::array<double,dim> scoord = aspect::Utilities::spherical_coordinates(position);
+
+      double theta = scoord[2] * 180/numbers::PI;
+      theta -= 90.;
+      theta *= -1.;
+
+      if (theta >= vis_lat_cutoff)
+        vis_lateral = 1;
+
+
+      // For now just 1D density profile (no lateral variations in viscosity)
+      // const double eta = vis_radial;
+      // For lateral variations use the following. Also then make sure that the depth average 
+      // actually the depth dependent viscosity(?)     
+      const double eta = std::max(std::min(vis_lateral * vis_radial,max_eta),min_eta);
       return eta;
     }
 
@@ -212,7 +236,7 @@ namespace aspect
     // Reference viscosity is needed for some pressure scaling
     template <int dim>
     double
-    Gurnis<dim>::
+    GlisovicForteBL<dim>::
     reference_viscosity () const
     {
       return reference_eta;
@@ -220,7 +244,7 @@ namespace aspect
 
     template <int dim>
     double
-    Gurnis<dim>::
+    GlisovicForteBL<dim>::
     reference_density () const
     {
       return reference_rho;
@@ -228,7 +252,7 @@ namespace aspect
 
     template <int dim>
     double
-    Gurnis<dim>::
+    GlisovicForteBL<dim>::
     reference_thermal_expansion_coefficient () const
     {
       return thermal_alpha;
@@ -236,7 +260,7 @@ namespace aspect
 
     template <int dim>
     double
-    Gurnis<dim>::
+    GlisovicForteBL<dim>::
     specific_heat (const double,
                    const double,
                    const std::vector<double> &, /*composition*/
@@ -247,7 +271,7 @@ namespace aspect
 
     template <int dim>
     double
-   Gurnis<dim>::
+    GlisovicForteBL<dim>::
     reference_cp () const
     {
       return reference_specific_heat;
@@ -255,12 +279,14 @@ namespace aspect
 
     template <int dim>
     double
-    Gurnis<dim>::
+    GlisovicForteBL<dim>::
     thermal_conductivity (const double,
                           const double,
                           const std::vector<double> &, /*composition*/
                           const Point<dim> &position) const
     {
+      // Set up three values of thermal conducivity for different depths and
+      // interpolate linearly inbetween
       const double depth = this->get_geometry_model().depth(position);
       double thermal_cond_val;
       double B_val, A_val;
@@ -303,20 +329,24 @@ namespace aspect
 
     template <int dim>
     double
-    Gurnis<dim>::
+    GlisovicForteBL<dim>::
     reference_thermal_diffusivity () const
     {
-      return k_value/(reference_rho*reference_specific_heat);
+      if(thermal_diff_off == true)
+        return k_value/(reference_rho*reference_specific_heat)/1000.;
+      else 
+        return k_value/(reference_rho*reference_specific_heat);
     }
 
     template <int dim>
     double
-    Gurnis<dim>::
+    GlisovicForteBL<dim>::
     density (const double temperature,
              const double pressure,
              const std::vector<double> &,
              const Point<dim> &position) const
-    {
+    { // Set up PREM as reference density
+
       double reference_rho_PREM = reference_rho;
       const double depth = this->get_geometry_model().depth(position);
       const double norm_rad = (6371000 - depth)/6371000;
@@ -363,8 +393,8 @@ namespace aspect
 
       reference_rho_PREM *= 1000;
 
-
-      ///GET THERMAL ALPHA VAL
+      // Set up three values of thermal expansion for different depths and
+      // interpolate linearly inbetween
       double thermal_alpha_val;
       double B_val, A_val;
 
@@ -372,7 +402,7 @@ namespace aspect
       std::vector<double>  depth_val (3,0);
 
       alpha_val[1] = 2.5e-5;
-      alpha_val[2] = 1.5e-5;
+      alpha_val[2] = 1.0e-5;
 
       depth_val[1] =  670000;
       depth_val[2] = 2890000;
@@ -384,10 +414,7 @@ namespace aspect
         }
 
       if (depth >= 670000)
-       {B_val = (alpha_val[1] - alpha_val[2])/(depth_val[1] - depth_val[2]);
-        A_val = alpha_val[1] - B_val * depth_val[1];
-        thermal_alpha_val = A_val + B_val * depth;
-        }
+       thermal_alpha_val = 3.48e-05 + 2.72e-18 * depth*depth - 1.644e-11*depth;
 
       if(thermal_alpha_constant == true)
         thermal_alpha_val = thermal_alpha;
@@ -401,26 +428,36 @@ namespace aspect
 ->get_surface_pressure()))
        :
        reference_rho_PREM); 
-     // if (this->get_adiabatic_conditions().is_initialized())
-     //   {       
-         // temperature in reference to the depth average, not the adiabatic value -> not good in boundary layers
-         //const unsigned int idx = static_cast<unsigned int>((avg_temp.size()-1) * depth / this->get_geometry_model().maximal_depth());
-         //rho *= (1 - thermal_alpha_val * (temperature - avg_temp[idx]));
-         rho *= (1 - thermal_alpha * (temperature - this->get_adiabatic_conditions().temperature(position)));
-     //    }
-     //    MAKE SURE DEPTH AVERAGE IS ACTUAL PREM??!
-      return rho;
+ 
+       // Again calculate termperature in reference to average not adiabatic (questionable if correct)
+       // do we need to make sure the depth average is actually PREM?
+
+      rho *= (1 - thermal_alpha_val * (temperature - geotherm_lookup->geotherm(depth)));
+
+/*
+       if (adiabat_temp == true)
+         rho *= (1 - thermal_alpha_val * (temperature - this->get_adiabatic_conditions().temperature(position)));
+       else
+         {
+          unsigned int idx = static_cast<unsigned int>((avg_temp.size()-1) * depth / this->get_geometry_model().maximal_depth());
+          rho *= (1 - thermal_alpha_val * (temperature - avg_temp[idx]));
+         }
+*/
+       return rho;
     }
 
 
     template <int dim>
     double
-    Gurnis<dim>::
+    GlisovicForteBL<dim>::
     thermal_expansion_coefficient (const double,
                                    const double,
                                    const std::vector<double> &,
                                    const Point<dim> &position) const
     {
+      // Set up three values of thermal expansion for different depths and
+      // interpolate linearly inbetween
+
       const double depth = this->get_geometry_model().depth(position);
       double thermal_alpha_val;
       double B_val, A_val;
@@ -429,7 +466,7 @@ namespace aspect
       std::vector<double>  depth_val (3,0);
 
       alpha_val[1] = 2.5e-5;
-      alpha_val[2] = 1.5e-5;
+      alpha_val[2] = 1.0e-5;
 
       depth_val[1] =  670000;
       depth_val[2] = 2890000;
@@ -441,10 +478,11 @@ namespace aspect
         }
 
       if (depth >= 670000)
-       {B_val = (alpha_val[1] - alpha_val[2])/(depth_val[1] - depth_val[2]);
-        A_val = alpha_val[1] - B_val * depth_val[1];
-        thermal_alpha_val = A_val + B_val * depth;
-       }        
+        thermal_alpha_val = 3.48e-05 + 2.72e-18 * depth*depth - 1.644e-11*depth;
+     //  {B_val = (alpha_val[1] - alpha_val[2])/(depth_val[1] - depth_val[2]);
+     //   A_val = alpha_val[1] - B_val * depth_val[1];
+     //   thermal_alpha_val = A_val + B_val * depth;
+     //  }        
 
       if(thermal_alpha_constant == true)
         thermal_alpha_val = thermal_alpha;
@@ -455,7 +493,7 @@ namespace aspect
 
     template <int dim>
     double
-    Gurnis<dim>::
+    GlisovicForteBL<dim>::
     compressibility (const double,
                      const double,
                      const std::vector<double> &,
@@ -467,7 +505,7 @@ namespace aspect
 
     template <int dim>
     bool
-    Gurnis<dim>::
+    GlisovicForteBL<dim>::
     viscosity_depends_on (const NonlinearDependence::Dependence dependence) const
     {
       return true;
@@ -476,7 +514,7 @@ namespace aspect
 
     template <int dim>
     bool
-    Gurnis<dim>::
+    GlisovicForteBL<dim>::
     density_depends_on (const NonlinearDependence::Dependence dependence) const
     {
       // compare this with the implementation of the density() function
@@ -491,7 +529,7 @@ namespace aspect
 
     template <int dim>
     bool
-    Gurnis<dim>::
+    GlisovicForteBL<dim>::
     compressibility_depends_on (const NonlinearDependence::Dependence) const
     {
       return false;
@@ -499,7 +537,7 @@ namespace aspect
 
     template <int dim>
     bool
-    Gurnis<dim>::
+    GlisovicForteBL<dim>::
     specific_heat_depends_on (const NonlinearDependence::Dependence) const
     {
       return false;
@@ -507,7 +545,7 @@ namespace aspect
 
     template <int dim>
     bool
-    Gurnis<dim>::
+    GlisovicForteBL<dim>::
     thermal_conductivity_depends_on (const NonlinearDependence::Dependence dependence) const
     {
       return false;
@@ -516,7 +554,7 @@ namespace aspect
 
     template <int dim>
     bool
-    Gurnis<dim>::
+    GlisovicForteBL<dim>::
     is_compressible () const
     {
       return (reference_compressibility != 0);
@@ -526,11 +564,11 @@ namespace aspect
 
     template <int dim>
     void
-    Gurnis<dim>::declare_parameters (ParameterHandler &prm)
+    GlisovicForteBL<dim>::declare_parameters (ParameterHandler &prm)
     {
       prm.enter_subsection("Material model");
       {
-        prm.enter_subsection("Gurnis model");
+        prm.enter_subsection("Glisovic Forte BL model");
         {
           prm.declare_entry ("Reference density", "3300",
                              Patterns::Double (0),
@@ -554,7 +592,7 @@ namespace aspect
                              Patterns::Double (0),
                              "The value of the reference compressibility. "
                              "Units: $1/Pa$.");
-          prm.declare_entry ("Data directory", "$ASPECT_SOURCE_DIR/data/material-model/mitrovica/",
+          prm.declare_entry ("Data directory", "$ASPECT_SOURCE_DIR/data/material-model/gfm/",
                              Patterns::DirectoryName (),
                              "The path to the model data. The path may also include the special "
                              "text '$ASPECT_SOURCE_DIR' which will be interpreted as the path "
@@ -562,9 +600,12 @@ namespace aspect
                              "compiled. This interpretation allows, for example, to reference "
                              "files located in the 'data/' subdirectory of ASPECT. ");
           prm.declare_entry("Radial viscosity file name", "rad_viscosity_MF.txt",
-          //prm.declare_entry ("Radial viscosity file name", "rad_viscosity-source-data.txt",
                              Patterns::Anything (),
                              "The file name of the radial viscosity data. ");  
+          prm.declare_entry("Geotherm file name","Geotherm-red.txt",
+                             Patterns::Anything (),
+                             "The file name for the geotherm / background temp from Glisovic "
+                             "et al., 2014.");
           prm.declare_entry ("Minimum viscosity", "1e19",
                              Patterns::Double(0),
                              "The minimum viscosity that is allowed in the viscosity "
@@ -578,7 +619,7 @@ namespace aspect
                              "The relative cutoff value for lateral viscosity variations "
                              "caused by temperature deviations. The viscosity may vary "
                              "laterally by this factor squared.");
-          prm.declare_entry ("Temperature to viscosity scaling", "0.3",
+          prm.declare_entry ("Temperature to viscosity scaling", "0",
                              Patterns::Double(0),
                              "Scales the lateral variations in temperature into lateral "
                              "variations in viscosity.");
@@ -591,22 +632,17 @@ namespace aspect
           prm.declare_entry ("Thermal expansion constant", "false",
                              Patterns::Bool(),
                              "Switch to leave the thermal expansion constant.");
-          prm.declare_entry ("Lateral variations in viscosity", "false",
+          prm.declare_entry ("Thermal diffusivity zero", "false",
                              Patterns::Bool(),
-                             "Switch to turn lateral variations in viscosity on.");
-          prm.declare_entry ("Vs to density scaling constant","false",
+                             "Switch to set the thermal diffusivity to zero for the "
+                             "purpose of simulating backward advection.");
+          prm.declare_entry ("Use adiabat as background temperature","true",
                              Patterns::Bool(),
-                             "Switch to set the vs to density scalind to a constant value.");
-          prm.declare_entry ("vs to density scaling", "0.25",                             
-                             Patterns::Double (0),
-                             "This parameter specifies how the perturbation in shear wave velocity "
-                             "as prescribed by S20RTS or S40RTS is scaled into a density perturbation. "
-                             "See the general description of this model for more detailed information.");
-          prm.declare_entry ("Reference temperature", "1600.0",
-                             Patterns::Double (0),
-                             "The reference temperature that is perturbed by the spherical "
-                             "harmonic functions. Only used in incompressible models.");
-
+                             "Calculate density perturbations relative to the adiabatic "
+                             "background temperature rather than a depth average temperature.");
+          prm.declare_entry ("Latitude cutoff for lateral variations in viscosity","-45.0",
+                             Patterns::Double(),
+                             "Latitude after which the lateral variations in viscosity are assumerd.");
         }
         prm.leave_subsection();
       }
@@ -617,11 +653,11 @@ namespace aspect
 
     template <int dim>
     void
-    Gurnis<dim>::parse_parameters (ParameterHandler &prm)
+    GlisovicForteBL<dim>::parse_parameters (ParameterHandler &prm)
     {
       prm.enter_subsection("Material model");
       {
-        prm.enter_subsection("Gurnis model");
+        prm.enter_subsection("Glisovic Forte BL model");
         {
           reference_rho              = prm.get_double ("Reference density");
           reference_eta              = prm.get_double ("Reference viscosity");
@@ -639,6 +675,7 @@ namespace aspect
                                      ASPECT_SOURCE_DIR);
           }
           radial_viscosity_file_name   = prm.get ("Radial viscosity file name");
+          geotherm_file_name      = prm.get ("Geotherm file name");
           min_eta                      = prm.get_double ("Minimum viscosity");
           max_eta                      = prm.get_double ("Maximum viscosity");
           max_lateral_eta_variation    = prm.get_double ("Maximum lateral viscosity variation");
@@ -646,12 +683,9 @@ namespace aspect
           thermal_cond_constant        = prm.get_bool ("Thermal conductivity constant");
           reference_rho_constant       = prm.get_bool ("Reference density constant");
           thermal_alpha_constant       = prm.get_bool ("Thermal expansion constant");
-          lateral_visc_variations      = prm.get_bool ("Lateral variations in viscosity");
-          vs_to_density                = prm.get_double ("vs to density scaling");
-          reference_temperature        = prm.get_double ("Reference temperature");
-          vs_to_depth_constant         = prm.get_bool ("Vs to density scaling constant");
-
-
+          thermal_diff_off             = prm.get_bool ("Thermal diffusivity zero");
+          adiabat_temp                 = prm.get_bool ("Use adiabat as background temperature");
+          vis_lat_cutoff               = prm.get_double ("Latitude cutoff for lateral variations in viscosity");
         }
         prm.leave_subsection();
       }
@@ -665,20 +699,14 @@ namespace aspect
 {
   namespace MaterialModel
   {
-    ASPECT_REGISTER_MATERIAL_MODEL(Gurnis,
-                                   "Gurnis",
-                                   "A material model that has constant values "
-                                   "for all coefficients but the density. The defaults for all "
-                                   "coefficients are chosen to be similar to what is believed to be correct "
-                                   "for Earth's mantle. All of the values that define this model are read "
-                                   "from a section ``Material model/Simple compressible model'' in the input file, see "
-                                   "Section~\\ref{parameters:Material_20model/Simple_20compressible_20model}."
-                                   "\n\n"
-                                   "This model uses the following equations for the density: "
-                                   "\\begin{align}"
-                                   "  \\rho(p,T) = \\rho_0"
-                                   "              \\left(1-\\alpha (T-T_a)\\right) "
-                                   "              \\exp{\\beta (P-P_0))}"
-                                   "\\end{align}")
+    ASPECT_REGISTER_MATERIAL_MODEL(GlisovicForteBL,
+                                   "Glisovic Forte BL",
+                                   "A compressible material model that incorporates a depth dependent "
+                                   "viscosity, density, thermal expansivity and thermal conductivity. "
+                                   "It also includes the option to introduce lateral variations in "
+                                   "viscosity. The model parameters follow the paper 'Time-dependent "
+                                   "convection models of mantle thermal structure contrained by seismic "
+                                   "tomography and geodynamics: implications for mantle plume dynamics "
+                                   "and CMB heat flux.' by Glisociv, Forte and Moucha, 2012. ")
   }
 }
