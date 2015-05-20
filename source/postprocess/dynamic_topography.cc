@@ -194,9 +194,17 @@ namespace aspect
         {
           std::ofstream file (filename.c_str());
 
-          file << "# "
-               << ((dim==2)? "x y" : "x y z")
-               << " topography" << std::endl;
+          // before writing output write average DT value
+          std::ostringstream output_average;
+          output_average << average_topography
+                         << ' '
+                         << 0.0
+                         << ' '
+                         << 0.0
+                         << ' '
+                         << 0.0 
+                         << std::endl;
+          file << output_average.str();
 
           // first write out the data we have created locally
           file << output.str();

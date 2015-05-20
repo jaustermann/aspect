@@ -83,6 +83,48 @@ namespace aspect
     }
 
 
+// ----------------------------- Glisovic Earth Profile ------------
+
+    template <int dim>
+    Tensor<1,dim>
+    RadialGlisovic<dim>::gravity_vector (const Point<dim> &p) const
+    {
+      const double r = p.norm();
+      const double d_km = 6371 - r/1000;
+      Tensor<1,dim> grav;
+      if (r > 5951000) //420km depth
+         grav = -(0.00038 * d_km + 9.82) * p / r;
+
+      if (r <= 5951000)
+       if (r > 5701000) // between 420km and 670km
+         grav = -(8e-5 * d_km + 9.9464) * p / r;
+
+      if (r <= 5701000) // down to CMB
+         grav = -(1.3317e-10 * d_km*d_km*d_km - 3.9768e-7 * d_km*d_km + 2.9088e-4 * d_km + 9.9436) * p / r;
+
+      return grav;
+    }
+
+
+    template <int dim>
+    Tensor<1,dim>
+    RadialNegativeGlisovic<dim>::gravity_vector (const Point<dim> &p) const
+    {
+      const double r = p.norm();
+      const double d_km = 6371 - r/1000;
+      Tensor<1,dim> grav;
+      if (r > 5951000) //420km depth
+         grav = -(0.00038 * d_km + 9.82) * p / r;
+
+      if (r <= 5951000)
+       if (r > 5701000) // between 420km and 670km
+         grav = -(8e-5 * d_km + 9.9464) * p / r;
+
+      if (r <= 5701000) // down to CMB
+         grav = -(1.3317e-10 * d_km*d_km*d_km - 3.9768e-7 * d_km*d_km + 2.9088e-4 * d_km + 9.9436) * p / r;
+
+      return -grav;
+    }
 // ----------------------------- RadialLinear ----------------------
 
 
@@ -164,5 +206,16 @@ namespace aspect
                                   "sphere, not a spherical shell.) The magnitude of gravity at the "
                                   "surface is read from the input file in a section "
                                   "``Gravity model/Radial linear''.")
+
+    ASPECT_REGISTER_GRAVITY_MODEL(RadialGlisovic,
+                                  "radial glisovic",
+                                  "A gravity model which follows the model shown in figure 1 of "
+                                  "Glisovic and Forte, Geoscience Frontiers, 2014.")
+  
+    ASPECT_REGISTER_GRAVITY_MODEL(RadialNegativeGlisovic,
+                                  "radial negative glisovic",
+                                  "A gravity model which follows the model shown in figure 1 of "
+                                  "Glisovic and Forte, Geoscience Frontiers, 2014. The only "
+                                  "difference is that the negative of the plotted values is taken.")
   }
 }

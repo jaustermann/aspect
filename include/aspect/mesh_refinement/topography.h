@@ -24,6 +24,7 @@
 
 #include <aspect/mesh_refinement/interface.h>
 #include <aspect/simulator_access.h>
+#include <deal.II/base/std_cxx1x/array.h>
 
 namespace aspect
 {
@@ -53,6 +54,27 @@ namespace aspect
         virtual
         void
         execute (Vector<float> &error_indicators) const;
+    };
+
+    template <int dim>
+    class UpperMantle : public Interface<dim>,
+      public SimulatorAccess<dim>
+    {
+      public:
+        virtual
+        void
+        execute (Vector<float> &error_indicators) const;
+    };
+
+    template <int dim>
+    class Antarctica : public Interface<dim>,
+      public SimulatorAccess<dim>
+    {
+      public:
+        virtual
+        void
+        execute (Vector<float> &error_indicators) const; 
+
     };
   }
 }
