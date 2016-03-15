@@ -49,14 +49,14 @@ namespace aspect
                                                   this->get_mpi_communicator());
 
       const Quadrature<dim> quadrature(this->get_fe().base_element(this->introspection().base_elements.temperature).get_unit_support_points());
-      std::vector<unsigned int> local_dof_indices (this->get_fe().dofs_per_cell);
+      std::vector<types::global_dof_index> local_dof_indices (this->get_fe().dofs_per_cell);
       FEValues<dim> fe_values (this->get_mapping(),
                                this->get_fe(),
                                quadrature,
                                update_quadrature_points | update_values);
 
-      typename MaterialModel::Interface<dim>::MaterialModelInputs in(quadrature.size(),
-                                                                     this->n_compositional_fields());
+      MaterialModel::MaterialModelInputs<dim> in(quadrature.size(),
+                                                 this->n_compositional_fields());
 
       // the values of the compositional fields are stored as blockvectors for each field
       // we have to extract them in this structure

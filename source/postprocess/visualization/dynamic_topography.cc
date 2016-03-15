@@ -40,11 +40,9 @@ namespace aspect
         return_value ("dynamic_topography",
                       new Vector<float>(this->get_triangulation().n_active_cells()));
 
-        // evaluate a single point per cell
-        const QMidpoint<dim> quadrature_formula;
-        const QMidpoint<dim-1> quadrature_formula_face;
-
-        Assert(quadrature_formula_face.size()==1, ExcInternalError());
+        const unsigned int quadrature_degree = this->get_fe().base_element(this->introspection().base_elements.velocities).degree;
+        const QGauss<dim> quadrature_formula(quadrature_degree);
+        const QGauss<dim-1> quadrature_formula_face(quadrature_degree);
 
         FEValues<dim> fe_values (this->get_mapping(),
                                  this->get_fe(),
@@ -58,8 +56,8 @@ namespace aspect
                                           quadrature_formula_face,
                                           update_JxW_values);
 
-        typename MaterialModel::Interface<dim>::MaterialModelInputs in(fe_values.n_quadrature_points, this->n_compositional_fields());
-        typename MaterialModel::Interface<dim>::MaterialModelOutputs out(fe_values.n_quadrature_points, this->n_compositional_fields());
+        MaterialModel::MaterialModelInputs<dim> in(fe_values.n_quadrature_points, this->n_compositional_fields());
+        MaterialModel::MaterialModelOutputs<dim> out(fe_values.n_quadrature_points, this->n_compositional_fields());
 
         std::vector<std::vector<double> > composition_values (this->n_compositional_fields(),std::vector<double> (quadrature_formula.size()));
 
@@ -101,8 +99,11 @@ namespace aspect
                 fe_values[this->introspection().extractors.pressure]
                 .get_function_values (this->get_solution(), in.pressure);
                 fe_values[this->introspection().extractors.velocities]
+                .get_function_values (this->get_solution(), in.velocity);
+                fe_values[this->introspection().extractors.velocities]
                 .get_function_symmetric_gradients (this->get_solution(), in.strain_rate);
-
+                fe_values[this->introspection().extractors.pressure]
+                .get_function_gradients (this->get_solution(), in.pressure_gradient);
 
                 in.position = fe_values.get_quadrature_points();
 

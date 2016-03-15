@@ -21,6 +21,8 @@
 
 #include <aspect/postprocess/visualization/seismic_anomalies.h>
 #include <aspect/simulator_access.h>
+#include <aspect/lateral_averaging.h>
+#include <aspect/utilities.h>
 
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/fe/fe_values.h>
@@ -55,21 +57,6 @@ namespace aspect
           values = temp;
         }
 
-
-
-        /**
-         * Copy the values of the compositional fields at the quadrature point
-         * q given as input parameter to the output vector
-         * composition_values_at_q_point.
-         */
-        void
-        extract_composition_values_at_q_point (const std::vector<std::vector<double> > &composition_values,
-                                               const unsigned int                      q,
-                                               std::vector<double>                    &composition_values_at_q_point)
-        {
-          for (unsigned int k=0; k < composition_values_at_q_point.size(); ++k)
-            composition_values_at_q_point[k] = composition_values[k][q];
-        }
       }
 
 
@@ -86,7 +73,7 @@ namespace aspect
         const unsigned int npoints = 2; // window in running average half-width of window
         std::vector<double> Vs_depth_average(50);
 
-        this->get_depth_average_Vs(Vs_depth_average);
+        this->get_lateral_averaging().get_Vs_averages(Vs_depth_average);
         compute_running_average(Vs_depth_average, npoints);
 
         const unsigned int num_slices = Vs_depth_average.size();
@@ -126,9 +113,9 @@ namespace aspect
                     composition_values[c]);
 
 
-              extract_composition_values_at_q_point (composition_values,
-                                                     0,
-                                                     composition_values_at_q_point);
+              Utilities::extract_composition_values_at_q_point (composition_values,
+                                                                0,
+                                                                composition_values_at_q_point);
 
               const double Vs = this->get_material_model().seismic_Vs(temperature_values[0],
                                                                       pressure_values[0],
@@ -158,7 +145,7 @@ namespace aspect
         const unsigned int npoints = 2; // window in running average half-width of window
         std::vector<double> Vp_depth_average(50);
 
-        this->get_depth_average_Vp(Vp_depth_average);
+        this->get_lateral_averaging().get_Vp_averages(Vp_depth_average);
         compute_running_average(Vp_depth_average, npoints);
 
         const unsigned int num_slices = Vp_depth_average.size();
@@ -198,9 +185,9 @@ namespace aspect
                     composition_values[c]);
 
 
-              extract_composition_values_at_q_point (composition_values,
-                                                     0,
-                                                     composition_values_at_q_point);
+              Utilities::extract_composition_values_at_q_point (composition_values,
+                                                                0,
+                                                                composition_values_at_q_point);
 
               const double Vp = this->get_material_model().seismic_Vp(temperature_values[0],
                                                                       pressure_values[0],

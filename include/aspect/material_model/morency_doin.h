@@ -79,50 +79,11 @@ namespace aspect
     {
       public:
 
-        typedef typename aspect::MaterialModel::Interface<dim>::MaterialModelInputs MaterialModelInputs;
-        typedef typename aspect::MaterialModel::Interface<dim>::MaterialModelOutputs MaterialModelOutputs;
-
-        virtual void evaluate(const MaterialModelInputs &in, MaterialModelOutputs &out) const;
-
-
         /**
-         * Return true if the viscosity() function returns something that may
-         * depend on the variable identifies by the argument.
+         * Evaluate material properties.
          */
-        virtual bool
-        viscosity_depends_on (const NonlinearDependence::Dependence dependence) const;
-
-        /**
-         * Return true if the density() function returns something that may
-         * depend on the variable identifies by the argument.
-         */
-        virtual bool
-        density_depends_on (const NonlinearDependence::Dependence dependence) const;
-
-        /**
-         * Return true if the compressibility() function returns something
-         * that may depend on the variable identifies by the argument.
-         *
-         * This function must return false for all possible arguments if the
-         * is_compressible() function returns false.
-         */
-        virtual bool
-        compressibility_depends_on (const NonlinearDependence::Dependence dependence) const;
-
-        /**
-         * Return true if the specific_heat() function returns something that
-         * may depend on the variable identifies by the argument.
-         */
-        virtual bool
-        specific_heat_depends_on (const NonlinearDependence::Dependence dependence) const;
-
-        /**
-         * Return true if the thermal_conductivity() function returns
-         * something that may depend on the variable identifies by the
-         * argument.
-         */
-        virtual bool
-        thermal_conductivity_depends_on (const NonlinearDependence::Dependence dependence) const;
+        virtual void evaluate(const MaterialModelInputs<dim> &in,
+                              MaterialModelOutputs<dim> &out) const;
 
         /**
          * Return whether the model is compressible or not.  Incompressibility
@@ -174,9 +135,6 @@ namespace aspect
         double reference_T;
         double min_strain_rate;
 
-        double min_visc;
-        double max_visc;
-        double veff_coefficient;
         double ref_visc;
     };
 

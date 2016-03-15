@@ -21,7 +21,7 @@
 
 #include <aspect/material_model/steinberger.h>
 #include <aspect/simulator_access.h>
-#include <deal.II/base/parameter_handler.h>
+#include <aspect/lateral_averaging.h>
 #include <deal.II/base/table.h>
 #include <fstream>
 #include <iostream>
@@ -56,7 +56,7 @@ namespace aspect
             std::string temp;
             std::ifstream in(filename.c_str(), std::ios::in);
             AssertThrow (in,
-                         ExcMessage (std::string("Couldn't open file <") + filename));
+                         ExcMessage (std::string("Could not open file <") + filename + ">."));
 
             getline(in, temp); // eat first line
             getline(in, temp); // eat next line
@@ -234,8 +234,8 @@ namespace aspect
             const double np = get_np(pressure);
             const unsigned int inp = static_cast<unsigned int>(np);
 
-            Assert(inT<values.n_rows(), ExcMessage("not in range"));
-            Assert(inp<values.n_cols(), ExcMessage("not in range"));
+            Assert(inT<values.n_rows(), ExcMessage("Attempting to look up a temperature value with index greater than the number of rows."));
+            Assert(inp<values.n_cols(), ExcMessage("Attempting to look up a pressure value with index greater than the number of columns."));
 
             if (!interpol)
               return values[inT][inp];
@@ -266,8 +266,8 @@ namespace aspect
           {
             temperature=std::max(min_temp, temperature);
             temperature=std::min(temperature, max_temp-delta_temp);
-            Assert(temperature>=min_temp, ExcMessage("not in range"));
-            Assert(temperature<=max_temp, ExcMessage("not in range"));
+            Assert(temperature>=min_temp, ExcMessage("ASPECT found a temperature less than min_T."));
+            Assert(temperature<=max_temp, ExcMessage("ASPECT found a temperature greater than max_T."));
             return (temperature-min_temp)/delta_temp;
           }
 
@@ -275,8 +275,8 @@ namespace aspect
           {
             pressure=std::max(min_press, pressure);
             pressure=std::min(pressure, max_press-delta_press);
-            Assert(pressure>=min_press, ExcMessage("not in range"));
-            Assert(pressure<=max_press, ExcMessage("not in range"));
+            Assert(pressure>=min_press, ExcMessage("ASPECT found a pressure less than min_p."));
+            Assert(pressure<=max_press, ExcMessage("ASPECT found a pressure greater than max_p."));
             return (pressure-min_press)/delta_press;
           }
 
@@ -308,7 +308,7 @@ namespace aspect
             std::string temp;
             std::ifstream in(filename.c_str(), std::ios::in);
             AssertThrow (in,
-                         ExcMessage (std::string("Couldn't open file <") + filename));
+                         ExcMessage (std::string("Could not open file <") + filename + ">."));
 
             getline(in, temp); // eat first line
 
@@ -338,10 +338,10 @@ namespace aspect
             depth=std::max(min_depth, depth);
             depth=std::min(depth, max_depth);
 
-            Assert(depth>=min_depth, ExcMessage("not in range"));
-            Assert(depth<=max_depth, ExcMessage("not in range"));
+            Assert(depth>=min_depth, ExcMessage("ASPECT found a depth less than min_depth."));
+            Assert(depth<=max_depth, ExcMessage("ASPECT found a depth greater than max_depth."));
             const unsigned int idx = static_cast<unsigned int>((depth-min_depth)/delta_depth);
-            Assert(idx<values.size(), ExcMessage("not in range"));
+            Assert(idx<values.size(), ExcMessage("Attempting to look up a depth with an index that would be out of range. (depth-min_depth)/delta_depth too large."));
             return values[idx];
           }
 
@@ -366,7 +366,7 @@ namespace aspect
             std::string temp;
             std::ifstream in(filename.c_str(), std::ios::in);
             AssertThrow (in,
-                         ExcMessage (std::string("Couldn't open file <") + filename));
+                         ExcMessage (std::string("Could not open file <") + filename + ">."));
 
             min_depth=1e20;
             max_depth=-1;
@@ -394,10 +394,10 @@ namespace aspect
             depth=std::max(min_depth, depth);
             depth=std::min(depth, max_depth);
 
-            Assert(depth>=min_depth, ExcMessage("not in range"));
-            Assert(depth<=max_depth, ExcMessage("not in range"));
+            Assert(depth>=min_depth, ExcMessage("ASPECT found a depth less than min_depth."));
+            Assert(depth<=max_depth, ExcMessage("ASPECT found a depth greater than max_depth."));
             const unsigned int idx = static_cast<unsigned int>((depth-min_depth)/delta_depth);
-            Assert(idx<values.size(), ExcMessage("not in range"));
+            Assert(idx<values.size(), ExcMessage("Attempting to look up a depth with an index that would be out of range. (depth-min_depth)/delta_depth too large."));
             return values[idx];
           }
 
@@ -434,7 +434,7 @@ namespace aspect
     update()
     {
       if (use_lateral_average_temperature)
-        this->get_depth_average_temperature(avg_temp);
+        this->get_lateral_averaging().get_temperature_averages(avg_temp);
     }
 
 
@@ -769,80 +769,6 @@ namespace aspect
     template <int dim>
     bool
     Steinberger<dim>::
-    viscosity_depends_on (const NonlinearDependence::Dependence dependence) const
-    {
-      if ((dependence & NonlinearDependence::temperature) != NonlinearDependence::none)
-        return true;
-      else
-        return false;
-    }
-
-
-
-    template <int dim>
-    bool
-    Steinberger<dim>::
-    density_depends_on (const NonlinearDependence::Dependence dependence) const
-    {
-      if ((dependence & NonlinearDependence::temperature) != NonlinearDependence::none)
-        return true;
-      else if ((dependence & NonlinearDependence::pressure) != NonlinearDependence::none)
-        return true;
-      else if ((dependence & NonlinearDependence::compositional_fields) != NonlinearDependence::none)
-        return true;
-      else
-        return false;
-    }
-
-
-
-    template <int dim>
-    bool
-    Steinberger<dim>::
-    compressibility_depends_on (const NonlinearDependence::Dependence dependence) const
-    {
-      if ((dependence & NonlinearDependence::temperature) != NonlinearDependence::none)
-        return true;
-      else if ((dependence & NonlinearDependence::pressure) != NonlinearDependence::none)
-        return true;
-      else if ((dependence & NonlinearDependence::compositional_fields) != NonlinearDependence::none)
-        return true;
-      else
-        return false;
-    }
-
-
-
-    template <int dim>
-    bool
-    Steinberger<dim>::
-    specific_heat_depends_on (const NonlinearDependence::Dependence dependence) const
-    {
-      if ((dependence & NonlinearDependence::temperature) != NonlinearDependence::none)
-        return true;
-      else if ((dependence & NonlinearDependence::pressure) != NonlinearDependence::none)
-        return true;
-      else if ((dependence & NonlinearDependence::compositional_fields) != NonlinearDependence::none)
-        return true;
-      else
-        return false;
-    }
-
-
-
-    template <int dim>
-    bool
-    Steinberger<dim>::
-    thermal_conductivity_depends_on (const NonlinearDependence::Dependence) const
-    {
-      return false;
-    }
-
-
-
-    template <int dim>
-    bool
-    Steinberger<dim>::
     is_compressible () const
     {
       return compressible;
@@ -850,8 +776,8 @@ namespace aspect
 
     template <int dim>
     void
-    Steinberger<dim>::evaluate(const typename Interface<dim>::MaterialModelInputs &in,
-                               typename Interface<dim>::MaterialModelOutputs &out) const
+    Steinberger<dim>::evaluate(const MaterialModel::MaterialModelInputs<dim> &in,
+                               MaterialModel::MaterialModelOutputs<dim> &out) const
     {
 
       Assert ((n_material_data <= in.composition[0].size()) || (n_material_data == 1),
@@ -1001,6 +927,13 @@ namespace aspect
           prm.leave_subsection();
         }
         prm.leave_subsection();
+
+        // Declare dependencies on solution variables
+        this->model_dependence.viscosity = NonlinearDependence::temperature;
+        this->model_dependence.density = NonlinearDependence::temperature | NonlinearDependence::pressure | NonlinearDependence::compositional_fields;
+        this->model_dependence.compressibility = NonlinearDependence::temperature | NonlinearDependence::pressure | NonlinearDependence::compositional_fields;
+        this->model_dependence.specific_heat = NonlinearDependence::temperature | NonlinearDependence::pressure | NonlinearDependence::compositional_fields;
+        this->model_dependence.thermal_conductivity = NonlinearDependence::none;
       }
     }
   }

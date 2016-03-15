@@ -102,17 +102,22 @@ namespace aspect
         Assert (computed_quantities.size() == n_quadrature_points,    ExcInternalError());
         Assert (uh[0].size() == this->introspection().n_components,           ExcInternalError());
 
-        typename MaterialModel::Interface<dim>::MaterialModelInputs in(n_quadrature_points,
-                                                                       this->n_compositional_fields());
-        typename MaterialModel::Interface<dim>::MaterialModelOutputs out(n_quadrature_points,
-                                                                         this->n_compositional_fields());
+        MaterialModel::MaterialModelInputs<dim> in(n_quadrature_points,
+                                                   this->n_compositional_fields());
+        MaterialModel::MaterialModelOutputs<dim> out(n_quadrature_points,
+                                                     this->n_compositional_fields());
 
         in.position = evaluation_points;
         for (unsigned int q=0; q<n_quadrature_points; ++q)
           {
             Tensor<2,dim> grad_u;
             for (unsigned int d=0; d<dim; ++d)
-              grad_u[d] = duh[q][d];
+              {
+                grad_u[d] = duh[q][d];
+                in.velocity[q][d] = uh[q][this->introspection().component_indices.velocities[d]];
+                in.pressure_gradient[q][d] = duh[q][this->introspection().component_indices.pressure][d];
+              }
+
             in.strain_rate[q] = symmetrize (grad_u);
 
             in.pressure[q]=uh[q][this->introspection().component_indices.pressure];
@@ -143,6 +148,9 @@ namespace aspect
 
                 else if (property_names[i] == "thermal conductivity")
                   computed_quantities[q][output_index] = out.thermal_conductivities[q];
+
+                else if (property_names[i] == "thermal diffusivity")
+                  computed_quantities[q][output_index] = out.thermal_conductivities[q]/(out.densities[q]*out.specific_heat[q]);
 
                 else if (property_names[i] == "compressibility")
                   computed_quantities[q][output_index] = out.compressibilities[q];
@@ -180,8 +188,8 @@ namespace aspect
             {
               const std::string pattern_of_names
                 = "viscosity|density|thermal expansivity|specific heat|"
-                  "thermal conductivity|compressibility|entropy derivative temperature|"
-                  "entropy derivative pressure|reaction terms";
+                  "thermal conductivity|thermal diffusivity|compressibility|"
+                  "entropy derivative temperature|entropy derivative pressure|reaction terms";
 
               prm.declare_entry("List of material properties",
                                 "density,thermal expansivity,specific heat,viscosity",
@@ -210,9 +218,20 @@ namespace aspect
         {
           prm.enter_subsection("Visualization");
           {
+            // Find out which variables are registered separately
+            std::vector<std::string> variable_names;
+            variable_names = Utilities::split_string_list(prm.get("List of output variables"));
+
             prm.enter_subsection("Material properties");
             {
+              // Get property names and compare against variable names
               property_names = Utilities::split_string_list(prm.get ("List of material properties"));
+              for (std::vector<std::string>::const_iterator p = variable_names.begin();
+                   p != variable_names.end(); ++p)
+                AssertThrow((std::find(property_names.begin(),property_names.end(),*p)) == property_names.end(),
+                            ExcMessage("Visualization postprocessor "
+                                       + *p
+                                       + " is listed separately and in the list of material properties."));
             }
             prm.leave_subsection();
           }
@@ -242,7 +261,7 @@ namespace aspect
                                                   "This is inefficient if one wants to output more than just "
                                                   "one or two of the fields provided by the material model. "
                                                   "The current postprocessor allows to output a (potentially "
-                                                  "large) subsets of all of the information provided by "
+                                                  "large) subset of all of the information provided by "
                                                   "material models at once, with just a single material model "
                                                   "evaluation per output point.")
     }

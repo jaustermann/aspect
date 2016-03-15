@@ -41,6 +41,8 @@
 
 #include <aspect/global.h>
 #include <aspect/simulator_access.h>
+#include <aspect/lateral_averaging.h>
+#include <aspect/simulator_signals.h>
 #include <aspect/material_model/interface.h>
 #include <aspect/heating_model/interface.h>
 #include <aspect/geometry_model/interface.h>
@@ -51,6 +53,7 @@
 #include <aspect/compositional_initial_conditions/interface.h>
 #include <aspect/prescribed_stokes_solution/interface.h>
 #include <aspect/velocity_boundary_conditions/interface.h>
+#include <aspect/traction_boundary_conditions/interface.h>
 #include <aspect/mesh_refinement/interface.h>
 #include <aspect/termination_criteria/interface.h>
 #include <aspect/postprocess/interface.h>
@@ -304,6 +307,20 @@ namespace aspect
        * <code>source/simulator/initial_conditions.cc</code>.
        */
       void set_initial_temperature_and_compositional_fields ();
+
+      /**
+       * A function that is responsible for initializing the
+       * tracers and their properties before the first time step. We want this
+       * to happen before the first timestep in case other properties depend
+       * on them, but it can only happen after the other initial conditions
+       * have been set up, because tracer properties likely depend on the
+       * initial conditions. If the tracer postprocessor has not been selected
+       * this function simply does nothing.
+       *
+       * This function is implemented in
+       * <code>source/simulator/initial_conditions.cc</code>.
+       */
+      void initialize_tracers ();
 
       /**
        * A function that initializes the pressure variable before the first
@@ -593,27 +610,10 @@ namespace aspect
        */
       void
       local_assemble_advection_system (const AdvectionField &advection_field,
-                                       const std::pair<double,double> global_field_range,
-                                       const double                   global_max_velocity,
-                                       const double                   global_entropy_variation,
+                                       const Vector<double>           &viscosity_per_cell,
                                        const typename DoFHandler<dim>::active_cell_iterator &cell,
                                        internal::Assembly::Scratch::AdvectionSystem<dim>  &scratch,
                                        internal::Assembly::CopyData::AdvectionSystem<dim> &data);
-
-      /**
-       * Compute the heating term for the advection system index. Currently
-       * the heating term is 0 for compositional fields, but this can be
-       * changed in the future to allow for interactions between compositional
-       * fields.
-       *
-       * This function is implemented in
-       * <code>source/simulator/assembly.cc</code>.
-       */
-      double compute_heating_term(const internal::Assembly::Scratch::AdvectionSystem<dim>  &scratch,
-                                  typename MaterialModel::Interface<dim>::MaterialModelInputs &material_model_inputs,
-                                  typename MaterialModel::Interface<dim>::MaterialModelOutputs &material_model_outputs,
-                                  const AdvectionField &advection_field,
-                                  const unsigned int q) const;
 
 
       /**
@@ -659,125 +659,9 @@ namespace aspect
        * @param advection_field Determines whether this variable should select
        * the temperature field or a compositional field.
        */
-      void get_artificial_viscosity (Vector<float> &viscosity_per_cell,
+      template <typename T>
+      void get_artificial_viscosity (Vector<T> &viscosity_per_cell,
                                      const AdvectionField &advection_field) const;
-
-      /**
-       * Internal routine to compute the depth average of a certain quantitiy.
-       *
-       * The functor @p fctr must be an object of a user defined type that can
-       * be arbitrary but has to satisfy certain requirements. In essence,
-       * this class type needs to implement the following interface of member
-       * functions:
-       * @code
-       * template <int dim>
-       * class Functor
-       * {
-       *   public:
-       *     // operator() will have @p in and @p out filled out if @p true
-       *     bool need_material_properties() const;
-       *
-       *     // called once at the beginning with the number of quadrature points
-       *     void setup(const unsigned int q_points);
-       *
-       *     // fill @p output for each quadrature point
-       *     void operator()(const typename MaterialModel::Interface<dim>::MaterialModelInputs &in,
-       *        const typename MaterialModel::Interface<dim>::MaterialModelOutputs &out,
-       *        FEValues<dim> &fe_values,
-       *        const LinearAlgebra::BlockVector &solution,
-       *        std::vector<double> &output);
-       * };
-       * @endcode
-       *
-       * @param values The output vector of depth averaged values. The
-       * function takes the pre-existing size of this vector as the number of
-       * depth slices.
-       * @param fctr Instance of a class satisfying the signature above.
-       */
-      template<class FUNCTOR>
-      void compute_depth_average(std::vector<double> &values,
-                                 FUNCTOR &fctr) const;
-
-      /**
-       * Compute a depth average of the current temperature/composition. The
-       * function fills a vector that contains average
-       * temperatures/compositions over slices of the domain of same depth.
-       * The function resizes the output vector to match the number of depth
-       * slices.
-       *
-       * This function is implemented in
-       * <code>source/simulator/helper_functions.cc</code>.
-       *
-       * @param advection_field Temperature or compositional field to average.
-       * @param values The output vector of depth averaged values. The
-       * function takes the pre-existing size of this vector as the number of
-       * depth slices.
-       */
-      void compute_depth_average_field(const AdvectionField &advection_field,
-                                       std::vector<double> &values) const;
-
-      /**
-       * Compute a depth average of the current viscosity. The function fills
-       * a vector that contains average viscosities over slices of the domain
-       * of same depth. The function resizes the output vector to match the
-       * number of depth slices.
-       *
-       * This function is implemented in
-       * <code>source/simulator/helper_functions.cc</code>.
-       *
-       * @param values The output vector of depth averaged values. The
-       * function takes the pre-existing size of this vector as the number of
-       * depth slices.
-       */
-      void compute_depth_average_viscosity(std::vector<double> &values) const;
-
-      /**
-       * Compute a depth average of the current velocity magnitude.
-       *
-       * This function is implemented in
-       * <code>source/simulator/helper_functions.cc</code>.
-       *
-       * @param values The output vector of depth averaged values. The
-       * function takes the pre-existing size of this vector as the number of
-       * depth slices.
-       */
-      void compute_depth_average_velocity_magnitude(std::vector<double> &values) const;
-
-      /**
-       * Compute a depth average of the current sinking velocity.
-       *
-       * This function is implemented in
-       * <code>source/simulator/helper_functions.cc</code>.
-       *
-       * @param values The output vector of depth averaged values. The
-       * function takes the pre-existing size of this vector as the number of
-       * depth slices.
-       */
-      void compute_depth_average_sinking_velocity(std::vector<double> &values) const;
-
-      /**
-       * Compute a depth average of the seismic shear wave speed, Vs
-       *
-       * This function is implemented in
-       * <code>source/simulator/helper_functions.cc</code>.
-       *
-       * @param values The output vector of depth averaged values. The
-       * function takes the pre-existing size of this vector as the number of
-       * depth slices.
-       */
-      void compute_depth_average_Vs(std::vector<double> &values) const;
-
-      /**
-       * Compute a depth average of the seismic pressure wave speed, Vp
-       *
-       * This function is implemented in
-       * <code>source/simulator/helper_functions.cc</code>.
-       *
-       * @param values The output vector of depth averaged values. The
-       * function takes the pre-existing size of this vector as the number of
-       * depth slices.
-       */
-      void compute_depth_average_Vp(std::vector<double> &values) const;
 
       /**
        * Compute the seismic shear wave speed, Vs anomaly per element. we
@@ -1008,6 +892,8 @@ namespace aspect
        * describes the finite element space in use and that is used to
        * evaluate the solution values at the quadrature points of the current
        * cell.
+       * @param[in] cell The cell on which we are currently evaluating
+       * the material model.
        * @param[in] compute_strainrate A flag determining whether the strain
        * rate should be computed or not in the output structure.
        * @param[out] material_model_inputs The output structure that contains
@@ -1017,10 +903,11 @@ namespace aspect
        * <code>source/simulator/assembly.cc</code>.
        */
       void
-      compute_material_model_input_values (const LinearAlgebra::BlockVector                    &input_solution,
+      compute_material_model_input_values (const LinearAlgebra::BlockVector                            &input_solution,
                                            const FEValues<dim,dim>                                     &input_finite_element_values,
+                                           const typename DoFHandler<dim>::active_cell_iterator        &cell,
                                            const bool                                                   compute_strainrate,
-                                           typename MaterialModel::Interface<dim>::MaterialModelInputs &material_model_inputs) const;
+                                           MaterialModel::MaterialModelInputs<dim> &material_model_inputs) const;
 
 
       /**
@@ -1085,6 +972,7 @@ namespace aspect
        */
       Parameters<dim>                     parameters;
       Introspection<dim>                  introspection;
+      SimulatorSignals<dim>               signals;
 
       MPI_Comm                            mpi_communicator;
 
@@ -1136,18 +1024,19 @@ namespace aspect
        * @name Variables that describe the physical setup of the problem
        * @{
        */
-      const std::auto_ptr<GeometryModel::Interface<dim> >            geometry_model;
-      const IntermediaryConstructorAction                            post_geometry_model_creation_action;
-      const std::auto_ptr<MaterialModel::Interface<dim> >            material_model;
-      const std::auto_ptr<HeatingModel::Interface<dim> >             heating_model;
-      const std::auto_ptr<GravityModel::Interface<dim> >             gravity_model;
-      const std::auto_ptr<BoundaryTemperature::Interface<dim> >      boundary_temperature;
-      const std::auto_ptr<BoundaryComposition::Interface<dim> >      boundary_composition;
-      const std::auto_ptr<InitialConditions::Interface<dim> >        initial_conditions;
-      const std::auto_ptr<PrescribedStokesSolution::Interface<dim> >        prescribed_stokes_solution;
-      const std::auto_ptr<CompositionalInitialConditions::Interface<dim> > compositional_initial_conditions;
-      const std::auto_ptr<AdiabaticConditions::Interface<dim> >      adiabatic_conditions;
+      const std_cxx11::unique_ptr<GeometryModel::Interface<dim> >             geometry_model;
+      const IntermediaryConstructorAction                                     post_geometry_model_creation_action;
+      const std_cxx11::unique_ptr<MaterialModel::Interface<dim> >             material_model;
+      const std_cxx11::unique_ptr<GravityModel::Interface<dim> >              gravity_model;
+      const std_cxx11::unique_ptr<BoundaryTemperature::Interface<dim> >       boundary_temperature;
+      const std_cxx11::unique_ptr<BoundaryComposition::Interface<dim> >       boundary_composition;
+      const std_cxx11::unique_ptr<InitialConditions::Interface<dim> >         initial_conditions;
+      const std_cxx11::unique_ptr<PrescribedStokesSolution::Interface<dim> >  prescribed_stokes_solution;
+      const std_cxx11::unique_ptr<CompositionalInitialConditions::Interface<dim> >                     compositional_initial_conditions;
+      const std_cxx11::unique_ptr<AdiabaticConditions::Interface<dim> >       adiabatic_conditions;
       std::map<types::boundary_id,std_cxx11::shared_ptr<VelocityBoundaryConditions::Interface<dim> > > velocity_boundary_conditions;
+      std::map<types::boundary_id,std_cxx11::shared_ptr<TractionBoundaryConditions::Interface<dim> > > traction_boundary_conditions;
+
       /**
        * @}
        */
@@ -1159,6 +1048,7 @@ namespace aspect
       double                                                    time_step;
       double                                                    old_time_step;
       unsigned int                                              timestep_number;
+      unsigned int                                              pre_refinement_step;
       /**
        * @}
        */
@@ -1173,6 +1063,15 @@ namespace aspect
        */
 
       /**
+       * @name Variables for doing lateral averaging
+       * @{
+       */
+      LateralAveraging<dim>                                     lateral_averaging;
+      /**
+       * @}
+       */
+
+      /**
        * @name Variables that describe the spatial discretization
        * @{
        */
@@ -1181,6 +1080,7 @@ namespace aspect
       double                                                    global_volume;
 
       MeshRefinement::Manager<dim>                              mesh_refinement_manager;
+      HeatingModel::Manager<dim>                                heating_model_manager;
 
       const MappingQ<dim>                                       mapping;
 
@@ -1311,6 +1211,19 @@ namespace aspect
                                     FullMatrix<double> &local_matrix);
 
           /**
+           * If a geometry model uses manifolds for the refinement behavior
+           * it can produce nonsensical meshes on refinement when using a
+           * free surface, since the free surface may deform the mesh to the
+           * point where the manifold is no longer a good description of the
+           * domain.  However, it can still be useful to have the manifold
+           * description for producing a nice starting mesh with the initial
+           * refinements (that is to say, before timestepping).  This detaches
+           * manifolds from cells, and is called after the initial refinements
+           * of the domain.
+           */
+          void detach_manifolds();
+
+          /**
            * Declare parameters for the free surface handling.
            */
           static
@@ -1335,10 +1248,10 @@ namespace aspect
           void make_constraints ();
 
           /**
-           * Project the normal part of the Stokes velocity solution onto the
+           * Project the the Stokes velocity solution onto the
            * free surface. Called by make_constraints()
            */
-          void project_normal_velocity_onto_boundary (LinearAlgebra::Vector &output);
+          void project_velocity_onto_boundary (LinearAlgebra::Vector &output);
 
           /**
            * Actually solve the elliptic problem for the mesh velocitiy.  Just
@@ -1428,8 +1341,35 @@ namespace aspect
            */
           ConstraintMatrix mesh_vertex_constraints;
 
+          /**
+           * A struct for holding information about how to advect the free surface.
+           */
+          struct SurfaceAdvection
+          {
+            enum Direction { normal, vertical };
+          };
+
+          /**
+           * Stores whether to advect the free surface in the normal direction
+           * or the direction of the local vertical.
+           */
+          typename SurfaceAdvection::Direction advection_direction;
+
+
+          /**
+           * A set of boundary indicators that denote those boundaries that are
+           * allowed to move their mesh tangential to the boundary. All
+           * boundaries that have tangential material velocity boundary
+           * conditions are in this set by default, but it can be extended by
+           * open boundaries, boundaries with traction boundary conditions, or
+           * boundaries with prescribed material velocities if requested in
+           * the parameter file.
+           */
+          std::set<types::boundary_id> tangential_mesh_boundary_indicators;
+
 
           friend class Simulator<dim>;
+          friend class SimulatorAccess<dim>;
       };
 
       /**

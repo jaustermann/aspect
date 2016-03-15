@@ -1,11 +1,19 @@
 - Tasklist:
-  . go through the list of TODOs in the source code and see what can be done
-  . make sure the description of the interfaces that need to be updated
-    are up to date in the manual
-  . check that readme.html is okay and the links to the mailinglists are working (also in manual.pdf)
+  . leading up to a release:
+    . send out an email about problems or outstanding patches
+    . go through the list of TODOs in the source code and see what can be done
+    . make sure the description of the interfaces that need to be updated
+      are up to date in the manual
+    . check that readme.html is okay and the links to the mailinglists are
+      working (also in manual.pdf)
+    . run benchmarks/check.sh and cookbooks/check.sh (and be patient)
+    . indent tests/*cc
+  . determine new version roughly following semantic versioning: http://semver.org/
+    - format is X.Y.Z for a release, X.Y.Z-pre for the dev version or X.Y.Z-rcW for release candidates
+    - backwards incompatible changes require incrementing X, adding features incrementing Y
   . setup:
-      export OLDVER=1.2;export VER=1.3;export NEXTVER=1.4.pre
-      export DEALSRCDIR=...
+      export OLDVER=1.3;export VER=1.4.0;export NEXTVER=1.5.0-pre
+      export DEALSRCDIR=/path/to/dealii-installed
   . fix doxygen errors:
       find include -name "*h" -print | xargs -n 1 $DEALSRCDIR/tests/scripts/checkdoxygen.py
     and commit.
@@ -25,16 +33,6 @@
       git checkout -b aspect-$VER && \
       cd doc && ./bump_version.sh $VER && cd .. && \
       git commit -m "release task: update version info"
-  . remove from the branch:
-      git rm -r data/material-model/table \
-      source/material_model/table.cc \
-      source/postprocess/table_velocity_statistics.cc \
-      source/postprocess/table_heat_flux_statistics.cc \
-      cookbooks/future/table_model.prm \
-      include/aspect/material_model/table.h \
-      include/aspect/postprocess/table_velocity_statistics.h \
-      include/aspect/postprocess/table_heat_flux_statistics.h && \
-      git commit -m "release task: remove table model"
   . compile aspect, make sure you have a symlink in the main directory for the next step
   . update doc/manual/parameters.tex and documentation:
       cd doc && ./update_parameters.sh && make manual.pdf && cd .. && \
@@ -43,11 +41,19 @@
   . make sure the .prm and .xml files we ship match the default values of
     parameters
   . create a RC tar file:
-      git archive --format=tar.gz --prefix=aspect-$VER-rc1/ HEAD >aspect-$VER-rc1.tar.gz
+      export PREFIX=aspect-$VER-rc1 && rm -rf $PREFIX.tar.gz && \
+      git archive --format=tar.gz --prefix=$PREFIX/ HEAD >$PREFIX.tar.gz && \
+      rm -rf $PREFIX && tar xf $PREFIX.tar.gz && \
+      rm $PREFIX.tar.gz &&  cp doc/manual.pdf $PREFIX/doc && \
+      tar czf $PREFIX.tar.gz $PREFIX && rm -rf $PREFIX
   . Tag the release:
       git tag -a v$VER -m "tag version $VER"
   . create a tar file:
-      git archive --format=tar.gz --prefix=aspect-$VER/ v$VER >aspect-$VER.tar.gz
+      export PREFIX=aspect-$VER && rm -rf $PREFIX.tar.gz && \
+      git archive --format=tar.gz --prefix=$PREFIX/ HEAD >$PREFIX.tar.gz && \
+      rm -rf $PREFIX && tar xf $PREFIX.tar.gz && \
+      rm $PREFIX.tar.gz &&  cp doc/manual.pdf $PREFIX/doc && \
+      tar czf $PREFIX.tar.gz $PREFIX && rm -rf $PREFIX
   . make public (branch and tag):
       git push cig aspect-$VER
       git push cig v$VER
@@ -72,6 +78,10 @@ provide a fast, flexible, and extensible mantle convection solver. ASPECT is
 available from
 
                    https://aspect.dealii.org/
+
+and the release is available from
+
+        https://github.com/geodynamics/aspect/releases/tag/v1.3
 
 This release includes the following changes:
 - New: Averaging of material properties between the quadrature points of a

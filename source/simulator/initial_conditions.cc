@@ -23,6 +23,7 @@
 #include <aspect/adiabatic_conditions/interface.h>
 #include <aspect/initial_conditions/interface.h>
 #include <aspect/compositional_initial_conditions/interface.h>
+#include <aspect/postprocess/tracers.h>
 
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/base/function.h>
@@ -112,10 +113,6 @@ namespace aspect
                      compositional_initial_conditions->initial_composition(fe_values.quadrature_point(i),n-1));
                   initial_solution(local_dof_indices[system_local_dof]) = value;
 
-                  if (!advf.is_temperature())
-                    Assert (value >= 0,
-                            ExcMessage("Invalid initial conditions: Composition is negative"));
-
                   // if it is specified in the parameter file that the sum of all compositional fields
                   // must not exceed one, this should be checked
                   if (parameters.normalized_fields.size()>0 && n == 1)
@@ -173,6 +170,18 @@ namespace aspect
         old_solution.block(blockidx) = initial_solution.block(blockidx);
         old_old_solution.block(blockidx) = initial_solution.block(blockidx);
       }
+  }
+
+
+  template <int dim>
+  void Simulator<dim>::initialize_tracers ()
+  {
+    Postprocess::Tracers<dim> *tracer_postprocessor = const_cast<Postprocess::Tracers<dim> *>
+                                                      (postprocess_manager.template find_postprocessor<Postprocess::Tracers<dim> >());
+
+    // If the tracer postprocessor has been selected
+    if (tracer_postprocessor != 0)
+      tracer_postprocessor->generate_and_initialize_particles();
   }
 
 
@@ -322,7 +331,8 @@ namespace aspect
 {
 #define INSTANTIATE(dim) \
   template void Simulator<dim>::set_initial_temperature_and_compositional_fields(); \
-  template void Simulator<dim>::compute_initial_pressure_field();
+  template void Simulator<dim>::compute_initial_pressure_field(); \
+  template void Simulator<dim>::initialize_tracers();
 
   ASPECT_INSTANTIATE(INSTANTIATE)
 }

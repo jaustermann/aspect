@@ -23,7 +23,6 @@
 #define __aspect__model_simpler_h
 
 #include <aspect/material_model/interface.h>
-#include <aspect/simulator_access.h>
 
 namespace aspect
 {
@@ -46,29 +45,14 @@ namespace aspect
     {
       public:
 
-        virtual bool
-        viscosity_depends_on (const NonlinearDependence::Dependence dependence) const;
-
-        virtual bool
-        density_depends_on (const NonlinearDependence::Dependence dependence) const;
-
-        virtual bool
-        compressibility_depends_on (const NonlinearDependence::Dependence dependence) const;
-
-        virtual bool
-        specific_heat_depends_on (const NonlinearDependence::Dependence dependence) const;
-
-        virtual bool
-        thermal_conductivity_depends_on (const NonlinearDependence::Dependence dependence) const;
-
         virtual bool is_compressible () const;
 
         virtual double reference_viscosity () const;
 
         virtual double reference_density () const;
 
-        virtual void evaluate(const typename Interface<dim>::MaterialModelInputs &in,
-                              typename Interface<dim>::MaterialModelOutputs &out) const;
+        virtual void evaluate(const MaterialModel::MaterialModelInputs<dim> &in,
+                              MaterialModel::MaterialModelOutputs<dim> &out) const;
 
 
         /**

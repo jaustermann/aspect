@@ -285,7 +285,7 @@ namespace aspect
                           Patterns::MultipleSelection(pattern_of_names),
                           "A comma separated list of mesh refinement criteria that "
                           "will be run whenever mesh refinement is required. The "
-                          "results of each of these criteria will, i.e., the refinement "
+                          "results of each of these criteria, i.e., the refinement "
                           "indicators they produce for all the cells of the mesh "
                           "will then be normalized to a range between zero and one "
                           "and the results of different criteria will then be "
@@ -414,7 +414,7 @@ namespace aspect
                                                               "Mesh refinement::Refinement criteria merge operation")));
 
           if (SimulatorAccess<dim> *sim = dynamic_cast<SimulatorAccess<dim>*>(&*mesh_refinement_objects.back()))
-            sim->initialize (this->get_simulator());
+            sim->initialize_simulator (this->get_simulator());
 
           mesh_refinement_objects.back()->parse_parameters (prm);
           mesh_refinement_objects.back()->initialize ();

@@ -45,6 +45,7 @@ namespace aspect
   namespace Utilities
   {
     using namespace dealii;
+    using namespace dealii::Utilities;
 
     /**
      * Returns spherical coordinates of a cartesian point. The returned array
@@ -72,6 +73,171 @@ namespace aspect
      */
     bool fexists(const std::string &filename);
 
+    /**
+     * A namespace defining the cubic spline interpolation that can be used
+     * between different spherical layers in the mantle.
+     */
+    namespace tk
+    {
+      // band matrix solver
+      class band_matrix
+      {
+        private:
+          std::vector< std::vector<double> > m_upper;  // upper band
+          std::vector< std::vector<double> > m_lower;  // lower band
+        public:
+          band_matrix() {};                             // constructor
+          band_matrix(int dim, int n_u, int n_l);       // constructor
+          ~band_matrix() {};                            // destructor
+          void resize(int dim, int n_u, int n_l);       // init with dim,n_u,n_l
+          int dim() const;                              // matrix dimension
+          int num_upper() const
+          {
+            return m_upper.size()-1;
+          }
+          int num_lower() const
+          {
+            return m_lower.size()-1;
+          }
+          // access operator
+          double &operator () (int i, int j);             // write
+          double   operator () (int i, int j) const;      // read
+          // we can store an additional diogonal (in m_lower)
+          double &saved_diag(int i);
+          double  saved_diag(int i) const;
+          void lu_decompose();
+          std::vector<double> r_solve(const std::vector<double> &b) const;
+          std::vector<double> l_solve(const std::vector<double> &b) const;
+          std::vector<double> lu_solve(const std::vector<double> &b,
+                                       bool is_lu_decomposed=false);
+      };
+      // spline interpolation
+      class spline
+      {
+        private:
+          std::vector<double> m_x,m_y;           // x,y coordinates of points
+          // interpolation parameters
+          // f(x) = a*(x-x_i)^3 + b*(x-x_i)^2 + c*(x-x_i) + y_i
+          std::vector<double> m_a,m_b,m_c,m_d;
+        public:
+          void set_points(const std::vector<double> &x,
+                          const std::vector<double> &y, bool cubic_spline=true);
+          double operator() (double x) const;
+      };
+    }
+
+    /**
+     * Extract the compositional values at a single quadrature point with
+     * index @p q from @p composition_values, which is indexed by
+     * compositional index and quadrature point, and write them into @p
+     * composition_values_at_q_point. In other words,
+     * this extracts @p composition_values[i][q] for all @p i.
+     */
+    inline
+    void
+    extract_composition_values_at_q_point (const std::vector<std::vector<double> > &composition_values,
+                                           const unsigned int q,
+                                           std::vector<double> &composition_values_at_q_point)
+    {
+      Assert(q<composition_values.size(), ExcInternalError());
+      Assert(composition_values_at_q_point.size() > 0,
+             ExcInternalError());
+
+      for (unsigned int k=0; k < composition_values_at_q_point.size(); ++k)
+        {
+          Assert(composition_values[k].size() == composition_values_at_q_point.size(),
+                 ExcInternalError());
+          composition_values_at_q_point[k] = composition_values[k][q];
+        }
+    }
+
+    /**
+     * Provide an object of type T filled with a signaling NaN that will cause an exception
+     * when used in a computation. This basically serves the purpose of creating an object
+     * that is not initialized.
+     **/
+    template <class T>
+    T
+    signaling_nan();
+
+    template <>
+    inline
+    double
+    signaling_nan<double>()
+    {
+      return std::numeric_limits<double>::signaling_NaN();
+    }
+
+    template <>
+    inline
+    SymmetricTensor<2,2>
+    signaling_nan<SymmetricTensor<2,2> >()
+    {
+      const unsigned int dim = 2;
+      SymmetricTensor<2,dim> nan_tensor;
+      for (unsigned int i=0; i<dim; ++i)
+        for (unsigned int j=0; j<dim; ++j)
+          nan_tensor[i][j] = std::numeric_limits<double>::signaling_NaN();
+      return nan_tensor;
+    }
+    template <>
+    inline
+    SymmetricTensor<2,3>
+    signaling_nan<SymmetricTensor<2,3> >()
+    {
+      const unsigned int dim = 3;
+      SymmetricTensor<2,dim> nan_tensor;
+      for (unsigned int i=0; i<dim; ++i)
+        for (unsigned int j=0; j<dim; ++j)
+          nan_tensor[i][j] = std::numeric_limits<double>::signaling_NaN();
+      return nan_tensor;
+    }
+    template <>
+    inline
+    Tensor<2,2>
+    signaling_nan<Tensor<2,2> >()
+    {
+      const unsigned int dim = 2;
+      Tensor<2,dim> nan_tensor;
+      for (unsigned int i=0; i<dim; ++i)
+        for (unsigned int j=0; j<dim; ++j)
+          nan_tensor[i][j] = std::numeric_limits<double>::signaling_NaN();
+      return nan_tensor;
+    }
+    template <>
+    inline
+    Tensor<2,3>
+    signaling_nan<Tensor<2,3> >()
+    {
+      const unsigned int dim = 3;
+      Tensor<2,dim> nan_tensor;
+      for (unsigned int i=0; i<dim; ++i)
+        for (unsigned int j=0; j<dim; ++j)
+          nan_tensor[i][j] = std::numeric_limits<double>::signaling_NaN();
+      return nan_tensor;
+    }
+    template <>
+    inline
+    Tensor<1,2>
+    signaling_nan<Tensor<1,2> >()
+    {
+      const unsigned int dim = 2;
+      Tensor<1,dim> nan_tensor;
+      for (unsigned int i=0; i<dim; ++i)
+        nan_tensor[i] = std::numeric_limits<double>::signaling_NaN();
+      return nan_tensor;
+    }
+    template <>
+    inline
+    Tensor<1,3>
+    signaling_nan<Tensor<1,3> >()
+    {
+      const unsigned int dim = 3;
+      Tensor<1,dim> nan_tensor;
+      for (unsigned int i=0; i<dim; ++i)
+        nan_tensor[i] = std::numeric_limits<double>::signaling_NaN();
+      return nan_tensor;
+    }
 
 
     /**
