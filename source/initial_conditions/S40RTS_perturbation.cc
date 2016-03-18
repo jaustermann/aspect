@@ -44,12 +44,12 @@ namespace aspect
         class SphericalHarmonicsLookup
         {
           public:
-            SphericalHarmonicsLookup(const std::string &filename)
+            SphericalHarmonicsLookup(const std::string &filename,
+                                     const MPI_Comm &comm)
             {
               std::string temp;
-              std::ifstream in(filename.c_str(), std::ios::in);
-              AssertThrow (in,
-                           ExcMessage (std::string("Could not open file <") + filename + ">."));
+              // Read data from disk and distribute among processes
+              std::istringstream in(Utilities::read_and_distribute_file_content(filename, comm));
 
               in >> order;
               getline(in,temp);  // throw away the rest of the line
@@ -122,12 +122,12 @@ namespace aspect
         class SplineDepthsLookup
         {
           public:
-            SplineDepthsLookup(const std::string &filename)
+            SplineDepthsLookup(const std::string &filename,
+                               const MPI_Comm &comm)
             {
               std::string temp;
-              std::ifstream in(filename.c_str(), std::ios::in);
-              AssertThrow (in,
-                           ExcMessage (std::string("Could not open file <") + filename + ">."));
+              // Read data from disk and distribute among processes
+              std::istringstream in(Utilities::read_and_distribute_file_content(filename, comm));
 
               getline(in,temp);  // throw away the rest of the line
               getline(in,temp);  // throw away the rest of the line
