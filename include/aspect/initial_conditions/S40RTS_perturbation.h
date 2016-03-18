@@ -33,8 +33,10 @@ namespace aspect
 
     namespace internal
     {
+
       namespace S40RTS
       {
+        class TX2008Lookup_S40;
         class SphericalHarmonicsLookup;
         class SplineDepthsLookup;
         class VsToDensityLookup;
@@ -144,17 +146,17 @@ namespace aspect
          * Pointer to an object that reads and processes the depths for the
          * spline knot points.
          */
+        std_cxx11::shared_ptr<internal::S40RTS::TX2008Lookup_S40> TX2008_lookup;
+      
         std_cxx11::shared_ptr<internal::S40RTS::SplineDepthsLookup> spline_depths_lookup;
 
-        std_cxx1x::shared_ptr<internal::VsToDensityLookup> vs_to_density_lookup;
+        std_cxx1x::shared_ptr<internal::S40RTS::VsToDensityLookup> vs_to_density_lookup;
 
-        std_cxx1x::shared_ptr<internal::GeothermLookup> geotherm_lookup;
+        std_cxx1x::shared_ptr<internal::S40RTS::GeothermLookup> geotherm_lookup;
 
         bool thermal_alpha_constant;
         bool vs_to_depth_constant;
         bool constant_temp;
-        bool vs_to_density_S4;
-        bool take_upper_660km_out;
     };
 
   }

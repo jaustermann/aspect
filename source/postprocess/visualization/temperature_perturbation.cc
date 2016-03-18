@@ -21,6 +21,7 @@
 
 #include <aspect/postprocess/visualization/temperature_perturbation.h>
 #include <aspect/simulator_access.h>
+#include <aspect/lateral_averaging.h>
 
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/base/quadrature_lib.h>
@@ -50,8 +51,9 @@ namespace aspect
         return_value ("temperature_perturbation",
                       new Vector<float>(this->get_triangulation().n_active_cells()));
 
-        std::vector<double> avg_temp(100);
-        this->get_depth_average_temperature(avg_temp);
+        std::vector<double> avg_temp;
+        avg_temp.resize(100);
+        this->get_lateral_averaging().get_temperature_averages(avg_temp);
         const unsigned int num_slices = avg_temp.size();
         const double max_depth = this->get_geometry_model().maximal_depth();
 

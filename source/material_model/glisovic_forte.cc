@@ -23,6 +23,7 @@
 #include <aspect/material_model/glisovic_forte.h>
 #include <deal.II/base/parameter_handler.h>
 #include <aspect/utilities.h>
+#include <aspect/lateral_averaging.h>
 
 using namespace dealii;
 
@@ -114,7 +115,7 @@ namespace aspect
     GlisovicForte<dim>::
     update()
     {
-      this->get_depth_average_temperature(avg_temp);
+      this->get_lateral_averaging().get_temperature_averages(avg_temp);
     }
 
 
@@ -135,8 +136,9 @@ namespace aspect
       // const double delta_temperature = temperature-avg_temp[idx];
 
       // If you want the adiabatic temperature as your reference temp use the following
-      const double adiabatic_temperature = this->get_adiabatic_conditions().temperature(position);
-      double delta_temperature = temperature-adiabatic_temperature;
+      const double background_temperature = this->get_adiabatic_conditions().temperature(position); 
+
+      double delta_temperature = temperature - background_temperature;
 
       // Scaling from temperature to viscosity
       const double vis_lateral_exp = - temp_to_visc * delta_temperature;
@@ -147,16 +149,16 @@ namespace aspect
       // Get radial viscosity
       const double vis_radial = radial_viscosity_lookup->radial_viscosity(depth);
 
+    
 
+      //std_cxx1x::array<double,dim> scoord = aspect::Utilities::spherical_coordinates(position);
 
-      std_cxx1x::array<double,dim> scoord = aspect::Utilities::spherical_coordinates(position);
+      //double theta = scoord[2] * 180/numbers::PI;
+      //theta -= 90.;
+      //theta *= -1.;
 
-      double theta = scoord[2] * 180/numbers::PI;
-      theta -= 90.;
-      theta *= -1.;
-
-      if (theta >= vis_lat_cutoff)
-        vis_lateral = 1;
+      //if (theta >= vis_lat_cutoff)
+      //  vis_lateral = 1;
 
 
       // For now just 1D density profile (no lateral variations in viscosity)
@@ -359,21 +361,18 @@ namespace aspect
       double rho = 
       (reference_rho_constant
        ?
-       reference_rho * std::exp(reference_compressibility * (pressure - this
-->get_surface_pressure()))
+       reference_rho * std::exp(reference_compressibility * (pressure - this->get_surface_pressure()))
        :
        reference_rho_PREM); 
  
-       // Again calculate termperature in reference to average not adiabatic (questionable if correct)
-       // do we need to make sure the depth average is actually PREM?
 
-       if (adiabat_temp == true)
-         rho *= (1 - thermal_alpha_val * (temperature - this->get_adiabatic_conditions().temperature(position)));
-       else
-         {
-          unsigned int idx = static_cast<unsigned int>((avg_temp.size()-1) * depth / this->get_geometry_model().maximal_depth());
-          rho *= (1 - thermal_alpha_val * (temperature - avg_temp[idx]));
-         }
+      // if (adiabat_temp == true)
+       rho *= (1 - thermal_alpha_val * (temperature - this->get_adiabatic_conditions().temperature(position)));
+      // else
+      //   {
+      //    unsigned int idx = static_cast<unsigned int>((avg_temp.size()-1) * depth / this->get_geometry_model().maximal_depth());
+      //    rho *= (1 - thermal_alpha_val * (temperature - avg_temp[idx]));
+      //   }
 
        return rho;
     }
@@ -564,10 +563,6 @@ namespace aspect
                              Patterns::Bool(),
                              "Switch to set the thermal diffusivity to zero for the "
                              "purpose of simulating backward advection.");
-          prm.declare_entry ("Use adiabat as background temperature","true",
-                             Patterns::Bool(),
-                             "Calculate density perturbations relative to the adiabatic "
-                             "background temperature rather than a depth average temperature.");
           prm.declare_entry ("Latitude cutoff for lateral variations in viscosity","-45.0",
                              Patterns::Double(),
                              "Latitude after which the lateral variations in viscosity are assumerd.");
@@ -611,7 +606,6 @@ namespace aspect
           reference_rho_constant       = prm.get_bool ("Reference density constant");
           thermal_alpha_constant       = prm.get_bool ("Thermal expansion constant");
           thermal_diff_off             = prm.get_bool ("Thermal diffusivity zero");
-          adiabat_temp                 = prm.get_bool ("Use adiabat as background temperature");
           vis_lat_cutoff               = prm.get_double ("Latitude cutoff for lateral variations in viscosity");
         }
         prm.leave_subsection();

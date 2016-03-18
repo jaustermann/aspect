@@ -22,6 +22,7 @@
 
 #include <aspect/material_model/mitrovica_forte.h>
 #include <deal.II/base/parameter_handler.h>
+#include <aspect/lateral_averaging.h>
 
 using namespace dealii;
 
@@ -120,7 +121,7 @@ namespace aspect
     MitrovicaForte<dim>::
     update()
     {
-      this->get_depth_average_temperature(avg_temp);
+      this->get_lateral_averaging().get_temperature_averages(avg_temp);
     }
 
 

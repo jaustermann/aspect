@@ -27,6 +27,7 @@
 #include <fstream>
 #include <iostream>
 #include <deal.II/base/std_cxx1x/array.h>
+#include <aspect/lateral_averaging.h>
 
 #include <boost/math/special_functions/spherical_harmonic.hpp>
 
@@ -129,7 +130,7 @@ namespace aspect
     Gurnis<dim>::
     update()
     {
-      this->get_depth_average_temperature(avg_temp);
+      this->get_lateral_averaging().get_temperature_averages(avg_temp);
     }
 
 

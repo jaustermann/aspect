@@ -282,6 +282,7 @@ namespace aspect
           double max_depth;
           
        };
+     }
     }
 
 
@@ -293,13 +294,10 @@ namespace aspect
       spline_depths_lookup.reset(new internal::S40RTS::SplineDepthsLookup(datadirectory+spline_depth_file_name));
 
       if (vs_to_depth_constant == false)
-        vs_to_density_lookup.reset(new internal::VsToDensityLookup(datadirectory+vs_to_density_file_name));
+        vs_to_density_lookup.reset(new internal::S40RTS::VsToDensityLookup(datadirectory+vs_to_density_file_name));
       if (read_geotherm_in == true)
-        geotherm_lookup.reset(new internal::GeothermLookup(datadirectory+geotherm_file_name));
+        geotherm_lookup.reset(new internal::S40RTS::GeothermLookup(datadirectory+geotherm_file_name));
      }
-      spherical_harmonics_lookup.reset(new internal::S40RTS::SphericalHarmonicsLookup(datadirectory+harmonics_coeffs_file_name));
-      spline_depths_lookup.reset(new internal::S40RTS::SplineDepthsLookup(datadirectory+spline_depth_file_name));
-    }
 
     // NOTE: this module uses the Boost spherical harmonics package which is not designed
     // for very high order (> 100) spherical harmonics computation. If you use harmonic
@@ -325,13 +323,7 @@ namespace aspect
     S40RTSPerturbation<3>::
     initial_temperature (const Point<3> &position) const
     {
-     // this initial condition only makes sense if the geometry is a
-     // spherical shell. verify that it is indeed
-     AssertThrow (dynamic_cast<const GeometryModel::SphericalShell<dim>*>(&this->get_geometry_model())
-                   != 0,
-                   ExcMessage ("This initial condition can only be used if the geometry "
-                               "is a spherical shell."));
-
+     const unsigned int dim = 3;
 
      // use either the user-input reference temperature as background temperature
      // (incompressible model) or the adiabatic temperature profile (compressible model)
@@ -379,18 +371,21 @@ namespace aspect
              {
              // option to zero out degree 0, i.e. make sure that the average of the perturbation
              // is 0 and the average of the temperature is the background temperature 
-             prefact = (zero_out_degree_0
-                        ?
-                        0.
-                        :
-                        1.);
-           else if (order_m == 0)
-             prefact = 1,;
-           else
-             prefact = sqrt(2.);
+                  if (degree_l == 0)
+                    prefact = (zero_out_degree_0
+                               ?
+                               0.
+                               :
+                               1.);
+                  else if (order_m == 0)
+                    prefact = 1.;
+                  else
+                    prefact = sqrt(2.);
 
-           spline_values[depth_interp] += prefact * (a_lm[ind]*cos_component + b_lm[ind]*sin_component);
-           ind += 1;
+                  spline_values[depth_interp] += prefact * (a_lm[ind]*cos_component + b_lm[ind]*sin_component);
+
+                  ind += 1;
+              }
            }
          }
        }
@@ -462,75 +457,16 @@ namespace aspect
         // set heterogeneity to zero down to a specified depth
         temperature_perturbation = 0.0;
 
-     const double temperature_perturbation =  -1./thermal_alpha_val * density_perturbation;
-
 
      // set up background temperature as a geotherm
      /*       Note that the values we read in here have reasonable default values equation to
        the following:*/
  
-     if(read_geotherm_in == false)
-       { 
-       // start geotherm stuff
-       std::vector<double> geotherm (4,0);
-       std::vector<double> radial_position (4,0);
-       geotherm[0] = 1e0;
-       geotherm[1] = 0.75057142857142856;
-       geotherm[2] = 0.32199999999999995;
-       geotherm[3] = 0.0;
-       radial_position[0] =  0e0-1e-3;
-       radial_position[1] =  0.16666666666666666;
-       radial_position[2] =  0.83333333333333337;
-       radial_position[3] =  1e0+1e-3;
-
-       const double
-       R0 = dynamic_cast<const GeometryModel::SphericalShell<dim>&> (this->get_geometry_model()).inner_radius(),
-       R1 = dynamic_cast<const GeometryModel::SphericalShell<dim>&> (this->get_geometry_model()).outer_radius();
-       const double dT = this->get_boundary_temperature().maximal_temperature()
-                         - this->get_boundary_temperature().minimal_temperature();
-       const double T0 = this->get_boundary_temperature().maximal_temperature()/dT;
-       const double T1 = this->get_boundary_temperature().minimal_temperature()/dT;
-       const double h = R1-R0;
-
-       // s = fraction of the way from
-       // the inner to the outer
-       // boundary; 0<=s<=1
-       const double r_geotherm = position.norm();
-       const double s_geotherm  = (r_geotherm-R0)/h;
-
-       const double scale=R1/(R1 - R0);
-       const float eps = 1e-4;
-
-       int indx = -1;
-       for (unsigned int i=0; i<3; ++i)
-         {
-         if ((radial_position[i] - s_geotherm) < eps && (radial_position[i+1] - s_geotherm ) > eps)
-           {
-           indx = i;
-           break;
-           }
-         }
-       Assert (indx >= 0, ExcInternalError());
-       Assert (indx < 3,  ExcInternalError());
-       int indx1 = indx + 1;
-       const float dx = radial_position[indx1] - radial_position[indx];
-       const float dy = geotherm[indx1] - geotherm[indx];
-
-       const double InterpolVal    = (( dx > 0.5*eps)
-                                  ?
-                                  // linear interpolation
-                                  std::max(geotherm[3],geotherm[indx] + (s_geotherm -radial_position[indx]) * (dy/dx))
-                                  :
-                                  // evaluate the point in the discontinuity
-                                  0.5*( geotherm[indx] + geotherm[indx1] ));
-
-       temperature = InterpolVal * dT + temperature_perturbation;
-       }
-
+     double temperature;
 
      // option to either take simplified geotherm or read one in from file
      if(read_geotherm_in == true)
-         temperature = geotherm_lookup->geotherm(depth) + temperature_perturbation;
+        temperature = geotherm_lookup->geotherm(depth) + temperature_perturbation;
    
      if(constant_temp == true)
         temperature = background_temperature + temperature_perturbation;
