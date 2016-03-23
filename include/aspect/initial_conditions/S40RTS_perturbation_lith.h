@@ -19,8 +19,8 @@
 */
 
 
-#ifndef __aspect__initial_conditions_S40RTS_perturbation_h
-#define __aspect__initial_conditions_S40RTS_perturbation_h
+#ifndef __aspect__initial_conditions_S40RTS_perturbation_TXlith_h
+#define __aspect__initial_conditions_S40RTS_perturbation_TXlith_h
 
 #include <aspect/simulator_access.h>
 #include <deal.II/base/std_cxx11/array.h>
@@ -36,7 +36,7 @@ namespace aspect
 
       namespace S40RTS
       {
-        class TX2008Lookup_S40;
+        class ContinentLookup;
         class SphericalHarmonicsLookup;
         class SplineDepthsLookup;
         class VsToDensityLookup;
@@ -54,7 +54,7 @@ namespace aspect
      */
 
     template <int dim>
-    class S40RTSPerturbation : public Interface<dim>, public ::aspect::SimulatorAccess<dim>
+    class S40RTSPerturbation_lith : public Interface<dim>, public ::aspect::SimulatorAccess<dim>
     {
       public:
         /**
@@ -146,7 +146,7 @@ namespace aspect
          * Pointer to an object that reads and processes the depths for the
          * spline knot points.
          */
-        std_cxx11::shared_ptr<internal::S40RTS::TX2008Lookup_S40> TX2008_lookup;
+        std_cxx11::shared_ptr<internal::S40RTS::ContinentLookup> Continent_lookup;
       
         std_cxx11::shared_ptr<internal::S40RTS::SplineDepthsLookup> spline_depths_lookup;
 

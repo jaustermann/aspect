@@ -19,12 +19,13 @@
 */
 
 
-#include <aspect/initial_conditions/S40RTS_perturbation_TXlith.h>
+#include <aspect/initial_conditions/S40RTS_perturbation_lith.h>
 #include <aspect/geometry_model/spherical_shell.h>
 #include <aspect/utilities.h>
 #include <fstream>
 #include <iostream>
 #include <deal.II/base/std_cxx11/array.h>
+#include <math.h> 
 
 #include <boost/math/special_functions/spherical_harmonic.hpp>
 
@@ -38,41 +39,6 @@ namespace aspect
       namespace S40RTS
       {
 
-       class TX2008Lookup
-       {
-         public:
-         TX2008Lookup(const std::string &filename)
-         {
-           std::string temp;
-           std::ifstream in(filename.c_str(), std::ios::in);
-           AssertThrow (in,
-                        ExcMessage (std::string("Couldn't open file <") + filename));
-
-          // in >> order;
-          // getline(in,temp);  // throw away the rest of the line    
-
-          // const int maxnumber = num_splines * (order+1)*(order+1);
-           const int maxnumber = 65341 * 22;
-           // read in all coefficients as a single data vector
-           for (int i=0; i<maxnumber; i++)
-           {
-              double new_val;
-              in >> new_val;
-              coeffs.push_back(new_val);
-           }
-
-         }
-
-         // Declare a function that returns the cosine coefficients
-         const std::vector<double> & grid_perturbations() const
-         {
-           return coeffs;
-         }
-
-         private:
-           std::vector<double> coeffs;
-       };
-
         // Read in the spherical harmonics that are located in data/initial-conditions/S40RTS
         // and were downloaded from http://www.earth.lsa.umich.edu/~jritsema/research.html
         // Ritsema et al. choose real sine and cosine coefficients that follow the normalization
@@ -81,10 +47,11 @@ namespace aspect
         class SphericalHarmonicsLookup
         {
           public:
-            SphericalHarmonicsLookup(const std::string &filename)
+            SphericalHarmonicsLookup(const std::string &filename,
+                                     const MPI_Comm &comm)
             {
               std::string temp;
-              std::ifstream in(filename.c_str(), std::ios::in);
+              std::istringstream in(Utilities::read_and_distribute_file_content(filename, comm));
               AssertThrow (in,
                            ExcMessage (std::string("Could not open file <") + filename + ">."));
 
@@ -159,10 +126,11 @@ namespace aspect
         class SplineDepthsLookup
         {
           public:
-            SplineDepthsLookup(const std::string &filename)
+            SplineDepthsLookup(const std::string &filename,
+                                     const MPI_Comm &comm)
             {
               std::string temp;
-              std::ifstream in(filename.c_str(), std::ios::in);
+              std::istringstream in(Utilities::read_and_distribute_file_content(filename, comm));
               AssertThrow (in,
                            ExcMessage (std::string("Could not open file <") + filename + ">."));
 
@@ -192,10 +160,11 @@ namespace aspect
       class VsToDensityLookup
       {
         public:
-          VsToDensityLookup(const std::string &filename)
+          VsToDensityLookup(const std::string &filename,
+                                     const MPI_Comm &comm)
           {
             std::string temp;
-            std::ifstream in(filename.c_str(), std::ios::in);
+            std::istringstream in(Utilities::read_and_distribute_file_content(filename, comm));
             AssertThrow (in,
                          ExcMessage (std::string("Couldn't open file <") + filename));
 
@@ -319,22 +288,63 @@ namespace aspect
           double max_depth;
           
        };
+
+
+       class ContinentLookup
+       {
+         public:
+         ContinentLookup(const std::string &filename,
+                                     const MPI_Comm &comm)
+         {
+           std::string temp;
+           std::istringstream in(Utilities::read_and_distribute_file_content(filename, comm));
+           AssertThrow (in,
+                        ExcMessage (std::string("Couldn't open file <") + filename));
+
+          // in >> order;
+          // getline(in,temp);  // throw away the rest of the line    
+
+          // const int maxnumber = num_splines * (order+1)*(order+1);
+           const int maxnumber = 65341;
+           // read in all coefficients as a single data vector
+           for (int i=0; i<maxnumber; i++)
+           {
+              double new_val;
+              in >> new_val;
+              coeffs.push_back(new_val);
+           }
+
+         }
+
+         // Declare a function that returns the cosine coefficients
+         const std::vector<double> & continent_function() const
+         {
+           return coeffs;
+         }
+
+         private:
+           std::vector<double> coeffs;
+       };   
+
+
+
+
      }
     }
 
 
     template <int dim>
     void
-    S40RTSPerturbation_TXlith<dim>::initialize()
+    S40RTSPerturbation_lith<dim>::initialize()
     {
 
-      TX2008_lookup.reset(new internal::S40RTS::TX2008Lookup(datadirectory+ "TX2008_dens.txt"));
+      Continent_lookup.reset(new internal::S40RTS::ContinentLookup(datadirectory+ "Cont_func.txt",this->get_mpi_communicator()));
 
-      spherical_harmonics_lookup.reset(new internal::S40RTS::SphericalHarmonicsLookup(datadirectory+harmonics_coeffs_file_name));
-      spline_depths_lookup.reset(new internal::S40RTS::SplineDepthsLookup(datadirectory+spline_depth_file_name));
+      spherical_harmonics_lookup.reset(new internal::S40RTS::SphericalHarmonicsLookup(datadirectory+harmonics_coeffs_file_name,this->get_mpi_communicator()));
+      spline_depths_lookup.reset(new internal::S40RTS::SplineDepthsLookup(datadirectory+spline_depth_file_name,this->get_mpi_communicator()));
 
       if (vs_to_depth_constant == false)
-        vs_to_density_lookup.reset(new internal::S40RTS::VsToDensityLookup(datadirectory+vs_to_density_file_name));
+        vs_to_density_lookup.reset(new internal::S40RTS::VsToDensityLookup(datadirectory+vs_to_density_file_name,this->get_mpi_communicator()));
       if (read_geotherm_in == true)
         geotherm_lookup.reset(new internal::S40RTS::GeothermLookup(datadirectory+geotherm_file_name));
      }
@@ -347,7 +357,7 @@ namespace aspect
 
     template <>
     double
-    S40RTSPerturbation_TXlith<2>::
+    S40RTSPerturbation_lith<2>::
     initial_temperature (const Point<2> &) const
     {
       // we shouldn't get here but instead should already have been
@@ -360,7 +370,7 @@ namespace aspect
 
     template <>
     double
-    S40RTSPerturbation_TXlith<3>::
+    S40RTSPerturbation_lith<3>::
     initial_temperature (const Point<3> &position) const
     {
      const unsigned int dim = 3;
@@ -376,79 +386,6 @@ namespace aspect
 
      const double depth = this->get_geometry_model().depth(position);
      
-     double density_perturbation;
-
-
-
-     if (depth < 250000) {   // If in the upper 250km use the TX model
-
-       // depth values over which gypsum is defined
-       double depth_values[] = {0, 100, 175, 250, 325, 400, 525, 650, 750, 850, 1000, 1150, 1300, 1450, 1600, 1750, 1900, 2050, 2200, 2350, 2500, 2650, 2891};
-
-       for (int i=0; i<23; i++)
-         depth_values[i] *= 1000.;
-
-       const double depth = this->get_geometry_model().depth(position);
-       int depth_index;
-         for (int i=0; i<22; i++)
-           if ( depth > depth_values[i] && depth < depth_values[i+1])
-              depth_index = i;
-
-       double phi = scoord[1] * 180/numbers::PI;
-       if (phi > 180)
-          phi -= 360;
-
-       double theta = scoord[2] * 180/numbers::PI;
-       theta -= 90.;
-       theta *= -1.;
-
-       // Make sure floor and ceil produces two different coordinates
-       phi += 0.000001;
-       theta += 0.000001;
-
-       int x1 = floor(phi);
-       int x2 = ceil(phi);
-       int y1 = floor(theta);
-       int y2 = ceil(theta);
-
-       std::vector<int> index_lonlat (4,0);
-       index_lonlat[0] = (x1+180) + 361*(y1 + 90);
-       index_lonlat[1] = (x2+180) + 361*(y1 + 90);
-       index_lonlat[2] = (x1+180) + 361*(y2 + 90);
-       index_lonlat[3] = (x2+180) + 361*(y2 + 90);
-
-       const std::vector<double>  coeffs = TX2008_lookup->grid_perturbations();
-
-       double density_pert[22][65341];
-
-       int next_ind = 0;
-       for (int i=0; i<65341; i++)
-         for (int j=0; j<22; j++)
-           {
-           density_pert[j][i] = coeffs[next_ind];
-           next_ind += 1;
-           }
-
-
-       // bilinear interpolation from http://en.wikipedia.org/wiki/Bilinear_interpolation
-       const double Q11 = density_pert[depth_index][index_lonlat[0]];
-       const double Q21 = density_pert[depth_index][index_lonlat[1]];
-       const double Q12 = density_pert[depth_index][index_lonlat[2]];
-       const double Q22 = density_pert[depth_index][index_lonlat[3]];
-
-       // The last term (0.01) is necessary to convert percent perturbations to absolute values
-       const double perturbation = 1/((x2-x1) * (y2-y1)) *
-                                 (Q11 *(x2 - phi)*(y2 - theta) +
-                                  Q21 *(phi - x1)*(y2 - theta) +
-                                  Q12 *(x2 - phi)*(theta - y1) +
-                                  Q22 *(phi - x1)*(theta - y1)) * 0.01;
-
-
-
-        density_perturbation = perturbation;
-     }
-  
-     else {
 
        // getthe degree from the input file (20 or 40)
        const int maxdegree = spherical_harmonics_lookup->maxdegree();
@@ -525,7 +462,6 @@ namespace aspect
 
        // scale the perturbation in seismic velocity into a density perturbation
        // vs_to_density is an input parameter
-       const double depth = this->get_geometry_model().depth(position);
 
        double dens_scaling;
        if (vs_to_depth_constant == true)
@@ -533,11 +469,66 @@ namespace aspect
        else
          dens_scaling = vs_to_density_lookup -> vstodensity_scaling(depth);
 
-       density_perturbation = dens_scaling * perturbation;
 
-     }
+       if (depth < 400000)
+       {
+         //calculate whether in continent
 
+         double phi = scoord[1] * 180/numbers::PI;
+         if (phi > 180)
+           phi -= 360;
 
+         double theta = scoord[2] * 180/numbers::PI;
+         theta -= 90.;
+         theta *= -1.;
+
+         // Make sure floor and ceil produces two different coordinates
+         phi += 0.000001;
+         theta += 0.000001;
+
+         int x1 = floor(phi);
+         int x2 = ceil(phi);
+         int y1 = floor(theta);
+         int y2 = ceil(theta);
+
+         std::vector<int> index_lonlat (4,0);
+         index_lonlat[0] = (x1+180) + 361*(y1 + 90);
+         index_lonlat[1] = (x2+180) + 361*(y1 + 90);
+         index_lonlat[2] = (x1+180) + 361*(y2 + 90);
+         index_lonlat[3] = (x2+180) + 361*(y2 + 90);
+
+         const std::vector<double>  coeffs = Continent_lookup->continent_function();
+
+         // bilinear interpolation from http://en.wikipedia.org/wiki/Bilinear_interpolation
+         const double Q11 = coeffs[index_lonlat[0]];
+         const double Q21 = coeffs[index_lonlat[1]];
+         const double Q12 = coeffs[index_lonlat[2]];
+         const double Q22 = coeffs[index_lonlat[3]];
+
+         // The last term (0.01) is necessary to convert percent perturbations to absolute values
+         const double cont_averaging = 1/((x2-x1) * (y2-y1)) *
+                                 (Q11 *(x2 - phi)*(y2 - theta) +
+                                  Q21 *(phi - x1)*(y2 - theta) +
+                                  Q12 *(x2 - phi)*(theta - y1) +
+                                  Q22 *(phi - x1)*(theta - y1));
+
+         if (cont_averaging > 0.5) // you're in the ocean, don't do anything to the vs scaling
+         // you're on the continent, check whether you'r in or below the craton
+         { 
+           const double F_tot = 0.08;
+           const double z_0 = 140000;
+           const double cont_vs_scaling = 0.1;
+
+           const double RHS = 0.031 - F_tot * (1- erf(depth/z_0)); 
+       
+           if (perturbation > RHS)
+             dens_scaling = cont_vs_scaling;
+         }
+       }
+
+     const double  density_perturbation = dens_scaling * perturbation;
+
+     
      //get thermal alpha
      double thermal_alpha_val;
      double B_val, A_val;
@@ -595,11 +586,11 @@ namespace aspect
 
     template <int dim>
     void
-    S40RTSPerturbation_TXlith<dim>::declare_parameters (ParameterHandler &prm)
+    S40RTSPerturbation_lith<dim>::declare_parameters (ParameterHandler &prm)
     {
       prm.enter_subsection("Initial conditions");
       {
-        prm.enter_subsection("S40RTS perturbation TX lithosphere");
+        prm.enter_subsection("S40RTS perturbation with lithosphere");
         {
           prm.declare_entry("Data directory", "$ASPECT_SOURCE_DIR/data/initial-conditions/S40RTS/",
                             Patterns::DirectoryName (),
@@ -665,7 +656,7 @@ namespace aspect
 
     template <int dim>
     void
-    S40RTSPerturbation_TXlith<dim>::parse_parameters (ParameterHandler &prm)
+    S40RTSPerturbation_lith<dim>::parse_parameters (ParameterHandler &prm)
     {
       AssertThrow (dim == 3,
                    ExcMessage ("The 'S40RTS perturbation' model for the initial "
@@ -673,7 +664,7 @@ namespace aspect
 
       prm.enter_subsection("Initial conditions");
       {
-        prm.enter_subsection("S40RTS perturbation TX lithosphere");
+        prm.enter_subsection("S40RTS perturbation with lithosphere");
         {
           datadirectory           = prm.get ("Data directory");
           {
@@ -695,7 +686,6 @@ namespace aspect
           reference_temperature   = prm.get_double ("Reference temperature");
           thermal_alpha_constant  = prm.get_bool ("Thermal expansion constant");
           vs_to_depth_constant    = prm.get_bool ("Vs to density scaling constant");
-          constant_temp           = prm.get_bool ("Constant background temperature");
           no_perturbation_depth   = prm.get_double ("Remove temperature heterogeneity down to specified depth");
         }
         prm.leave_subsection ();
@@ -712,8 +702,8 @@ namespace aspect
 {
   namespace InitialConditions
   {
-    ASPECT_REGISTER_INITIAL_CONDITIONS(S40RTSPerturbation_TXlith,
-                                       "S40RTS perturbation TX lithosphere",
+    ASPECT_REGISTER_INITIAL_CONDITIONS(S40RTSPerturbation_lith,
+                                       "S40RTS perturbation with lithosphere",
                                        "An initial temperature field in which the temperature "
                                        "is perturbed following the S20RTS or S40RTS shear wave "
                                        "velocity model by Ritsema and others, which can be downloaded "

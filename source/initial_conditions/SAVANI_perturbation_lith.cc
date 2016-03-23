@@ -19,7 +19,7 @@
 */
 
 
-#include <aspect/initial_conditions/SAVANI_perturbation_TXlith.h>
+#include <aspect/initial_conditions/SAVANI_perturbation_lith.h>
 #include <aspect/utilities.h>
 #include <fstream>
 #include <iostream>

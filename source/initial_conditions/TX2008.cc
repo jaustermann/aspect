@@ -24,6 +24,7 @@
 #include <fstream>
 #include <iostream>
 #include <deal.II/base/std_cxx1x/array.h>
+#include <aspect/utilities.h>
 
 namespace aspect
 {
@@ -40,10 +41,11 @@ namespace aspect
        class TX2008Lookup
        {
          public:
-         TX2008Lookup(const std::string &filename)
+         TX2008Lookup(const std::string &filename,
+                                     const MPI_Comm &comm)
          {
            std::string temp;
-           std::ifstream in(filename.c_str(), std::ios::in);
+           std::istringstream in(Utilities::read_and_distribute_file_content(filename, comm));
            AssertThrow (in,
                         ExcMessage (std::string("Couldn't open file <") + filename));
 
@@ -146,7 +148,7 @@ namespace aspect
     void
     TX2008Perturbation<dim>::initialize()
     {
-      TX2008_lookup.reset(new internal::TX2008Lookup(datadirectory+TX2008_file_name));
+      TX2008_lookup.reset(new internal::TX2008Lookup(datadirectory+TX2008_file_name,this->get_mpi_communicator()));
 
       if (read_geotherm_in == true)
         geotherm_lookup.reset(new internal::GeothermLookup(datadirectory+geotherm_file_name));

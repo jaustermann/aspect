@@ -36,11 +36,12 @@ namespace aspect
       class RadialViscosityLookup
       {
         public:
-          RadialViscosityLookup(const std::string &filename)
+          RadialViscosityLookup(const std::string &filename,
+                                const MPI_Comm &comm)
           {
             // read in depth dependent viscosity
             std::string temp;
-            std::ifstream in(filename.c_str(), std::ios::in);
+            std::istringstream in(Utilities::read_and_distribute_file_content(filename, comm));
             AssertThrow (in,
                          ExcMessage (std::string("Couldn't open file <") + filename));
 
@@ -105,7 +106,7 @@ namespace aspect
     void
     GlisovicForte<dim>::initialize()
     {
-      radial_viscosity_lookup.reset(new internal::RadialViscosityLookup(datadirectory+radial_viscosity_file_name));
+      radial_viscosity_lookup.reset(new internal::RadialViscosityLookup(datadirectory+radial_viscosity_file_name,this->get_mpi_communicator()));
       avg_temp.resize(100);
     }
 
