@@ -236,10 +236,11 @@ namespace aspect
                                0.
                                :
                                1.);
-                  else if (order_m == 0)
-                    prefact = 1.;
+                //  else if (order_m == 0)
+                //    prefact = 1.;
                   else
-                    prefact = sqrt(2.);
+		      prefact = 1.;
+                //    prefact = sqrt(2.);
 
                   spline_values[depth_interp] += prefact * (a_lm[ind]*cos_component + b_lm[ind]*sin_component);
 
