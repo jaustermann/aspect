@@ -47,9 +47,9 @@ namespace aspect
         prm.enter_subsection("Radial constant");
         {
           prm.declare_entry ("Magnitude", "9.81",
-                             Patterns::Double (0),
-                             "Magnitude of the gravity vector in $m/s^2$. The direction is "
-                             "always radially inward towards the center of the earth.");
+                             Patterns::Double (),
+                             "Magnitude of the gravity vector in $m/s^2$. For positive values "
+                             "the direction is radially inward towards the center of the earth.");
         }
         prm.leave_subsection ();
       }
@@ -150,7 +150,7 @@ namespace aspect
         prm.enter_subsection("Radial linear");
         {
           prm.declare_entry ("Magnitude at surface", "9.8",
-                             Patterns::Double (0),
+                             Patterns::Double (),
                              "Magnitude of the radial gravity vector "
                              "at the surface of the domain. Units: $m/s^2$");
         }
@@ -185,8 +185,9 @@ namespace aspect
   {
     ASPECT_REGISTER_GRAVITY_MODEL(RadialConstant,
                                   "radial constant",
-                                  "A gravity model in which the gravity direction is radially inward "
-                                  "and at constant magnitude. The magnitude is read from the parameter "
+                                  "A gravity model in which the gravity has a constant magnitude "
+                                  "and the direction is radial (pointing inward if the value "
+                                  "is positive). The magnitude is read from the parameter "
                                   "file in subsection 'Radial constant'.")
 
     ASPECT_REGISTER_GRAVITY_MODEL(RadialEarthLike,
