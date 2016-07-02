@@ -14,7 +14,11 @@ Number of degrees of freedom: 268 (162+25+81)
 *** Timestep 0:  t=0 seconds
    Solving temperature system... 0 iterations.
    Rebuilding Stokes preconditioner...
+<<<<<<< HEAD
    Solving Stokes system... 11 iterations.
+=======
+   Solving Stokes system... 15+0 iterations.
+>>>>>>> 9098005... Adjust tests. These tests have gravity that points up / out, which previously led to incorrect adiabatic conditions that affect the preconditioner. This pull request fixes this issue, which changes the convergence behaviour of these tests.
 
    Postprocessing:
      Writing graphical output: output-own_gravity/solution-00000

@@ -15,8 +15,13 @@ Number of degrees of freedom: 3,041 (2,187+125+729)
    Rebuilding Stokes preconditioner...
    Solving Stokes system... 0+54 iterations.
       Nonlinear Stokes residual: 111.63
+<<<<<<< HEAD
    Solving Stokes system... 0 iterations.
       Nonlinear Stokes residual: 2.97962e-09
+=======
+   Solving Stokes system... 0+0 iterations.
+      Nonlinear Stokes residual: 2.38814e-11
+>>>>>>> 9098005... Adjust tests. These tests have gravity that points up / out, which previously led to incorrect adiabatic conditions that affect the preconditioner. This pull request fixes this issue, which changes the convergence behaviour of these tests.
 
    Postprocessing:
 viscosity depends on 
