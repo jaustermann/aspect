@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2015 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2016 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -20,7 +20,6 @@
 
 
 #include <aspect/postprocess/depth_average.h>
-#include <aspect/simulator_access.h>
 #include <aspect/lateral_averaging.h>
 #include <aspect/global.h>
 
@@ -88,6 +87,15 @@ namespace aspect
         if ( output_all_variables || std::find( output_variables.begin(), output_variables.end(), "adiabatic temperature") != output_variables.end() )
           variables.push_back("adiabatic_temperature");
 
+        if ( output_all_variables || std::find( output_variables.begin(), output_variables.end(), "adiabatic pressure") != output_variables.end() )
+          variables.push_back("adiabatic_pressure");
+
+        if ( output_all_variables || std::find( output_variables.begin(), output_variables.end(), "adiabatic density") != output_variables.end() )
+          variables.push_back("adiabatic_density");
+
+        if ( output_all_variables || std::find( output_variables.begin(), output_variables.end(), "adiabatic density derivative") != output_variables.end() )
+          variables.push_back("adiabatic_density_derivative");
+
         if ( output_all_variables || std::find( output_variables.begin(), output_variables.end(), "velocity magnitude") != output_variables.end() )
           variables.push_back("velocity_magnitude");
 
@@ -128,6 +136,18 @@ namespace aspect
         if ( std::find( variables.begin(), variables.end(), "adiabatic_temperature") != variables.end() )
           this->get_adiabatic_conditions().get_adiabatic_temperature_profile(data_point.values[index++]);
 
+        //adiabatic pressure
+        if ( std::find( variables.begin(), variables.end(), "adiabatic_pressure") != variables.end() )
+          this->get_adiabatic_conditions().get_adiabatic_pressure_profile(data_point.values[index++]);
+
+        //adiabatic density
+        if ( std::find( variables.begin(), variables.end(), "adiabatic_density") != variables.end() )
+          this->get_adiabatic_conditions().get_adiabatic_density_profile(data_point.values[index++]);
+
+        //adiabatic density derivative
+        if ( std::find( variables.begin(), variables.end(), "adiabatic_density_derivative") != variables.end() )
+          this->get_adiabatic_conditions().get_adiabatic_density_derivative_profile(data_point.values[index++]);
+
         //velocity magnitude
         if ( std::find( variables.begin(), variables.end(), "velocity_magnitude") != variables.end() )
           this->get_lateral_averaging().get_velocity_magnitude_averages(data_point.values[index++]);
@@ -159,6 +179,7 @@ namespace aspect
       // On the root process, write out the file. do this using the DataOutStack
       // class on a piecewise constant finite element space on
       // a 1d mesh with the correct subdivisions
+      std::string filename;
       if (Utilities::MPI::this_mpi_process(this->get_mpi_communicator()) == 0)
         {
           Triangulation<1> mesh;
@@ -215,19 +236,23 @@ namespace aspect
                 }
 
 
-              const std::string filename = (this->get_output_directory() +
-                                            "depth_average" +
-                                            DataOutBase::default_suffix(output_format));
+              filename = (this->get_output_directory() +
+                          "depth_average" +
+                          DataOutBase::default_suffix(output_format));
               std::ofstream f (filename.c_str());
               data_out_stack.write (f, output_format);
+
+              AssertThrow (f, ExcMessage("Writing data to <" + filename +
+                                         "> did not succeed in the 'point values' "
+                                         "postprocessor."));
             }
           else
             {
-              const std::string filename = (this->get_output_directory() + "depth_average.txt");
+              filename = (this->get_output_directory() + "depth_average.txt");
               std::ofstream f(filename.c_str(), std::ofstream::out);
 
               //Write the header
-              f << "#       time" << "       depth";
+              f << "#       time" << "        depth";
               for ( unsigned int i = 0; i < variables.size(); ++i)
                 f << " " << variables[i];
               f << std::endl;
@@ -241,14 +266,17 @@ namespace aspect
                     {
                       f << std::setw(12)
                         << (this->convert_output_to_years() ? point->time/year_in_seconds : point->time)
-                        << std::setw(12) << depth;
+                        << ' ' << std::setw(12) << depth;
                       for ( unsigned int i = 0; i < variables.size(); ++i )
-                        f << std::setw(12) << point->values[i][d];
+                        f << ' ' << std::setw(12) << point->values[i][d];
                       f << std::endl;
                       depth+= max_depth/static_cast<double>(point->values[0].size() );
                     }
                 }
-              f.close();
+
+              AssertThrow (f, ExcMessage("Writing data to <" + filename +
+                                         "> did not succeed in the 'point values' "
+                                         "postprocessor."));
             }
         }
 
@@ -256,10 +284,8 @@ namespace aspect
 
       // return what should be printed to the screen. note that we had
       // just incremented the number, so use the previous value
-      return std::make_pair (std::string ("Writing depth average"),
-                             this->get_output_directory() +
-                             "depth_average" +
-                             (ascii_output ? ".txt" : DataOutBase::default_suffix(output_format)));
+      return std::make_pair (std::string ("Writing depth average:"),
+                             filename);
     }
 
 
@@ -295,14 +321,19 @@ namespace aspect
                              "The format in which the output shall be produced. The "
                              "format in which the output is generated also determines "
                              "the extension of the file into which data is written.");
+          const std::string variables =
+            "all|temperature|composition|"
+            "adiabatic temperature|adiabatic pressure|adiabatic density|adiabatic density derivative|"
+            "velocity magnitude|sinking velocity|Vs|Vp|"
+            "viscosity|vertical heat flux";
           prm.declare_entry("List of output variables", "all",
-                            Patterns::MultipleSelection("all|temperature|composition|adiabatic temperature|"
-                                                        "velocity magnitude|sinking velocity|Vs|Vp|"
-                                                        "viscosity|vertical heat flux"),
+                            Patterns::MultipleSelection(variables.c_str()),
                             "A comma separated list which specifies which quantites to "
                             "average in each depth slice. It defaults to averaging all "
                             "availabe quantities, but this can be an expensive operation, "
-                            "so you may want to select only a few.");
+                            "so you may want to select only a few.\n\n"
+                            "List of options:\n"
+                            +variables);
         }
         prm.leave_subsection();
       }

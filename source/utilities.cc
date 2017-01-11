@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2015 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2017 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -17,7 +17,6 @@
   along with ASPECT; see the file doc/COPYING.  If not see
   <http://www.gnu.org/licenses/>.
 */
-
 #include <aspect/global.h>
 #include <aspect/utilities.h>
 
@@ -36,8 +35,11 @@
 
 #include <fstream>
 #include <string>
+#include <dirent.h>
 #include <sys/stat.h>
 #include <errno.h>
+
+#include <boost/math/special_functions/spherical_harmonic.hpp>
 
 namespace aspect
 {
@@ -49,7 +51,10 @@ namespace aspect
   {
     using namespace dealii;
 
-
+    /**
+     * Split the set of DoFs (typically locally owned or relevant) in @p whole_set into blocks
+     * given by the @p dofs_per_block structure.
+     */
     void split_by_block (const std::vector<types::global_dof_index> &dofs_per_block,
                          const IndexSet &whole_set,
                          std::vector<IndexSet> &partitioned)
@@ -66,61 +71,290 @@ namespace aspect
         }
     }
 
-    template <int dim>
-    std_cxx11::array<double,dim>
-    spherical_coordinates(const Point<dim> &position)
+    namespace Coordinates
     {
-      std_cxx11::array<double,dim> scoord;
 
-      scoord[0] = position.norm(); // R
-      scoord[1] = std::atan2(position(1),position(0)); // Phi
-      if (scoord[1] < 0.0)
-        scoord[1] += 2.0*numbers::PI; // correct phi to [0,2*pi]
-      if (dim==3)
-        {
-          if (scoord[0] > std::numeric_limits<double>::min())
-            scoord[2] = std::acos(position(2)/scoord[0]);
-          else
-            scoord[2] = 0.0;
-        }
-      return scoord;
+      template <int dim>
+      std_cxx11::array<double,dim>
+      WGS84_coordinates(const Point<dim> &position)
+      {
+        std_cxx11::array<double,dim> ecoord;
+
+        // Define WGS84 ellipsoid constants.
+        const double radius = 6378137.;
+        const double ellipticity = 8.1819190842622e-2;
+        const double b = std::sqrt(radius * radius
+                                   * (1 - ellipticity * ellipticity));
+        const double ep = std::sqrt((radius * radius - b * b) / (b * b));
+        const double p = std::sqrt(position(0) * position(0) + position(1) * position(1));
+        const double th = std::atan2(radius * position(2), b * p);
+        ecoord[2] = std::atan2((position(2) + ep * ep * b * std::sin(th)
+                                * std::sin(th) * std::sin(th)),
+                               (p - (ellipticity * ellipticity * radius * (std::cos(th)
+                                                                           * std::cos(th) * std::cos(th)))))
+                    * (180. / numbers::PI);
+
+        if (dim == 3)
+          {
+            ecoord[1] = std::atan2(position(1), position(0))
+                        * (180. / numbers::PI);
+
+            /* Set all longitudes between [0,360]. */
+            if (ecoord[1] < 0.)
+              ecoord[1] += 360.;
+            else if (ecoord[1] > 360.)
+              ecoord[1] -= 360.;
+          }
+        else
+          ecoord[1] = 0.0;
+
+
+        ecoord[0] = radius/std::sqrt(1- ellipticity * ellipticity
+                                     * std::sin(numbers::PI * ecoord[2]/180)
+                                     * std::sin(numbers::PI * ecoord[2]/180));
+        return ecoord;
+      }
+
+      template <int dim>
+      std_cxx11::array<double,dim>
+      cartesian_to_spherical_coordinates(const Point<dim> &position)
+      {
+        std_cxx11::array<double,dim> scoord;
+
+        scoord[0] = position.norm(); // R
+        scoord[1] = std::atan2(position(1),position(0)); // Phi
+        if (scoord[1] < 0.0)
+          scoord[1] += 2.0*numbers::PI; // correct phi to [0,2*pi]
+        if (dim==3)
+          {
+            if (scoord[0] > std::numeric_limits<double>::min())
+              scoord[2] = std::acos(position(2)/scoord[0]);
+            else
+              scoord[2] = 0.0;
+          }
+        return scoord;
+      }
+
+      template <int dim>
+      Point<dim>
+      spherical_to_cartesian_coordinates(const std_cxx11::array<double,dim> &scoord)
+      {
+        Point<dim> ccoord;
+
+        switch (dim)
+          {
+            case 2:
+            {
+              ccoord[0] = scoord[0] * std::cos(scoord[1]); // X
+              ccoord[1] = scoord[0] * std::sin(scoord[1]); // Y
+              break;
+            }
+            case 3:
+            {
+              ccoord[0] = scoord[0] * std::sin(scoord[2]) * std::cos(scoord[1]); // X
+              ccoord[1] = scoord[0] * std::sin(scoord[2]) * std::sin(scoord[1]); // Y
+              ccoord[2] = scoord[0] * std::cos(scoord[2]); // Z
+              break;
+            }
+            default:
+              Assert (false, ExcNotImplemented());
+              break;
+          }
+
+        return ccoord;
+      }
+
+      template <int dim>
+      std_cxx11::array<double,3>
+      cartesian_to_ellipsoidal_coordinates(const Point<3> &x,
+                                           const double semi_major_axis_a,
+                                           const double eccentricity)
+      {
+        const double R    = semi_major_axis_a;
+        const double b      = std::sqrt(R * R * (1 - eccentricity * eccentricity));
+        const double ep     = std::sqrt((R * R - b * b) / (b * b));
+        const double p      = std::sqrt(x(0) * x(0) + x(1) * x(1));
+        const double th     = std::atan2(R * x(2), b * p);
+        const double phi    = std::atan2(x(1), x(0));
+        const double theta  = std::atan2(x(2) + ep * ep * b * std::pow(std::sin(th),3),
+                                         (p - (eccentricity * eccentricity * R  * std::pow(std::cos(th),3))));
+        const double R_bar = R / (std::sqrt(1 - eccentricity * eccentricity * std::sin(theta) * std::sin(theta)));
+        const double R_plus_d = p / std::cos(theta);
+
+        std_cxx11::array<double,3> phi_theta_d;
+        phi_theta_d[0] = phi;
+
+        phi_theta_d[1] = theta;
+        phi_theta_d[2] = R_plus_d - R_bar;
+        return phi_theta_d;
+      }
+
+      template <int dim>
+      Point<3>
+      ellipsoidal_to_cartesian_coordinates(const std_cxx11::array<double,3> &phi_theta_d,
+                                           const double semi_major_axis_a,
+                                           const double eccentricity)
+      {
+        const double phi   = phi_theta_d[0];
+        const double theta = phi_theta_d[1];
+        const double d     = phi_theta_d[2];
+
+        const double R_bar = semi_major_axis_a / std::sqrt(1 - (eccentricity * eccentricity *
+                                                                std::sin(theta) * std::sin(theta)));
+
+        return Point<3> ((R_bar + d) * std::cos(phi) * std::cos(theta),
+                         (R_bar + d) * std::sin(phi) * std::cos(theta),
+                         ((1 - eccentricity * eccentricity) * R_bar + d) * std::sin(theta));
+
+      }
     }
 
     template <int dim>
-    Point<dim>
-    cartesian_coordinates(const std_cxx11::array<double,dim> &scoord)
+    bool
+    polygon_contains_point(const std::vector<Point<2> > &point_list,
+                           const dealii::Point<2> &point)
     {
-      Point<dim> ccoord;
+      /**
+       * This code has been based on http://geomalgorithms.com/a03-_inclusion.html,
+       * and therefore requires the following copyright notice:
+       *
+       * Copyright 2000 softSurfer, 2012 Dan Sunday
+       * This code may be freely used and modified for any purpose
+       * providing that this copyright notice is included with it.
+       * SoftSurfer makes no warranty for this code, and cannot be held
+       * liable for any real or imagined damage resulting from its use.
+       * Users of this code must verify correctness for their application.
+       *
+       * The main functional difference between the original code and this
+       * code is that all the boundaries are condidered to be inside the
+       * polygon.
+       */
+      int pointNo = point_list.size();
+      int    wn = 0;    // the  winding number counter
+      int   j=pointNo-1;
 
+
+      // loop through all edges of the polygon
+      for (int i=0; i<pointNo; i++)
+        {
+          // edge from V[i] to  V[i+1]
+          if (point_list[j][1] <= point[1])
+            {
+              // start y <= P.y
+              if (point_list[i][1]  >= point[1])      // an upward crossing
+                if (( (point_list[i][0] - point_list[j][0]) * (point[1] - point_list[j][1])
+                      - (point[0] -  point_list[j][0]) * (point_list[i][1] - point_list[j][1]) ) >= 0)
+                  {
+                    // P left of  edge
+                    ++wn;            // have  a valid up intersect
+                  }
+            }
+          else
+            {
+              // start y > P.y (no test needed)
+              if (point_list[i][1]  <= point[1])     // a downward crossing
+                if (( (point_list[i][0] - point_list[j][0]) * (point[1] - point_list[j][1])
+                      - (point[0] -  point_list[j][0]) * (point_list[i][1] - point_list[j][1]) ) <= 0)
+                  {
+                    // P right of  edge
+                    --wn;            // have  a valid down intersect
+                  }
+            }
+          j=i;
+        }
+      return (wn != 0);
+    }
+
+    template <int dim>
+    std_cxx11::array<Tensor<1,dim>,dim-1>
+    orthogonal_vectors (const Tensor<1,dim> &v)
+    {
+      Assert (v.norm() > 0,
+              ExcMessage ("This function can not be called with a zero "
+                          "input vector."));
+
+      std_cxx11::array<Tensor<1,dim>,dim-1> return_value;
       switch (dim)
         {
           case 2:
           {
-            ccoord[0] = scoord[0] * std::cos(scoord[1]); // X
-            ccoord[1] = scoord[0] * std::sin(scoord[1]); // Y
+            // create a direction by swapping the two coordinates and
+            // flipping one sign; this is orthogonal to 'v' and has
+            // the same length already
+            return_value[0][0] = v[1];
+            return_value[0][1] = -v[0];
             break;
           }
+
           case 3:
           {
-            ccoord[0] = scoord[0] * std::sin(scoord[2]) * std::cos(scoord[1]); // X
-            ccoord[1] = scoord[0] * std::sin(scoord[2]) * std::sin(scoord[1]); // Y
-            ccoord[2] = scoord[0] * std::cos(scoord[2]); // Z
+            // In 3d, we can get two other vectors in a 3-step procedure:
+            // - compute a 'w' that is definitely not collinear with 'v'
+            // - compute the first direction as u[1] = v \times w,
+            //   normalize it
+            // - compute the second direction as u[2] = v \times u[1],
+            //   normalize it
+            //
+            // For the first step, use a procedure suggested by Luca Heltai:
+            // Set d to the index of the largest component of v. Make a vector
+            // with this component equal to zero, and with the other two
+            // equal to the norm of the point. Call this 'w'.
+            unsigned int max_component = 0;
+            for (unsigned int d=1; d<dim; ++d)
+              if (std::fabs(v[d]) > std::fabs(v[max_component]))
+                max_component = d;
+            Tensor<1,dim> w = v;
+            w[max_component] = 0;
+            for (unsigned int d=1; d<dim; ++d)
+              if (d != max_component)
+                w[d] = v.norm();
+
+            return_value[0] = cross_product_3d(v, w);
+            return_value[0] *= v.norm() / return_value[0].norm();
+
+            return_value[1] = cross_product_3d(v, return_value[0]);
+            return_value[1] *= v.norm() / return_value[1].norm();
+
             break;
           }
+
           default:
             Assert (false, ExcNotImplemented());
-            break;
         }
 
-      return ccoord;
+      return return_value;
     }
+
+
+    //Evaluate the cosine and sine terms of a real spherical harmonic.
+    //This is a fully normalized harmonic, that is to say, inner products
+    //of these functions should integrate to a kronecker delta over
+    //the surface of a sphere.
+    std::pair<double,double> real_spherical_harmonic( const unsigned int l, //degree
+                                                      const unsigned int m, //order
+                                                      const double theta,   //colatitude (radians)
+                                                      const double phi )    //longitude (radians)
+    {
+      const double sqrt_2 = numbers::SQRT2;
+      const std::complex<double> sph_harm_val = boost::math::spherical_harmonic( l, m, theta, phi );
+      if ( m == 0 )
+        return std::make_pair( sph_harm_val.real(), 0.0 );
+      else
+        return std::make_pair( sqrt_2 * sph_harm_val.real(), sqrt_2 * sph_harm_val.imag() );
+    }
+
 
     bool
     fexists(const std::string &filename)
     {
       std::ifstream ifile(filename.c_str());
-      return static_cast<bool>(ifile); // only in c++11 you can convert to bool directly
+
+      // return whether construction of the input file has succeeded;
+      // success requires the file to exist and to be readable
+      return static_cast<bool>(ifile);
     }
+
+
 
     std::string
     read_and_distribute_file_content(const std::string &filename,
@@ -130,21 +364,37 @@ namespace aspect
 
       if (Utilities::MPI::this_mpi_process(comm) == 0)
         {
+          // set file size to an invalid size (signalling an error if we can not read it)
+          unsigned int filesize = numbers::invalid_unsigned_int;
+
           std::ifstream filestream(filename.c_str());
-          AssertThrow (filestream,
-                       ExcMessage (std::string("Could not open file <") + filename + ">."));
+
+          if (!filestream)
+            {
+              // broadcast failure state, then throw
+              MPI_Bcast(&filesize,1,MPI_UNSIGNED,0,comm);
+              AssertThrow (false,
+                           ExcMessage (std::string("Could not open file <") + filename + ">."));
+              return data_string; // never reached
+            }
 
           // Read data from disk
           std::stringstream datastream;
           filestream >> datastream.rdbuf();
 
-          AssertThrow (filestream.eof(),
-                       ExcMessage (std::string("Reading of file ") + filename + " finished " +
-                                   "before the end of file was reached. Is the file corrupted or"
-                                   "too large for the input buffer?"));
+          if (!filestream.eof())
+            {
+              // broadcast failure state, then throw
+              MPI_Bcast(&filesize,1,MPI_UNSIGNED,0,comm);
+              AssertThrow (false,
+                           ExcMessage (std::string("Reading of file ") + filename + " finished " +
+                                       "before the end of file was reached. Is the file corrupted or"
+                                       "too large for the input buffer?"));
+              return data_string; // never reached
+            }
 
           data_string = datastream.str();
-          unsigned int filesize = data_string.size();
+          filesize = data_string.size();
 
           // Distribute data_size and data across processes
           MPI_Bcast(&filesize,1,MPI_UNSIGNED,0,comm);
@@ -155,6 +405,9 @@ namespace aspect
           // Prepare for receiving data
           unsigned int filesize;
           MPI_Bcast(&filesize,1,MPI_UNSIGNED,0,comm);
+          if (filesize == numbers::invalid_unsigned_int)
+            throw QuietException();
+
           data_string.resize(filesize);
 
           // Receive and store data
@@ -192,6 +445,49 @@ namespace aspect
         }
 
       return 0;
+    }
+
+    void create_directory(const std::string &pathname,
+                          const MPI_Comm &comm,
+                          bool silent)
+    {
+      // verify that the output directory actually exists. if it doesn't, create
+      // it on processor zero
+      int error;
+
+      if ((Utilities::MPI::this_mpi_process(comm) == 0))
+        {
+          if (opendir(pathname.c_str()) == NULL)
+            {
+              if (!silent)
+                std::cout << "\n"
+                          << "-----------------------------------------------------------------------------\n"
+                          << "The output directory <" << pathname
+                          << "> provided in the input file appears not to exist.\n"
+                          << "ASPECT will create it for you.\n"
+                          << "-----------------------------------------------------------------------------\n\n"
+                          << std::endl;
+
+              error = Utilities::mkdirp(pathname, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
+
+            }
+          else
+            {
+              error = 0;
+            }
+          // Broadcast error code
+          MPI_Bcast (&error, 1, MPI_INT, 0, comm);
+          AssertThrow (error == 0,
+                       ExcMessage (std::string("Can't create the output directory at <") + pathname + ">"));
+        }
+      else
+        {
+          // Wait to recieve error code, and throw QuietException if directory
+          // creation has failed
+          MPI_Bcast (&error, 1, MPI_INT, 0, comm);
+          if (error!=0)
+            throw aspect::QuietException();
+        }
     }
 
     // tk does the cubic spline interpolation that can be used between different spherical layers in the mantle.
@@ -549,6 +845,21 @@ namespace aspect
     } // namespace tk
 
 
+    std::string
+    expand_ASPECT_SOURCE_DIR (const std::string &location)
+    {
+      return Utilities::replace_in_string(location,
+                                          "$ASPECT_SOURCE_DIR",
+                                          ASPECT_SOURCE_DIR);
+    }
+
+    std::string parenthesize_if_nonempty (const std::string &s)
+    {
+      if (s.size() > 0)
+        return " (\"" + s + "\")";
+      else
+        return "";
+    }
 
     template <int dim>
     AsciiDataLookup<dim>::AsciiDataLookup(const unsigned int components,
@@ -627,31 +938,95 @@ namespace aspect
 
           i++;
 
-          // TODO: add checks for coordinate ordering in data files
         }
 
       AssertThrow(i == (components + dim) * data_table.n_elements(),
                   ExcMessage (std::string("Number of read in points does not match number of expected points. File corrupted?")));
 
+      // In case the data is specified on a grid that is equidistant
+      // in each coordinate direction, we only need to store
+      // (besides the data) the number of intervals in each direction and
+      // the begin- and endpoints of the coordinates.
+      // In case the grid is not equidistant, we need to keep
+      // all the coordinates in each direction, which is more costly.
+      // Here we fill the data structures needed for both cases,
+      // and check whether the coordinates are equidistant or not.
+      // We also check the requirement that the coordinates are
+      // strictly ascending.
+
+      // The number of intervals in each direction
       std_cxx11::array<unsigned int,dim> table_intervals;
+
+      // Whether or not the grid is equidistant
+      bool equidistant_grid = true;
 
       for (unsigned int i = 0; i < dim; i++)
         {
           table_intervals[i] = table_points[i] - 1;
 
           TableIndices<dim> idx;
-          grid_extent[i].first = data_tables[i](idx);
-          idx[i] = table_points[i] - 1;
-          grid_extent[i].second = data_tables[i](idx);
+          double temp_coord = data_tables[i](idx);
+          double new_temp_coord = 0;
+
+          // The minimum coordinates
+          grid_extent[i].first = temp_coord;
+
+          // The first coordinate value
+          coordinate_values[i].push_back(temp_coord);
+
+          // The grid spacing
+          double first_grid_spacing;
+          double grid_spacing;
+
+          // Loop over the rest of the coordinate points
+          for (unsigned int n = 1; n < table_points[i]; n++)
+            {
+              idx[i] = n;
+              new_temp_coord = data_tables[i](idx);
+              AssertThrow(new_temp_coord > temp_coord,
+                          ExcMessage ("Coordinates in dimension "
+                                      + int_to_string(i)
+                                      + " are not strictly ascending. "));
+
+              // Test whether grid is equidistant
+              if (n == 1)
+                first_grid_spacing = new_temp_coord - temp_coord;
+              else
+                {
+                  grid_spacing = new_temp_coord - temp_coord;
+                  // Compare current grid spacing with first grid spacing,
+                  // taking into account roundoff of the read-in coordinates
+                  if (std::abs(grid_spacing - first_grid_spacing) > 0.005*(grid_spacing+first_grid_spacing))
+                    equidistant_grid = false;
+                }
+
+              // Set the coordinate value
+              coordinate_values[i].push_back(new_temp_coord);
+              temp_coord = new_temp_coord;
+            }
+
+          // The maximum coordinate
+          grid_extent[i].second = temp_coord;
         }
 
+      // For each data component, set up a GridData,
+      // its type depending on the read-in grid.
       for (unsigned int i = 0; i < components; i++)
         {
           if (data[i])
             delete data[i];
-          data[i] = new Functions::InterpolatedUniformGridData<dim> (grid_extent,
-                                                                     table_intervals,
-                                                                     data_tables[dim+i]);
+
+          if (equidistant_grid)
+            data[i] = new Functions::InterpolatedUniformGridData<dim> (grid_extent,
+                                                                       table_intervals,
+                                                                       data_tables[dim+i]);
+          else
+            {
+              if (Utilities::MPI::this_mpi_process(comm) == 0)
+                std::cout << "   Ascii data file coordinates are not equidistant. " << std::endl << std::endl;
+              data[i] = new Functions::InterpolatedTensorProductGridData<dim> (coordinate_values,
+                                                                               data_tables[dim+i]);
+            }
         }
     }
 
@@ -736,16 +1111,7 @@ namespace aspect
         // Get the path to the data files. If it contains a reference
         // to $ASPECT_SOURCE_DIR, replace it by what CMake has given us
         // as a #define
-        data_directory    = prm.get ("Data directory");
-        {
-          const std::string      subst_text = "$ASPECT_SOURCE_DIR";
-          std::string::size_type position;
-          while (position = data_directory.find (subst_text),  position!=std::string::npos)
-            data_directory.replace (data_directory.begin()+position,
-                                    data_directory.begin()+position+subst_text.size(),
-                                    ASPECT_SOURCE_DIR);
-        }
-
+        data_directory = Utilities::expand_ASPECT_SOURCE_DIR(prm.get ("Data directory"));
         data_file_name    = prm.get ("Data file name");
         scale_factor      = prm.get_double ("Scale factor");
       }
@@ -1037,10 +1403,11 @@ namespace aspect
         {
           Point<dim> internal_position = position;
 
-          if (dynamic_cast<const GeometryModel::SphericalShell<dim>*> (&this->get_geometry_model()) != 0)
+          if (dynamic_cast<const GeometryModel::SphericalShell<dim>*> (&this->get_geometry_model()) != 0
+              || dynamic_cast<const GeometryModel::Chunk<dim>*> (&this->get_geometry_model()) != 0)
             {
               const std_cxx11::array<double,dim> spherical_position =
-                ::aspect::Utilities::spherical_coordinates(position);
+                ::aspect::Utilities::Coordinates::cartesian_to_spherical_coordinates(position);
 
               for (unsigned int i = 0; i < dim; i++)
                 internal_position[i] = spherical_position[i];
@@ -1177,7 +1544,7 @@ namespace aspect
           || (dynamic_cast<const GeometryModel::Chunk<dim>*> (&this->get_geometry_model())) != 0)
         {
           const std_cxx11::array<double,dim> spherical_position =
-            ::aspect::Utilities::spherical_coordinates(position);
+            ::aspect::Utilities::Coordinates::cartesian_to_spherical_coordinates(position);
 
           for (unsigned int i = 0; i < dim; i++)
             internal_position[i] = spherical_position[i];
@@ -1196,10 +1563,21 @@ namespace aspect
     template class AsciiDataInitial<2>;
     template class AsciiDataInitial<3>;
 
-    template Point<2> cartesian_coordinates<2>(const std_cxx11::array<double,2> &scoord);
-    template Point<3> cartesian_coordinates<3>(const std_cxx11::array<double,3> &scoord);
+    template Point<2> Coordinates::spherical_to_cartesian_coordinates<2>(const std_cxx11::array<double,2> &scoord);
+    template Point<3> Coordinates::spherical_to_cartesian_coordinates<3>(const std_cxx11::array<double,3> &scoord);
 
-    template std_cxx11::array<double,2> spherical_coordinates<2>(const Point<2> &position);
-    template std_cxx11::array<double,3> spherical_coordinates<3>(const Point<3> &position);
+    template std_cxx11::array<double,2> Coordinates::cartesian_to_spherical_coordinates<2>(const Point<2> &position);
+    template std_cxx11::array<double,3> Coordinates::cartesian_to_spherical_coordinates<3>(const Point<3> &position);
+
+
+    template std_cxx11::array<double,2> Coordinates::WGS84_coordinates<2>(const Point<2> &position);
+    template std_cxx11::array<double,3> Coordinates::WGS84_coordinates<3>(const Point<3> &position);
+
+    template bool polygon_contains_point<2>(const std::vector<Point<2> > &pointList, const dealii::Point<2> &point);
+    template bool polygon_contains_point<3>(const std::vector<Point<2> > &pointList, const dealii::Point<2> &point);
+
+
+    template std_cxx11::array<Tensor<1,2>,1> orthogonal_vectors (const Tensor<1,2> &v);
+    template std_cxx11::array<Tensor<1,3>,2> orthogonal_vectors (const Tensor<1,3> &v);
   }
 }

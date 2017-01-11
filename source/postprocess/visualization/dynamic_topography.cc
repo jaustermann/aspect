@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2015 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2016 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -20,7 +20,6 @@
 
 
 #include <aspect/postprocess/visualization/dynamic_topography.h>
-#include <aspect/simulator_access.h>
 
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/fe/fe_values.h>
@@ -49,7 +48,8 @@ namespace aspect
                                  quadrature_formula,
                                  update_values   |
                                  update_gradients   |
-                                 update_quadrature_points );
+                                 update_quadrature_points |
+                                 update_JxW_values);
 
         FEFaceValues<dim> fe_face_values (this->get_mapping(),
                                           this->get_fe(),
@@ -129,7 +129,6 @@ namespace aspect
 
                 // Compute the integral of the dynamic topography function
                 // over the entire cell, by looping over all quadrature points
-                // (currently, there is only one, but the code is generic).
                 for (unsigned int q=0; q<quadrature_formula.size(); ++q)
                   {
                     const Point<dim> location = fe_values.quadrature_point(q);
@@ -145,7 +144,7 @@ namespace aspect
                     // Subtract the dynamic pressure
                     const double dynamic_pressure   = in.pressure[q] - this->get_adiabatic_conditions().pressure(location);
                     const double sigma_rr           = gravity_direction * (shear_stress * gravity_direction) - dynamic_pressure;
-                    const double dynamic_topography = - sigma_rr / gravity.norm() / density;
+                    const double dynamic_topography = - sigma_rr / gravity.norm() / (density - density_above);
 
                     // JxW provides the volume quadrature weights. This is a general formulation
                     // necessary for when a quadrature formula is used that has more than one point.
@@ -156,7 +155,11 @@ namespace aspect
                 const double dynamic_topography_cell_average = dynamic_topography_x_volume / volume;
                 // Compute the associated surface area to later compute the surfaces weighted integral
                 fe_face_values.reinit(cell, top_face_idx);
-                const double surface = fe_face_values.JxW(0);
+                double surface = 0;
+                for (unsigned int q=0; q<fe_face_values.n_quadrature_points; ++q)
+                  {
+                    surface += fe_face_values.JxW(q);
+                  }
 
                 integrated_topography += dynamic_topography_cell_average*surface;
                 integrated_surface_area += surface;
@@ -205,7 +208,15 @@ namespace aspect
                                  "in the outputted data file (not visualization). "
                                  "'true' subtracts the mean, 'false' leaves "
                                  "the calculated dynamic topography as is. ");
-
+              prm.declare_entry ("Density above","0",
+                                 Patterns::Double (0),
+                                 "Dynamic topography is calculated as the excess or lack of mass that is supported by mantle flow. "
+                                 "This value depends on the density of material that is moved up or down, i.e. crustal rock, and the "
+                                 "density of the material that is displaced (generally water or air). While the density of crustal rock "
+                                 "is part of the material model, this parameter `Density above' allows the user to specify the density "
+                                 "value of material that is displaced above the solid surface. By default this material is assumed to "
+                                 "be air, with a density of 0. "
+                                 "Units: $kg/m^3$.");
             }
             prm.leave_subsection();
           }
@@ -226,6 +237,7 @@ namespace aspect
             prm.enter_subsection("Dynamic Topography");
             {
               subtract_mean_dyn_topography              = prm.get_bool("Subtract mean of dynamic topography");
+              density_above = prm.get_double ("Density above");
             }
             prm.leave_subsection();
           }

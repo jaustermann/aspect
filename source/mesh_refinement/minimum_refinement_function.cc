@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2015 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2016 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -33,6 +33,20 @@ namespace aspect
   {
     template <int dim>
     void
+    MinimumRefinementFunction<dim>::update ()
+    {
+      const double time = this->get_time() /
+                          (this->convert_output_to_years()
+                           ?
+                           year_in_seconds
+                           :
+                           1.0);
+
+      min_refinement_level.set_time(time);
+    }
+
+    template <int dim>
+    void
     MinimumRefinementFunction<dim>::tag_additional_cells () const
     {
       for (typename Triangulation<dim>::active_cell_iterator
@@ -59,7 +73,7 @@ namespace aspect
                   else if (coordinate_system == spherical)
                     {
                       const std_cxx11::array<double,dim> spherical_coordinates =
-                        aspect::Utilities::spherical_coordinates(vertex);
+                        aspect::Utilities::Coordinates::cartesian_to_spherical_coordinates(vertex);
 
                       // Conversion to evaluate the spherical coordinates in the minimum
                       // refinement level function.
@@ -200,6 +214,10 @@ namespace aspect
                                               "order of spherical coordinates is r,phi,theta "
                                               "and not r,theta,phi, since this allows for "
                                               "dimension independent expressions. "
+                                              "Each coordinate system also includes a final 't' "
+                                              "variable which represents the model time, evaluated "
+                                              "in years if the 'Use years in output instead of seconds' "
+                                              "parameter is set, otherwise evaluated in seconds. "
                                               "After evaluating the function, its values are "
                                               "rounded to the nearest integer."
                                               "\n\n"

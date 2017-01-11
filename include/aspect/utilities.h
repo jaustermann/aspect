@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2014, 2015 by the authors of the ASPECT code.
+  Copyright (C) 2014, 2015, 2016, 2017 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -19,8 +19,8 @@
 */
 
 
-#ifndef __aspect__utilities_h
-#define __aspect__utilities_h
+#ifndef _aspect_utilities_h
+#define _aspect_utilities_h
 
 #include <aspect/global.h>
 
@@ -47,6 +47,25 @@ namespace aspect
     using namespace dealii;
     using namespace dealii::Utilities;
 
+    /**
+     * Given an array @p values, consider three cases:
+     * - If it has size @p N, return the original array.
+     * - If it has size one, return an array of size @p N where all
+     *   elements are equal to the one element of @p value.
+     * - If it has any other size, throw an exception that uses
+     *   @p id_text as an identifying string.
+     *
+     * This function is typically used for parameter lists that can either
+     * contain different values for each of a set of objects (e.g., for
+     * each compositional field), or contain a single value that is then
+     * used for each object.
+     */
+    template <typename T>
+    std::vector<T>
+    possibly_extend_from_1_to_N (const std::vector<T> &values,
+                                 const unsigned int N,
+                                 const std::string &id_text);
+
 
     /**
      * Split the set of DoFs (typically locally owned or relevant) in @p whole_set into blocks
@@ -59,41 +78,152 @@ namespace aspect
                          const IndexSet &whole_set,
                          std::vector<IndexSet> &partitioned);
 
+    namespace Coordinates
+    {
+
+      /**
+       * Returns distance from the Earth's center, latitude and longitude from a
+       * given ECEF Cartesian coordinates that account for ellipsoidal shape of
+       * the Earth with WGS84 parameters.
+       */
+      template <int dim>
+      std_cxx11::array<double,dim>
+      WGS84_coordinates(const Point<dim> &position);
+
+      /**
+       * Returns spherical coordinates of a Cartesian point. The returned array
+       * is filled with radius, phi and theta (polar angle). If the dimension is
+       * set to 2 theta is omitted. Phi is always normalized to [0,2*pi].
+       *
+       */
+      template <int dim>
+      std_cxx11::array<double,dim>
+      cartesian_to_spherical_coordinates(const Point<dim> &position);
+
+      /**
+       * Return the Cartesian point of a spherical position defined by radius,
+       * phi and theta (polar angle). If the dimension is set to 2 theta is
+       * omitted.
+       */
+      template <int dim>
+      Point<dim>
+      spherical_to_cartesian_coordinates(const std_cxx11::array<double,dim> &scoord);
+
+      /**
+       * Returns ellispoidal coordinates of a Cartesian point. The returned array
+       * is filled with phi, theta and radius.
+       *
+       */
+      template <int dim>
+      std_cxx11::array<double,3>
+      cartesian_to_ellipsoidal_coordinates(const Point<3> &position,
+                                           const double semi_major_axis_a,
+                                           const double eccentricity);
+
+      /**
+       * Return the Cartesian point of a ellispoidal position defined by phi,
+       * phi and radius.
+       */
+      template <int dim>
+      Point<3>
+      ellipsoidal_to_cartesian_coordinates(const std_cxx11::array<double,3> &phi_theta_d,
+                                           const double semi_major_axis_a,
+                                           const double eccentricity);
+    }
+
     /**
-     * Returns spherical coordinates of a cartesian point. The returned array
-     * is filled with radius, phi and theta (polar angle). If the dimension is
-     * set to 2 theta is omitted. Phi is always normalized to [0,2*pi].
+     * Given a 2d point and a list of points which form a polygon, computes if the point
+     * falls within the polygon.
+     */
+    template <int dim>
+    bool
+    polygon_contains_point(const std::vector<Point<2> > &point_list,
+                           const dealii::Point<2> &point);
+
+    /**
+     * Given a vector @p v in @p dim dimensional space, return a set
+     * of (dim-1) vectors that are orthogonal to @p v and to each
+     * other. The lengths of these vectors equals that of the original
+     * vector @p v to ensure a well-conditioned basis.
+     */
+    template <int dim>
+    std_cxx11::array<Tensor<1,dim>,dim-1>
+    orthogonal_vectors (const Tensor<1,dim> &v);
+
+    /**
+     * A function for evaluating real spherical harmonics. It takes the degree (l)
+     * and the order (m) of the spherical harmonic, where $l \geq 0$ and $0 \leq m \leq l$.
+     * It also takes the colatitude (theta) and longitude (phi), which are in
+     * radians.
      *
+     * There are an unfortunate number of normalization conventions in existence
+     * for spherical harmonics. Here we use fully normalized spherical harmonics
+     * including the Condon-Shortley phase. This corresponds to the definitions
+     * given in equations B.72 and B.99-B.102 in Dahlen and Tromp (1998, ISBN: 9780691001241).
+     * The functional form of the real spherical harmonic is given by
+     *
+     * \f[
+     *    Y_{lm}(\theta, \phi) = \sqrt{2} X_{l \left| m \right| }(\theta) \cos m \phi \qquad \mathrm{if} \qquad -l \le m < 0
+     * \f]
+     * \f[
+     *    Y_{lm}(\theta, \phi) = X_{l 0 }(\theta) \qquad \mathrm{if} \qquad m = 0
+     * \f]
+     * \f[
+     *    Y_{lm}(\theta, \phi) = \sqrt{2} X_{lm}(\theta) \sin m \phi \qquad \mathrm{if}  \qquad 0< m \le m
+     * \f]
+     * where $X_{lm}( \theta )$ is an associated Legendre function.
+     *
+     * In practice it is often convenient to compute the sine ($-l \le m < 0$) and cosine ($0 < m \le l$)
+     * variants of the real spherical harmonic at the same time. That is the approach taken
+     * here, where we return a pair of numbers, the first corresponding the cosine part and the
+     * second corresponding to the sine part. Given this, it is no longer necessary to distinguish
+     * between postitive and negative $m$, so this function only accepts $ m \ge 0$.
+     * For $m = 0$, there is only one part, which is stored in the first entry of the pair.
+     *
+     * @note This function uses the Boost spherical harmonics implementation internally,
+     * which is not designed for very high order (> 100) spherical harmonics computation.
+     * If you use spherical harmonics of a high order be sure to confirm the accuracy first.
+     * For more information, see:
+     * http://www.boost.org/doc/libs/1_49_0/libs/math/doc/sf_and_dist/html/math_toolkit/special/sf_poly/sph_harm.html
      */
-    template <int dim>
-    std_cxx11::array<double,dim>
-    spherical_coordinates(const Point<dim> &position);
+    std::pair<double,double> real_spherical_harmonic( unsigned int l, //degree
+                                                      unsigned int m, //order
+                                                      double theta,   //colatitude (radians)
+                                                      double phi );   //longitude (radians)
 
     /**
-     * Return the cartesian point of a spherical position defined by radius,
-     * phi and theta (polar angle). If the dimension is set to 2 theta is
-     * omitted.
+     * A struct to enable numerical output with a comma as thousands separator
      */
-    template <int dim>
-    Point<dim>
-    cartesian_coordinates(const std_cxx11::array<double,dim> &scoord);
+    struct ThousandSep : std::numpunct<char>
+    {
+      protected:
+        virtual char do_thousands_sep() const
+        {
+          return ',';
+        }
+        virtual std::string do_grouping() const
+        {
+          return "\003";  // groups of 3 digits (this string is in octal format)
+        }
+
+    };
 
     /**
-     * Checks whether a file named filename exists.
+     * Checks whether a file named @p filename exists and is readable.
      *
      * @param filename File to check existence
      */
     bool fexists(const std::string &filename);
 
     /**
-     * Reads the content of the ascii file @param filename on process 0 and
+     * Reads the content of the ascii file @p filename on process 0 and
      * distributes the content by MPI_Bcast to all processes. The function
      * returns the content of the file on all processes.
      *
      * @param [in] filename The name of the ascii file to load.
      * @param [in] comm The MPI communicator in which the content is
      * distributed.
-     * @return A string which contains the data in @param filename.
+     * @return A string which contains the data in @p filename.
      */
     std::string
     read_and_distribute_file_content(const std::string &filename,
@@ -114,6 +244,20 @@ namespace aspect
      */
     int
     mkdirp(std::string pathname, const mode_t mode = 0755);
+
+    /**
+     * Create directory @p pathname, optionally printing a message.
+     *
+     * @param pathname String that contains path to create. '/' is used as
+     * directory separator.
+     * @param comm MPI communicator, used to limit creation of directory to
+     * processor 0.
+     * @param silent Print a nicely formatted message on processor 0 if set
+     * to true.
+     */
+    void create_directory(const std::string &pathname,
+                          const MPI_Comm &comm,
+                          bool silent);
 
     /**
      * A namespace defining the cubic spline interpolation that can be used
@@ -183,94 +327,46 @@ namespace aspect
         }
     }
 
+    template <typename T>
+    inline
+    std::vector<T>
+    possibly_extend_from_1_to_N (const std::vector<T> &values,
+                                 const unsigned int N,
+                                 const std::string &id_text)
+    {
+      if (values.size() == 1)
+        {
+          return std::vector<T> (N, values[0]);
+        }
+      else if (values.size() == N)
+        {
+          return values;
+        }
+      else
+        {
+          // Non-specified behavior
+          AssertThrow(false,
+                      ExcMessage("Length of " + id_text + " list must be " +
+                                 "either one or " + Utilities::to_string(N)));
+        }
+
+      // This should never happen, but return an empty vector so the compiler
+      // will be happy
+      return std::vector<T> ();
+    }
+
     /**
-     * Provide an object of type T filled with a signaling NaN that will cause an exception
-     * when used in a computation. This basically serves the purpose of creating an object
-     * that is not initialized.
-     **/
-    template <class T>
-    T
-    signaling_nan();
+     * Replace the string <tt>\$ASPECT_SOURCE_DIR</tt> in @p location by the current
+     * source directory of ASPECT and return the resulting string.
+     */
+    std::string
+    expand_ASPECT_SOURCE_DIR (const std::string &location);
 
-    template <>
-    inline
-    double
-    signaling_nan<double>()
-    {
-      return std::numeric_limits<double>::signaling_NaN();
-    }
-
-    template <>
-    inline
-    SymmetricTensor<2,2>
-    signaling_nan<SymmetricTensor<2,2> >()
-    {
-      const unsigned int dim = 2;
-      SymmetricTensor<2,dim> nan_tensor;
-      for (unsigned int i=0; i<dim; ++i)
-        for (unsigned int j=0; j<dim; ++j)
-          nan_tensor[i][j] = std::numeric_limits<double>::signaling_NaN();
-      return nan_tensor;
-    }
-    template <>
-    inline
-    SymmetricTensor<2,3>
-    signaling_nan<SymmetricTensor<2,3> >()
-    {
-      const unsigned int dim = 3;
-      SymmetricTensor<2,dim> nan_tensor;
-      for (unsigned int i=0; i<dim; ++i)
-        for (unsigned int j=0; j<dim; ++j)
-          nan_tensor[i][j] = std::numeric_limits<double>::signaling_NaN();
-      return nan_tensor;
-    }
-    template <>
-    inline
-    Tensor<2,2>
-    signaling_nan<Tensor<2,2> >()
-    {
-      const unsigned int dim = 2;
-      Tensor<2,dim> nan_tensor;
-      for (unsigned int i=0; i<dim; ++i)
-        for (unsigned int j=0; j<dim; ++j)
-          nan_tensor[i][j] = std::numeric_limits<double>::signaling_NaN();
-      return nan_tensor;
-    }
-    template <>
-    inline
-    Tensor<2,3>
-    signaling_nan<Tensor<2,3> >()
-    {
-      const unsigned int dim = 3;
-      Tensor<2,dim> nan_tensor;
-      for (unsigned int i=0; i<dim; ++i)
-        for (unsigned int j=0; j<dim; ++j)
-          nan_tensor[i][j] = std::numeric_limits<double>::signaling_NaN();
-      return nan_tensor;
-    }
-    template <>
-    inline
-    Tensor<1,2>
-    signaling_nan<Tensor<1,2> >()
-    {
-      const unsigned int dim = 2;
-      Tensor<1,dim> nan_tensor;
-      for (unsigned int i=0; i<dim; ++i)
-        nan_tensor[i] = std::numeric_limits<double>::signaling_NaN();
-      return nan_tensor;
-    }
-    template <>
-    inline
-    Tensor<1,3>
-    signaling_nan<Tensor<1,3> >()
-    {
-      const unsigned int dim = 3;
-      Tensor<1,dim> nan_tensor;
-      for (unsigned int i=0; i<dim; ++i)
-        nan_tensor[i] = std::numeric_limits<double>::signaling_NaN();
-      return nan_tensor;
-    }
-
+    /**
+     * Given a string @p s, return it in the form ' ("s")' if nonempty.
+     * Otherwise just return the empty string itself.
+     */
+    std::string parenthesize_if_nonempty (const std::string &s);
 
     /**
      * AsciiDataLookup reads in files containing input data in ascii format.
@@ -302,7 +398,7 @@ namespace aspect
 
         /**
          * Returns the computed data (velocity, temperature, etc. - according
-         * to the used plugin) in cartesian coordinates.
+         * to the used plugin) in Cartesian coordinates.
          *
          * @param position The current position to compute the data (velocity,
          * temperature, etc.)
@@ -320,16 +416,23 @@ namespace aspect
 
         /**
          * Interpolation functions to access the data.
+         * Either InterpolatedUniformGridData or InterpolatedTensorProductGridData;
+         * the type is determined from the grid specified in the data file.
          */
-        std::vector<Functions::InterpolatedUniformGridData<dim> *> data;
+        std::vector<Function<dim> *> data;
 
         /**
-         * Min and Max coordinates in data file
+         * The coordinate values in each direction as specified in the data file.
+         */
+        std_cxx11::array<std::vector<double>,dim> coordinate_values;
+
+        /**
+         * The min and max of the coordinates in the data file.
          */
         std_cxx11::array<std::pair<double,double>,dim> grid_extent;
 
         /**
-         * Number of points in the data grid.
+         * Number of points in the data grid as specified in the data file.
          */
         TableIndices<dim> table_points;
 
@@ -410,32 +513,14 @@ namespace aspect
          */
         AsciiDataBoundary();
 
-      protected:
-
         /**
-         * Initialization function. This function is called once at the
-         * beginning of the program. Checks preconditions.
-         */
+          * Initialization function. This function is called once at the
+          * beginning of the program. Checks preconditions.
+          */
         virtual
         void
         initialize (const std::set<types::boundary_id> &boundary_ids,
                     const unsigned int components);
-
-        /**
-         * Determines which of the dimensions of the position is used to find
-         * the data point in the data grid. E.g. the left boundary of a box
-         * model extents in the y and z direction (position[1] and
-         * position[2]), therefore the function would return [1,2] for dim==3
-         * or [1] for dim==2. We are lucky that these indices are identical
-         * for the box and the spherical shell (if we use spherical
-         * coordinates for the spherical shell), therefore we do not need to
-         * distinguish between them. For the initial condition this function
-         * is trivial, because the position in the data grid is the same as
-         * the actual position (the function returns [0,1,2] or [0,1]), but
-         * for the boundary conditions it matters.
-         */
-        std_cxx11::array<unsigned int,dim-1>
-        get_boundary_dimensions (const types::boundary_id boundary_id) const;
 
         /**
          * A function that is called at the beginning of each time step. For
@@ -453,6 +538,39 @@ namespace aspect
         get_data_component (const types::boundary_id             boundary_indicator,
                             const Point<dim>                    &position,
                             const unsigned int                   component) const;
+
+        /**
+         * Declare the parameters all derived classes take from input files.
+         */
+        static
+        void
+        declare_parameters (ParameterHandler  &prm,
+                            const std::string &default_directory,
+                            const std::string &default_filename);
+
+        /**
+         * Read the parameters from the parameter file.
+         */
+        void
+        parse_parameters (ParameterHandler &prm);
+
+      protected:
+
+        /**
+         * Determines which of the dimensions of the position is used to find
+         * the data point in the data grid. E.g. the left boundary of a box
+         * model extents in the y and z direction (position[1] and
+         * position[2]), therefore the function would return [1,2] for dim==3
+         * or [1] for dim==2. We are lucky that these indices are identical
+         * for the box and the spherical shell (if we use spherical
+         * coordinates for the spherical shell), therefore we do not need to
+         * distinguish between them. For the initial condition this function
+         * is trivial, because the position in the data grid is the same as
+         * the actual position (the function returns [0,1,2] or [0,1]), but
+         * for the boundary conditions it matters.
+         */
+        std_cxx11::array<unsigned int,dim-1>
+        get_boundary_dimensions (const types::boundary_id boundary_id) const;
 
         /**
          * A variable that stores the currently used data file of a series. It
@@ -535,22 +653,6 @@ namespace aspect
         std::string
         create_filename (const int timestep,
                          const types::boundary_id boundary_id) const;
-
-
-        /**
-         * Declare the parameters all derived classes take from input files.
-         */
-        static
-        void
-        declare_parameters (ParameterHandler  &prm,
-                            const std::string &default_directory,
-                            const std::string &default_filename);
-
-        /**
-         * Read the parameters from the parameter file.
-         */
-        void
-        parse_parameters (ParameterHandler &prm);
     };
 
     /**

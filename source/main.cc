@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2015 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2016 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -20,6 +20,7 @@
 
 
 #include <aspect/simulator.h>
+#include <aspect/utilities.h>
 
 #include <deal.II/base/utilities.h>
 #include <deal.II/base/mpi.h>
@@ -271,56 +272,21 @@ void possibly_load_shared_libs (const std::string &parameters)
     }
 }
 
-
-/**
- *  Look up break line sign (\\) at the end of a line and merge this line with the next one.
- *  Return the result as a string in which all lines of the input file are
- *  separated by \n characters, unless the corresponding lines ended
- *  in backslashes.
+/*
+ * Current implementation for reading from stdin requires use of a std::string,
+ * so this function will read until the end of the stream
  */
 std::string
-expand_backslashes (std::istream &input)
+read_until_end (std::istream &input)
 {
   std::string result;
-
-  unsigned int need_empty_lines = 0;
-
   while (input)
     {
-      // get one line and strip spaces at the back
       std::string line;
       std::getline(input, line);
-      while ((line.size() > 0)
-             && (line[line.size() - 1] == ' ' || line[line.size() - 1] == '\t'))
-        line.erase(line.size() - 1, std::string::npos);
 
-      // if the line ends in a backslash, add it without the backslash to
-      // the buffer and increase the counter for the number of lines we have
-      // just concatenated
-      if ((line.size() > 0) && (line[line.size()-1] == '\\'))
-        {
-          result += line.substr(0, line.size()-1);
-          ++need_empty_lines;
-        }
-      else
-        // if it doesn't end in a newline, concatenate the current line
-        // with what we have in the buffer and add the \n character
-        {
-          result += line;
-          result += '\n';
-
-          // if we have just added a line (not ending in a backslash)
-          // to something that was obtained by addressing backslashes,
-          // then add some empty lines to make sure that the line
-          // counter is still correct at least for all lines that don't
-          // end in a backslash (so that we can ensure that errors
-          // message propagating out of ParameterHandler)
-          for (; need_empty_lines>0; --need_empty_lines)
-            result += '\n';
-        }
+      result += line + '\n';
     }
-
-  // finally return whatever we have in the buffer
   return result;
 }
 
@@ -346,7 +312,21 @@ parse_parameters (const std::string &input_as_string,
   // try reading on processor 0
   bool success = true;
   if (dealii::Utilities::MPI::this_mpi_process (MPI_COMM_WORLD) == 0)
+#if DEAL_II_VERSION_GTE(8,5,0)
+    try
+      {
+        prm.parse_input_from_string(input_as_string.c_str());
+      }
+    catch (const dealii::ExceptionBase &e)
+      {
+        success = false;
+        e.print_info(std::cerr);
+        std::cerr << std::endl;
+      }
+#else
     success = prm.read_input_from_string(input_as_string.c_str());
+#endif
+
 
   // broadcast the result. we'd like to do this with a bool
   // data type but MPI_C_BOOL is not part of old MPI standards.
@@ -373,9 +353,42 @@ parse_parameters (const std::string &input_as_string,
   // other processors will be ok as well
   if (dealii::Utilities::MPI::this_mpi_process (MPI_COMM_WORLD) != 0)
     {
+#if DEAL_II_VERSION_GTE(8,5,0)
+      prm.parse_input_from_string(input_as_string.c_str());
+#else
       success = prm.read_input_from_string(input_as_string.c_str());
       AssertThrow(success, dealii::ExcMessage ("Invalid input parameter file."));
+#endif
     }
+}
+
+
+
+/**
+ * Print information about the versions of underlying libraries.
+ */
+template <class Stream>
+void print_version_information(Stream &stream)
+{
+  stream << "Version information of underlying libraries:\n"
+         << "   . deal.II:    "
+         << DEAL_II_PACKAGE_VERSION << '\n'
+#ifndef ASPECT_USE_PETSC
+         << "   . Trilinos:   "
+         << DEAL_II_TRILINOS_VERSION_MAJOR    << '.'
+         << DEAL_II_TRILINOS_VERSION_MINOR    << '.'
+         << DEAL_II_TRILINOS_VERSION_SUBMINOR << '\n'
+#else
+         << "   . PETSc:      "
+         << PETSC_VERSION_MAJOR    << '.'
+         << PETSC_VERSION_MINOR    << '.'
+         << PETSC_VERSION_SUBMINOR << '\n'
+#endif
+         << "   . p4est:      "
+         << DEAL_II_P4EST_VERSION_MAJOR << '.'
+         << DEAL_II_P4EST_VERSION_MINOR << '.'
+         << DEAL_II_P4EST_VERSION_SUBMINOR << '\n'
+         << std::endl;
 }
 
 
@@ -398,10 +411,48 @@ int main (int argc, char *argv[])
   try
     {
       deallog.depth_console(0);
+
+      // print the basic header from processor 0
       if (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)
         print_aspect_header(std::cout);
 
-      if (argc < 2)
+
+      // check whether ASPECT was called with exactly one argument. if not,
+      // print an error message
+      //
+      // however, this does not work with PETSc because for PETSc, one
+      // may pass any number of flags on the command line; unfortunately,
+      // the PETSc initialization code (run through the call to
+      // MPI_InitFinalize above) does not filter these out, so all we
+      // can test is that there is *at least* one argument on the command
+      // line
+      if (
+        (
+#ifdef ASPECT_USE_PETSC
+          argc < 2
+#else
+          argc != 2
+#endif
+        )
+        // or if the user called aspect with either --help or -h as
+        // the sole arguments
+        ||
+        (
+          (
+#ifdef ASPECT_USE_PETSC
+            argc >= 2
+#else
+            argc == 2
+#endif
+          )
+          &&
+          (
+            (std::string(argv[1]) == "--help")
+            ||
+            (std::string(argv[1]) == "-h")
+          )
+        )
+      )
         {
           // print usage info only on processor 0
           if (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)
@@ -411,16 +462,51 @@ int main (int argc, char *argv[])
                         << "    or ./aspect --                     (to read from stdin)"
                         << std::endl
                         << std::endl;
+              if (argc >= 2)
+                std::cout << "       ./aspect --version              (for information about library versions)"
+                          << std::endl
+                          << "       ./aspect --help                 (for this usage help)"
+                          << std::endl
+                          << std::endl;
+
             }
-          return 2;
+
+          if (argc >= 2)
+            return 0;    // return without error if called with --help
+          else
+            return 2;    // return error if no argument is given at all
         }
+
+      // check whether ASPECT was called with --version or -v.
+      //
+      // for the same reason as above, ignore further arguments if we
+      // are using PETSc
+      if ((
+#ifdef ASPECT_USE_PETSC
+            argc >= 2
+#else
+            argc == 2
+#endif
+          )
+          &&
+          ((std::string (argv[1]) == "--version")
+           ||
+           (std::string (argv[1]) == "-v"))
+         )
+        {
+          if (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)
+            print_version_information(std::cout);
+
+          return 0;
+        }
+
 
       // see where to read input from, then do the reading and
       // put the contents of the input into a string
       //
       // as stated above, treat "--" as special: as is common
       // on unix, treat it as a way to read input from stdin
-      std::string parameter_filename = argv[1];
+      const std::string parameter_filename = argv[1];
       std::string input_as_string;
 
       if (parameter_filename != "--")
@@ -434,7 +520,7 @@ int main (int argc, char *argv[])
               return 3;
             }
 
-          input_as_string = expand_backslashes (parameter_file);
+          input_as_string = read_until_end (parameter_file);
         }
       else
         {
@@ -444,7 +530,7 @@ int main (int argc, char *argv[])
           // read it there, then broadcast it to the other processors
           if (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)
             {
-              input_as_string = expand_backslashes (std::cin);
+              input_as_string = read_until_end (std::cin);
               int size = input_as_string.size()+1;
               MPI_Bcast (&size,
                          1,
@@ -474,6 +560,10 @@ int main (int argc, char *argv[])
               delete[] p;
             }
         }
+
+      // Replace $ASPECT_SOURCE_DIR in the input so that include statements
+      // like "include $ASPECT_SOURCE_DIR/tests/bla.prm" work.
+      input_as_string = aspect::Utilities::expand_ASPECT_SOURCE_DIR(input_as_string);
 
 
       // try to determine the dimension we want to work in. the default

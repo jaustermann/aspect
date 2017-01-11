@@ -18,8 +18,8 @@
  <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __aspect__particle_world_h
-#define __aspect__particle_world_h
+#ifndef _aspect_particle_world_h
+#define _aspect_particle_world_h
 
 #include <aspect/global.h>
 #include <aspect/particle/particle.h>
@@ -28,9 +28,14 @@
 #include <aspect/particle/integrator/interface.h>
 #include <aspect/particle/interpolator/interface.h>
 #include <aspect/particle/property/interface.h>
+#include <aspect/particle/property_pool.h>
+#include <aspect/particle/output/interface.h>
 
 #include <aspect/simulator_access.h>
 #include <aspect/simulator_signals.h>
+
+#include <deal.II/base/timer.h>
+#include <deal.II/base/array_view.h>
 
 namespace aspect
 {
@@ -63,45 +68,10 @@ namespace aspect
          */
         ~World();
 
-        enum ParticleLoadBalancing
-        {
-          no_balancing,
-          remove_particles,
-          remove_and_add_particles,
-          repartition
-        };
-
         /**
-         * Initialize the particle world. Most of the arguments are read by the
-         * Tracer postprocessor and handed to this function, because the
-         * particle world currently does not declare own input parameters.
-         *
-         * @param [in] generator The particle generator for this world.
-         * @param [in] integrator The Integrator scheme for this world.
-         * @param [in] interpolator The Interpolator scheme for this
-         * world. This object defines how particle properties are interpolated
-         * to arbitrary positions within the domain. An example could be to
-         * take the properties of the closest particle, but more complicated
-         * schemes are possible.
-         * @param [in] manager The property manager for this world.
-         * @param [in] load_balancing The strategy used to balance the
-         * computational load for particle advection across processes.
-         * @param [in] max_part_per_cell Threshold for removing
-         * particles from cells.
-         * @param [in] weight The computational load that is associated with
-         * integrating and updating one particle.
-         *
-         * @note World takes ownership of the @p generator, @p integrator, @p
-         * interpolator, and @p manager object in this function.
-         *
+         * Initialize the particle world.
          */
-        void initialize(Generator::Interface<dim> *generator,
-                        Integrator::Interface<dim> *integrator,
-                        Interpolator::Interface<dim> *interpolator,
-                        Property::Manager<dim> *manager,
-                        const ParticleLoadBalancing &load_balancing,
-                        const unsigned int max_part_per_cell,
-                        const unsigned int weight);
+        void initialize();
 
         /**
          * Get the particle property manager for this particle world.
@@ -110,6 +80,19 @@ namespace aspect
          */
         const Property::Manager<dim> &
         get_property_manager() const;
+
+        /**
+         * Do initial logic for handling pre-refinement steps
+         */
+        void setup_initial_state ();
+
+        /**
+         * Get the particle interpolator for this particle world.
+         *
+         * @return The interpolator for this world.
+         */
+        const Interpolator::Interface<dim> &
+        get_interpolator() const;
 
         /**
          * Initialize the particle properties.
@@ -131,6 +114,14 @@ namespace aspect
          */
         const std::multimap<types::LevelInd, Particle<dim> > &
         get_particles() const;
+
+        /**
+         * Const access to ghost particles in this world.
+         * Ghost particles are all particles that are owned by another process
+         * and live in one of the ghost cells of the local subdomain.
+         */
+        const std::multimap<types::LevelInd, Particle<dim> > &
+        get_ghost_particles() const;
 
         /**
          * Advance particles by the old timestep using the current
@@ -169,17 +160,21 @@ namespace aspect
 
         /**
          * Callback function that is called from Simulator before every
-         * refinement. Allows registering store_tracers() in the triangulation.
+         * refinement and when writing checkpoints.
+         * Allows registering store_tracers() in the triangulation.
          */
         void
-        register_store_callback_function(typename parallel::distributed::Triangulation<dim> &triangulation);
+        register_store_callback_function(const bool serialization,
+                                         typename parallel::distributed::Triangulation<dim> &triangulation);
 
         /**
          * Callback function that is called from Simulator after every
-         * refinement. Allows registering load_tracers() in the triangulation.
+         * refinement and after resuming from a checkpoint.
+         * Allows registering load_tracers() in the triangulation.
          */
         void
-        register_load_callback_function(typename parallel::distributed::Triangulation<dim> &triangulation);
+        register_load_callback_function(const bool serialization,
+                                        typename parallel::distributed::Triangulation<dim> &triangulation);
 
         /**
          * Called by listener functions from Triangulation for every cell
@@ -215,12 +210,58 @@ namespace aspect
         void update_particles();
 
         /**
+         * Generate the selected particle output.
+         */
+        std::string
+        generate_output() const;
+
+        /**
          * Serialize the contents of this class.
          */
         template <class Archive>
         void serialize (Archive &ar, const unsigned int version);
 
+        /**
+         * Save the state of the object.
+         */
+        virtual
+        void
+        save (std::ostringstream &os) const;
+
+        /**
+         * Restore the state of the object.
+         */
+        virtual
+        void
+        load (std::istringstream &is);
+
+        /**
+         * Declare the parameters this class takes through input files.
+         */
+        static
+        void
+        declare_parameters (ParameterHandler &prm);
+
+        /**
+         * Read the parameters this class declares from the parameter file.
+         */
+        virtual
+        void
+        parse_parameters (ParameterHandler &prm);
+
       private:
+        struct ParticleLoadBalancing
+        {
+          enum Kind
+          {
+            no_balancing = 0x0,
+            remove_particles = 0x1,
+            add_particles = 0x2,
+            repartition = 0x4,
+            remove_and_add_particles = remove_particles | add_particles
+          };
+        };
+
         /**
          * Generation scheme for creating particles in this world
          */
@@ -244,16 +285,44 @@ namespace aspect
         std_cxx11::unique_ptr<Property::Manager<dim> > property_manager;
 
         /**
+         * Pointer to an output object
+         */
+        std_cxx11::unique_ptr<Output::Interface<dim> > output;
+
+        /**
          * Set of particles currently in the local domain, organized by
          * the level/index of the cell they are in.
          */
         std::multimap<types::LevelInd, Particle<dim> > particles;
 
         /**
+         * Set of particles currently in the ghost cells of the local domain,
+         * organized by the level/index of the cell they are in. These
+         * particles are marked read-only.
+         */
+        std::multimap<types::LevelInd, Particle<dim> > ghost_particles;
+
+        /**
          * This variable stores how many particles are stored globally. It is
          * calculated by update_n_global_particles().
          */
         types::particle_index global_number_of_particles;
+
+        /**
+         * The maximum number of particles per cell in the global domain. This
+         * variable is important to store and load particle data during
+         * repartition and serialization of the solution. Note that the
+         * variable is only updated when it is needed, e.g. before or after
+         * serialization (before/after mesh refinement, before creating a
+         * checkpoint and after resuming from a checkpoint).
+         */
+        unsigned int global_max_particles_per_cell;
+
+        /**
+         * This variable stores the next free particle index that is available
+         * globally in case new particles need to be generated.
+         */
+        types::particle_index next_free_particle_index;
 
         /**
          * This variable is set by the register_store_callback_function()
@@ -265,25 +334,53 @@ namespace aspect
         /**
          * Strategy for tracer load balancing.
          */
-        ParticleLoadBalancing particle_load_balancing;
+        typename ParticleLoadBalancing::Kind particle_load_balancing;
 
         /**
-         * Limit for how many particles are allowed per cell. This limit is
+         * Lower limit for particle number per cell. This limit is
+         * useful for adaptive meshes to prevent fine cells from being empty
+         * of particles. It will be checked and enforced after mesh
+         * refinement and after particle movement. If there are
+         * n_number_of_particles < min_particles_per_cell
+         * particles in one cell then
+         * min_particles_per_cell - n_number_of_particles particles are
+         * generated and randomly placed in this cell. If the particles carry
+         * properties the individual property plugins control how the
+         * properties of the new particles are initialized.
+         */
+        unsigned int min_particles_per_cell;
+
+        /**
+         * Upper limit for particle number per cell. This limit is
          * useful for adaptive meshes to prevent coarse cells from slowing down
-         * the whole model. It will only be checked and enforced during mesh
-         * refinement and MPI transfer of particles.
+         * the whole model. It will be checked and enforced after mesh
+         * refinement, after MPI transfer of particles and after particle
+         * movement. If there are
+         * n_number_of_particles > max_particles_per_cell
+         * particles in one cell then
+         * n_number_of_particles - max_particles_per_cell
+         * particles in this cell are randomly chosen and destroyed.
          */
         unsigned int max_particles_per_cell;
 
         /**
          * The computational cost of a single particle. This is an input
          * parameter that is set during initialization and is only used if the
-         * particle_load_balancing strategy 'repartition' is used. This value
+         * particle load balancing strategy 'repartition' is used. This value
          * determines how costly the computation of a single tracer is compared
          * to the computation of a whole cell, which is arbitrarily defined
          * to represent a cost of 1000.
          */
         unsigned int tracer_weight;
+
+        /**
+         * Some particle interpolation algorithms require knowledge
+         * about particles in neighboring cells. To allow this,
+         * particles in ghost cells need to be exchanged between the
+         * processes neighboring this cell. This parameter determines
+         * whether this transport is happening.
+         */
+        bool update_ghost_particles;
 
         /**
          * Calculates the number of particles in the global model domain.
@@ -292,21 +389,74 @@ namespace aspect
         update_n_global_particles();
 
         /**
-         * Returns the number of particles in the cell that contains the
-         * most tracers in the global model.
-         */
-        unsigned int
-        get_global_max_tracers_per_cell() const;
-
-        /**
-         * Finds the cells containing each particle for all particles. If
-         * particles moved out of this subdomain they will be sent
-         * to their new process and inserted there. After this function call
-         * every particle is either on its current process and in its current
-         * cell, or deleted (if it could not find its new process or cell).
+         * Calculates and stores the number of particles in the cell that
+         * contains the most tracers in the global model (stored in the
+         * member variable global_max_particles_per_cell). This variable is a
+         * state variable, because it is needed to serialize and deserialize
+         * the particle data correctly in parallel (it determines the size of
+         * the data chunks per cell that are stored and read). Before accessing
+         * the variable this function has to be called, unless the state was
+         * read from another source (e.g. after resuming from a checkpoint).
          */
         void
-        sort_particles_in_subdomains_and_cells();
+        update_global_max_particles_per_cell();
+
+        /**
+         * Calculates the next free particle index in the global model domain.
+         * This equals one plus the highest particle index currently active.
+         */
+        void
+        update_next_free_particle_index();
+
+        /**
+         * Get a map between subdomain id and the neighbor index. In other words
+         * the returned map answers the question: Given a subdomain id, which
+         * neighbor of the current processor's domain (in terms of a contiguous
+         * number from 0 to n_neighbors) owns this subdomain?
+         */
+        std::map<types::subdomain_id, unsigned int>
+        get_subdomain_id_to_neighbor_map() const;
+
+        /**
+         * Exchanges all particles that live in cells adjacent to ghost cells
+         * (i.e. cells that are ghosts to other processes) with the neighboring
+         * domains. Clears and re-populates the ghost_neighbors member variable.
+         */
+        void
+        exchange_ghost_particles();
+
+        /**
+         * Returns a vector that contains a tensor for every vertex-cell
+         * combination of the output of dealii::GridTools::vertex_to_cell_map()
+         * (which is expected as input parameter for this function).
+         * Each tensor represents a geometric vector from the vertex to the
+         * respective cell center.
+         */
+        std::vector<std::vector<Tensor<1,dim> > >
+        vertex_to_cell_centers_directions(const std::vector<std::set<typename parallel::distributed::Triangulation<dim>::active_cell_iterator> > &vertex_to_cells) const;
+
+        /**
+         * Finds the cells containing each particle for all particles in
+         * @p particles_to_sort. If particles moved out of the local subdomain
+         * they will be sent to their new process and inserted there.
+         * After this function call every particle is either on its current
+         * process and in its current cell, or deleted (if it could not find
+         * its new process or cell).
+         *
+         * @param [in] particles_to_sort Vector containing all pairs of
+         * particles and their old cells that will be sorted into the
+         * 'particles' member variable in this function.
+         */
+        void
+        sort_particles_in_subdomains_and_cells(const std::vector<std::pair<types::LevelInd, Particle<dim> > > &particles_to_sort);
+
+        /**
+         * Apply the bounds for the maximum and minimum number of particles
+         * per cell, if the appropriate @p particle_load_balancing strategy
+         * has been selected.
+         */
+        void
+        apply_particle_per_cell_bounds();
 
         /**
          * TODO: Implement this for arbitrary meshes.
@@ -316,9 +466,9 @@ namespace aspect
          * that can not be found are discarded.
          */
         void
-        move_particles_back_into_mesh(std::multimap<types::LevelInd, Particle<dim> >            &lost_particles,
-                                      std::multimap<types::LevelInd, Particle<dim> >            &moved_particles_cell,
-                                      std::multimap<types::subdomain_id, Particle<dim> >        &moved_particles_domain);
+        move_particles_back_into_mesh(const std::vector<std::pair<types::LevelInd, Particle<dim> > >         &lost_particles,
+                                      std::vector<std::pair<types::LevelInd, Particle<dim> > >               &moved_particles_cell,
+                                      std::vector<std::vector<std::pair<types::LevelInd, Particle<dim> > > > &moved_particles_domain);
 
         /**
          * Transfer particles that have crossed subdomain boundaries to other
@@ -328,14 +478,20 @@ namespace aspect
          * of ghost cells of the current process, this also handles
          * periodic boundaries correctly. Afterwards the transfer is done in the
          * same way as local communication between neighbor processes.
-         * All received particles will immediately be inserted into the
-         * particles member variable.
+         * All received particles and their new cells will be appended to the
+         * @p received_particles vector.
          *
          * @param [in] sent_particles All particles that should be sent and
          * their new subdomain_ids are in this map.
+         *
+         * @param [in,out] received_particles Vector that stores all received
+         * particles. Note that it is not required nor checked that the list
+         * is empty, received particles are simply attached to the end of
+         * the vector.
          */
         void
-        send_recv_particles(const std::multimap<types::subdomain_id,Particle <dim> > &sent_particles);
+        send_recv_particles(const std::vector<std::vector<std::pair<types::LevelInd,Particle <dim> > > > &sent_particles,
+                            std::vector<std::pair<types::LevelInd, Particle<dim> > >                     &received_particles);
 
         /**
          * Advect the particle positions by one integration step. Needs to be
@@ -347,8 +503,7 @@ namespace aspect
          * Initialize the particle properties of one cell.
          */
         void
-        local_initialize_particles(const typename DoFHandler<dim>::active_cell_iterator &cell,
-                                   const typename std::multimap<types::LevelInd, Particle<dim> >::iterator &begin_particle,
+        local_initialize_particles(const typename std::multimap<types::LevelInd, Particle<dim> >::iterator &begin_particle,
                                    const typename std::multimap<types::LevelInd, Particle<dim> >::iterator &end_particle);
 
         /**
@@ -362,12 +517,16 @@ namespace aspect
         /**
          * Advect the particles of one cell. Performs only one step for
          * multi-step integrators. Needs to be called until integrator->continue()
-         * evaluates to false.
+         * evaluates to false. Particles that moved out of their old cell
+         * during this advection step are removed from the local multimap and
+         * stored in @p particles_out_of_cell for further treatment (sorting
+         * them into the new cell).
          */
         void
         local_advect_particles(const typename DoFHandler<dim>::active_cell_iterator &cell,
                                const typename std::multimap<types::LevelInd, Particle<dim> >::iterator &begin_particle,
-                               const typename std::multimap<types::LevelInd, Particle<dim> >::iterator &end_particle);
+                               const typename std::multimap<types::LevelInd, Particle<dim> >::iterator &end_particle,
+                               std::vector<std::pair<types::LevelInd, Particle <dim> > >               &particles_out_of_cell);
     };
 
     /* -------------------------- inline and template functions ---------------------- */
@@ -376,7 +535,8 @@ namespace aspect
     template <class Archive>
     void World<dim>::serialize (Archive &ar, const unsigned int)
     {
-      ar &particles
+      ar &global_max_particles_per_cell
+      &next_free_particle_index
       ;
     }
   }

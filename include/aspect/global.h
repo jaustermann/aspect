@@ -19,12 +19,12 @@
 */
 
 
-#ifndef __aspect__global_h
-#define __aspect__global_h
+#ifndef _aspect_global_h
+#define _aspect_global_h
 
 #ifdef ASPECT_USE_PETSC
-#  include <deal.II/lac/petsc_block_vector.h>
-#  include <deal.II/lac/petsc_block_sparse_matrix.h>
+#  include <deal.II/lac/petsc_parallel_block_vector.h>
+#  include <deal.II/lac/petsc_parallel_block_sparse_matrix.h>
 #  include <deal.II/lac/petsc_precondition.h>
 #else
 #  include <deal.II/lac/trilinos_block_vector.h>
@@ -34,8 +34,10 @@
 
 #include <deal.II/lac/generic_linear_algebra.h>
 
+DEAL_II_DISABLE_EXTRA_DIAGNOSTICS
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
+DEAL_II_ENABLE_EXTRA_DIAGNOSTICS
 
 #include <deal.II/base/mpi.h>
 #include <deal.II/base/multithread_info.h>
@@ -182,13 +184,6 @@ namespace aspect
    */
   using constants::year_in_seconds;
 
-  /**
-   * A variable that denotes whether we should periodically output statistics
-   * about memory consumption, run times, etc via the
-   * Simulator::output_statistics() function or other means.
-   */
-  extern const bool output_parallel_statistics;
-
 
   /**
    * A typedef that denotes the BOOST stream type for reading data during
@@ -275,8 +270,12 @@ namespace aspect
     /**
      * Typedef for the block compressed sparsity pattern type.
      */
-    typedef dealii::BlockCompressedSimpleSparsityPattern BlockCompressedSparsityPattern;
+    typedef dealii::BlockDynamicSparsityPattern BlockDynamicSparsityPattern;
 
+    /**
+     * Typedef for the compressed sparsity pattern type.
+     */
+    typedef dealii::DynamicSparsityPattern DynamicSparsityPattern;
 #else
     /**
      * Typedef for the vector type used.
@@ -327,21 +326,30 @@ namespace aspect
     /**
      * Typedef for the block compressed sparsity pattern type.
      */
-    typedef dealii::TrilinosWrappers::BlockSparsityPattern BlockCompressedSparsityPattern;
+    typedef dealii::TrilinosWrappers::BlockSparsityPattern BlockDynamicSparsityPattern;
 
+    /**
+     * Typedef for the compressed sparsity pattern type.
+     */
+    typedef dealii::TrilinosWrappers::SparsityPattern DynamicSparsityPattern;
 #endif
   }
 }
 
 
-template < class Stream>
+/**
+ * Print a header into the given stream that will be written both to screen
+ * and to the log file and that provides basic information about what is
+ * running, with how many processes, and using which linear algebra library.
+ */
+template <class Stream>
 void print_aspect_header(Stream &stream)
 {
   const int n_tasks = dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD);
 
   stream << "-----------------------------------------------------------------------------\n"
          << "-- This is ASPECT, the Advanced Solver for Problems in Earth's ConvecTion.\n"
-         << "--     . version 1.4.0-pre\n" //VERSION-INFO. Do not edit by hand.
+         << "--     . version 1.5.0-pre\n" //VERSION-INFO. Do not edit by hand.
 #ifdef DEBUG
          << "--     . running in DEBUG mode\n"
 #else
@@ -349,11 +357,7 @@ void print_aspect_header(Stream &stream)
 #endif
          << "--     . running with " << n_tasks << " MPI process" << (n_tasks == 1 ? "\n" : "es\n");
   const int n_threads =
-#if DEAL_II_VERSION_GTE(8,3,0)
     dealii::MultithreadInfo::n_threads();
-#else
-    dealii::multithread_info.n_threads();
-#endif
   if (n_threads>1)
     stream << "--     . using " << n_threads << " threads " << (n_tasks == 1 ? "\n" : "each\n");
 #ifdef ASPECT_USE_PETSC

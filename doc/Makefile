@@ -3,9 +3,9 @@
 ############################################################
 
 aspect-files      = $(shell echo ../include/aspect/*.h \
-                            ../include/aspect/*/*h     \
-                            ../include/aspect/*/*/*h   \
-                            modules/*h)
+                            ../include/aspect/*/*.h     \
+                            ../include/aspect/*/*/*.h   \
+                            modules/*.h)
 aspect-manual-pix = $(shell find manual/cookbooks/ -name \*.png 2>/dev/null)
 
 
@@ -49,7 +49,7 @@ aspect.tag: $(aspect-files) options.dox Makefile
 	  echo 'TAGFILES = deal.tag=http://www.dealii.org/developer/doxygen/deal.II'          >> aspect.dox ; \
 	 fi
 	@echo 'IMAGE_PATH = manual'                                  >> aspect.dox
-	@echo 'PROJECT_NAME = "ASPECT Mantle Convection Simulator"'  >> aspect.dox
+	@echo 'PROJECT_NAME = "ASPECT"'                              >> aspect.dox
 	@echo 'INPUT = $(aspect-files)'                              >> aspect.dox
 	@echo 'HTML_OUTPUT      = doxygen'                           >> aspect.dox
 	@echo 'GENERATE_TAGFILE = $@'                                >> aspect.dox

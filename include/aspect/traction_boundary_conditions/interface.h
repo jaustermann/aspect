@@ -19,8 +19,8 @@
 */
 
 
-#ifndef __aspect__traction_boundary_conditions_interface_h
-#define __aspect__traction_boundary_conditions_interface_h
+#ifndef _aspect_traction_boundary_conditions_interface_h
+#define _aspect_traction_boundary_conditions_interface_h
 
 #include <aspect/plugins.h>
 #include <aspect/geometry_model/interface.h>
@@ -80,14 +80,26 @@ namespace aspect
         update ();
 
         /**
+         * Return the boundary traction as a function of position.
+         *
+         * @deprecated Use boundary_traction(const types::boundary_id boundary_indicator,
+         * const Point<dim> &position, const Tensor<1,dim> &normal_vector) const instead.
+         */
+        virtual
+        Tensor<1,dim>
+        traction (const Point<dim> &position,
+                  const Tensor<1,dim> &normal_vector) const DEAL_II_DEPRECATED;
+
+        /**
          * Return the boundary traction as a function of position. The
          * (outward) normal vector to the domain is also provided as
          * a second argument.
          */
         virtual
         Tensor<1,dim>
-        traction (const Point<dim> &position,
-                  const Tensor<1,dim> &normal_vector) const = 0;
+        boundary_traction (const types::boundary_id boundary_indicator,
+                           const Point<dim> &position,
+                           const Tensor<1,dim> &normal_vector) const;
 
         /**
          * Declare the parameters this class takes through input files. The

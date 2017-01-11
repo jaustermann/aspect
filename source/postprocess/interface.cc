@@ -20,7 +20,6 @@
 
 
 #include <aspect/postprocess/interface.h>
-#include <aspect/simulator_access.h>
 
 #include <typeinfo>
 
@@ -77,7 +76,6 @@ namespace aspect
 
 
 // ------------------------------ Manager -----------------------------
-
 
 
     template <int dim>

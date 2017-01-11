@@ -18,12 +18,12 @@
   <http://www.gnu.org/licenses/>.
 */
 
-
-#ifndef __aspect__model_latent_heat_melt_h
-#define __aspect__model_latent_heat_melt_h
+#ifndef _aspect_material_model_latent_heat_melt_h
+#define _aspect_material_model_latent_heat_melt_h
 
 #include <aspect/material_model/interface.h>
 #include <aspect/simulator_access.h>
+#include <aspect/melt.h>
 
 namespace aspect
 {
@@ -39,7 +39,7 @@ namespace aspect
      * @ingroup MaterialModels
      */
     template <int dim>
-    class LatentHeatMelt : public MaterialModel::InterfaceCompatibility<dim>, public ::aspect::SimulatorAccess<dim>
+    class LatentHeatMelt : public MaterialModel::InterfaceCompatibility<dim>, public ::aspect::SimulatorAccess<dim>, public MaterialModel::MeltFractionModel<dim>
     {
       public:
         /**
@@ -95,7 +95,7 @@ namespace aspect
          * Return whether the model is compressible or not.  Incompressibility
          * does not necessarily imply that the density is constant; rather, it
          * may still depend on temperature or pressure. In the current
-         * context, compressibility means whether we should solve the contuity
+         * context, compressibility means whether we should solve the continuity
          * equation as $\nabla \cdot (\rho \mathbf u)=0$ (compressible Stokes)
          * or as $\nabla \cdot \mathbf{u}=0$ (incompressible Stokes).
          */
@@ -121,6 +121,9 @@ namespace aspect
         /**
          * @}
          */
+
+        virtual void melt_fractions (const MaterialModel::MaterialModelInputs<dim> &in,
+                                     std::vector<double> &melt_fractions) const;
 
 
         /**

@@ -28,25 +28,29 @@ namespace aspect
     {
       template <int dim>
       void
-      InitialComposition<dim>::initialize_one_particle_property(const Point<dim> &,
-                                                                const Vector<double> &solution,
-                                                                const std::vector<Tensor<1,dim> > &,
+      InitialComposition<dim>::initialize_one_particle_property(const Point<dim> &position,
                                                                 std::vector<double> &data) const
       {
         for (unsigned int i = 0; i < this->n_compositional_fields(); i++)
-          data.push_back(solution[this->introspection().component_indices.compositional_fields[i]]);
+          data.push_back(this->get_compositional_initial_conditions().initial_composition(position,i));
       }
 
       template <int dim>
       std::vector<std::pair<std::string, unsigned int> >
       InitialComposition<dim>::get_property_information() const
       {
+        AssertThrow(this->n_compositional_fields() > 0,
+                    ExcMessage("You have requested the particle property <initial "
+                               "composition>, but the number of compositional fields is 0. "
+                               "Please add compositional fields to your model, or remove "
+                               "this particle property."));
+
         std::vector<std::pair<std::string,unsigned int> > property_information;
 
         for (unsigned int i = 0; i < this->n_compositional_fields(); i++)
           {
             std::ostringstream field_name;
-            field_name << "initial C_" << i;
+            field_name << "initial " << this->introspection().name_for_compositional_index(i);
             property_information.push_back(std::make_pair(field_name.str(),1));
           }
 
@@ -69,8 +73,7 @@ namespace aspect
                                         "property is given as the initial composition "
                                         "at the particle's initial position. The tracer "
                                         "gets as many properties as there are "
-                                        "compositional fields."
-                                        "\n\n")
+                                        "compositional fields.")
     }
   }
 }

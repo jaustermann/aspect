@@ -19,8 +19,8 @@
 */
 
 
-#ifndef __aspect__mesh_refinement_interface_h
-#define __aspect__mesh_refinement_interface_h
+#ifndef _aspect_mesh_refinement_interface_h
+#define _aspect_mesh_refinement_interface_h
 
 #include <aspect/global.h>
 #include <aspect/plugins.h>
@@ -87,6 +87,19 @@ namespace aspect
          * the SimulatorAccess (if applicable) is initialized.
          */
         virtual void initialize ();
+
+        /**
+         * A function that is called once at the beginning of each timestep.
+         * The default implementation of the function does nothing, but
+         * derived classes that need more elaborate setups for a given time
+         * step may overload the function.
+         *
+         * The point of this function is to allow refinement plugins to do an
+         * initialization once during each time step.
+         */
+        virtual
+        void
+        update ();
 
         /**
          * Execute this mesh refinement criterion. The default implementation
@@ -163,6 +176,16 @@ namespace aspect
          * functions.
          */
         virtual ~Manager ();
+
+        /*
+         * Update all of the mesh refinement objects that have been requested
+         * in the input file. Individual mesh refinement objects may choose to
+         * implement an update function to modify object variables once per
+         * time step.
+         */
+        virtual
+        void
+        update ();
 
         /**
          * Execute all of the mesh refinement objects that have been requested

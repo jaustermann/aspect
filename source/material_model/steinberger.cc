@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2015 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2016 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -421,9 +421,9 @@ namespace aspect
       n_material_data = material_file_names.size();
       for (unsigned i = 0; i < n_material_data; i++)
         material_lookup.push_back(std_cxx11::shared_ptr<internal::MaterialLookup>
-                                  (new internal::MaterialLookup(datadirectory+material_file_names[i],interpolation,this->get_mpi_communicator())));
-      lateral_viscosity_lookup.reset(new internal::LateralViscosityLookup(datadirectory+lateral_viscosity_file_name,this->get_mpi_communicator()));
-      radial_viscosity_lookup.reset(new internal::RadialViscosityLookup(datadirectory+radial_viscosity_file_name,this->get_mpi_communicator()));
+                                  (new internal::MaterialLookup(data_directory+material_file_names[i],interpolation,this->get_mpi_communicator())));
+      lateral_viscosity_lookup.reset(new internal::LateralViscosityLookup(data_directory+lateral_viscosity_file_name,this->get_mpi_communicator()));
+      radial_viscosity_lookup.reset(new internal::RadialViscosityLookup(data_directory+radial_viscosity_file_name,this->get_mpi_communicator()));
       avg_temp.resize(lateral_viscosity_lookup->get_nslices());
     }
 
@@ -435,7 +435,17 @@ namespace aspect
     update()
     {
       if (use_lateral_average_temperature)
-        this->get_lateral_averaging().get_temperature_averages(avg_temp);
+        {
+          this->get_lateral_averaging().get_temperature_averages(avg_temp);
+          for (unsigned int i = 0; i < avg_temp.size(); ++i)
+            AssertThrow(numbers::is_finite(avg_temp[i]),
+                        ExcMessage("In computing depth averages, there is at"
+                                   " least one depth band that does not have"
+                                   " any quadrature points in it."
+                                   " Consider reducing number of depth layers"
+                                   " for averaging by reducing the number of"
+                                   " slices in the viscosity prefactor file."));
+        }
     }
 
 
@@ -480,8 +490,7 @@ namespace aspect
                                const double,
                                const Point<dim> &position) const
     {
-      if (!(this->get_adiabatic_conditions().is_initialized())
-          || this->include_adiabatic_heating()
+      if (this->include_adiabatic_heating()
           || compressible)
         return temperature;
 
@@ -499,8 +508,7 @@ namespace aspect
                             const double pressure,
                             const Point<dim> &position) const
     {
-      if (!(this->get_adiabatic_conditions().is_initialized())
-          || compressible)
+      if (compressible)
         return pressure;
 
       return this->get_adiabatic_conditions().pressure(position);
@@ -645,8 +653,7 @@ namespace aspect
              const std::vector<double> &compositional_fields,
              const Point<dim> &position) const
     {
-      if (compressible
-          || !(this->get_adiabatic_conditions().is_initialized()))
+      if (compressible)
         return get_compressible_density(temperature,pressure,compositional_fields,position);
       else
         return get_corrected_density(temperature,pressure,compositional_fields,position);
@@ -800,7 +807,7 @@ namespace aspect
            * corrected temperatures in case we compare it to the lateral
            * temperature average.
            */
-          if (this->get_adiabatic_conditions().is_initialized() && in.strain_rate.size())
+          if (in.strain_rate.size())
             {
               if (use_lateral_average_temperature)
                 {
@@ -903,15 +910,7 @@ namespace aspect
       {
         prm.enter_subsection("Steinberger model");
         {
-          datadirectory        = prm.get ("Data directory");
-          {
-            const std::string      subst_text = "$ASPECT_SOURCE_DIR";
-            std::string::size_type position;
-            while (position = datadirectory.find (subst_text),  position!=std::string::npos)
-              datadirectory.replace (datadirectory.begin()+position,
-                                     datadirectory.begin()+position+subst_text.size(),
-                                     ASPECT_SOURCE_DIR);
-          }
+          data_directory = Utilities::expand_ASPECT_SOURCE_DIR(prm.get ("Data directory"));
           material_file_names  = Utilities::split_string_list
                                  (prm.get ("Material file names"));
           radial_viscosity_file_name   = prm.get ("Radial viscosity file name");

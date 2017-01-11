@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011, 2012 by the authors of the ASPECT code.
+  Copyright (C) 2011, 2012, 2016 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -19,8 +19,8 @@
 */
 
 
-#ifndef __aspect__boundary_temperature_interface_h
-#define __aspect__boundary_temperature_interface_h
+#ifndef _aspect_boundary_temperature_interface_h
+#define _aspect_boundary_temperature_interface_h
 
 #include <aspect/plugins.h>
 #include <aspect/geometry_model/interface.h>
@@ -62,30 +62,6 @@ namespace aspect
          * the SimulatorAccess (if applicable) is initialized.
          */
         virtual void initialize ();
-
-        /**
-         * Return the temperature that is to hold at a particular position on
-         * the boundary of the domain.
-         *
-         * @param geometry_model The geometry model that describes the domain.
-         * This may be used to determine whether the boundary temperature
-         * model is implemented for this geometry.
-         * @param boundary_indicator The boundary indicator of the part of the
-         * boundary of the domain on which the point is located at which we
-         * are requesting the temperature.
-         * @param position The position of the point at which we ask for the
-         * temperature.
-         * @return Boundary temperature at position @p position.
-         *
-         * @deprecated Use <code>temperature(const types::boundary_id
-         * boundary_indicator,const Point<dim> &position) const</code> instead.
-         * The reference to the geometry model can be reached by deriving
-         * plugins from aspect::SimulatorAccess<dim>.
-         */
-        virtual
-        double temperature (const GeometryModel::Interface<dim> &geometry_model,
-                            const types::boundary_id             boundary_indicator,
-                            const Point<dim>                    &position) const DEAL_II_DEPRECATED;
 
         /**
          * Return the temperature that is to hold at a particular position on

@@ -19,8 +19,8 @@
 */
 
 
-#ifndef __aspect__introspection_h
-#define __aspect__introspection_h
+#ifndef _aspect_introspection_h
+#define _aspect_introspection_h
 
 #include <deal.II/base/index_set.h>
 #include <deal.II/fe/component_mask.h>
@@ -188,6 +188,24 @@ namespace aspect
        */
       const BaseElements base_elements;
 
+      /**
+       * A structure that contains the polynomial degree of the finite element
+       * that correspond to each of the variables in this problem.
+       *
+       * If there are compositional fields, they are all discretized with the
+       * same polynomial degree and, consequently, we only need a single integer.
+       */
+      struct PolynomialDegree
+      {
+        unsigned int       velocities;
+        unsigned int       temperature;
+        unsigned int       compositional_fields;
+      };
+      /**
+       * A variable that enumerates the polynomial degree of the finite element
+       * that correspond to each of the variables in this problem.
+       */
+      const PolynomialDegree polynomial_degree;
 
       /**
        * A structure that contains component masks for each of the variables
@@ -268,9 +286,23 @@ namespace aspect
 
         /**
          * Pressure unknowns that are locally owned. This IndexSet is needed
-         * if velocity and pressure end up in the same block.
+         * if velocity and pressure end up in the same block and is used for
+         * pressure scaling and in make_pressure_rhs_compatible(). If melt
+         * transport is enabled, this field is unused and not filled.
          */
         IndexSet locally_owned_pressure_dofs;
+
+        /**
+         * Fluid and compaction pressure unknowns that are locally owned. Only
+         * valid if melt transport is enabled.
+         */
+        IndexSet locally_owned_melt_pressure_dofs;
+
+        /**
+         * Fluid pressure unknowns that are locally owned. Only valid if melt
+         * transport is enabled.
+         */
+        IndexSet locally_owned_fluid_pressure_dofs;
       };
       /**
        * A variable that contains index sets describing which of the globally
@@ -278,6 +310,13 @@ namespace aspect
        * parallel computation.
        */
       IndexSets index_sets;
+
+      /**
+       * A vector that contains a field method for every compositional
+       * field and is used to determine how to solve a particular field when
+       * solving a timestep.
+       */
+      std::vector<typename Parameters<dim>::AdvectionFieldMethod::Kind> compositional_field_methods;
 
       /**
        * @}
@@ -313,6 +352,16 @@ namespace aspect
        */
       bool
       compositional_name_exists (const std::string &name) const;
+
+      /**
+       * A function that gets a component index as an input
+       * parameter and returns if the component is one of the stokes system
+       * (i.e. if it is the pressure or one of the velocity components).
+       *
+       * @param component_index The component index to check.
+       */
+      bool
+      is_stokes_component (const unsigned int component_index) const;
 
     private:
       /**

@@ -18,11 +18,10 @@
  <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __aspect__particle_property_position_h
-#define __aspect__particle_property_position_h
+#ifndef _aspect_particle_property_position_h
+#define _aspect_particle_property_position_h
 
 #include <aspect/particle/property/interface.h>
-#include <aspect/simulator_access.h>
 
 namespace aspect
 {
@@ -36,7 +35,7 @@ namespace aspect
        * @ingroup ParticleProperties
        */
       template <int dim>
-      class Position : public Interface<dim>, public ::aspect::SimulatorAccess<dim>
+      class Position : public Interface<dim>
       {
         public:
           /**
@@ -45,13 +44,6 @@ namespace aspect
            * value.
            *
            * @param [in] position The current particle position.
-           *
-           * @param [in] solution The values of the solution variables at the
-           * current particle position.
-           *
-           * @param [in] gradients The gradients of the solution variables at
-           * the current particle position.
-           *
            * @param [in,out] particle_properties The properties of the particle
            * that is initialized within the call of this function. The purpose
            * of this function should be to extend this vector by a number of
@@ -60,8 +52,6 @@ namespace aspect
           virtual
           void
           initialize_one_particle_property (const Point<dim> &position,
-                                            const Vector<double> &solution,
-                                            const std::vector<Tensor<1,dim> > &gradients,
                                             std::vector<double> &particle_properties) const;
 
           /**
@@ -91,7 +81,7 @@ namespace aspect
                                         const Point<dim> &position,
                                         const Vector<double> &solution,
                                         const std::vector<Tensor<1,dim> > &gradients,
-                                        std::vector<double> &particle_properties) const;
+                                        const ArrayView<double> &particle_properties) const;
 
           /**
            * This implementation tells the particle manager that

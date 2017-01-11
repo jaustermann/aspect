@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2015 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2016 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -20,6 +20,7 @@
 
 
 #include <aspect/geometry_model/two_merged_boxes.h>
+#include <aspect/geometry_model/initial_topography_model/zero_topography.h>
 
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/tria_iterator.h>
@@ -48,49 +49,29 @@ namespace aspect
           // first set the default boundary indicators
           for (unsigned int f=0; f<GeometryInfo<dim>::faces_per_cell; ++f)
             if (cell->face(f)->at_boundary())
-#if DEAL_II_VERSION_GTE(8,3,0)
               cell->face(f)->set_boundary_id (f);
-#else
-              cell->face(f)->set_boundary_indicator (f);
-#endif
 
           if (cell->face(0)->at_boundary())
             // set the lithospheric part of the left boundary to indicator 2*dim
             if (cell->face(0)->vertex(GeometryInfo<dim-1>::vertices_per_cell-1)[dim-1] > height_lith)
-#if DEAL_II_VERSION_GTE(8,3,0)
               cell->face(0)->set_boundary_id (2*dim);
-#else
-              cell->face(0)->set_boundary_indicator (2*dim);
-#endif
 
           if (cell->face(1)->at_boundary())
             // set the lithospheric part of the right boundary to indicator 2*dim+1
             if (cell->face(1)->vertex(GeometryInfo<dim-1>::vertices_per_cell-1)[dim-1] > height_lith)
-#if DEAL_II_VERSION_GTE(8,3,0)
               cell->face(1)->set_boundary_id (2*dim+1);
-#else
-              cell->face(1)->set_boundary_indicator (2*dim+1);
-#endif
 
           if (dim==3)
             {
               // set the lithospheric part of the front boundary to indicator 2*dim+2
               if (cell->face(2)->at_boundary())
                 if (cell->face(2)->vertex(GeometryInfo<dim-1>::vertices_per_cell-1)[dim-1] > height_lith)
-#if DEAL_II_VERSION_GTE(8,3,0)
                   cell->face(2)->set_boundary_id (2*dim+2);
-#else
-                  cell->face(2)->set_boundary_indicator (2*dim+2);
-#endif
 
               // set the lithospheric part of the back boundary to indicator 2*dim+3
               if (cell->face(3)->at_boundary())
                 if (cell->face(3)->vertex(GeometryInfo<dim-1>::vertices_per_cell-1)[dim-1] > height_lith)
-#if DEAL_II_VERSION_GTE(8,3,0)
                   cell->face(3)->set_boundary_id (2*dim+3);
-#else
-                  cell->face(3)->set_boundary_indicator (2*dim+3);
-#endif
             }
         }
     }
@@ -288,6 +269,29 @@ namespace aspect
     {
       return false;
     }
+
+
+
+    template <int dim>
+    bool
+    TwoMergedBoxes<dim>::point_is_in_domain(const Point<dim> &point) const
+    {
+      AssertThrow(this->get_free_surface_boundary_indicators().size() == 0 ||
+                  this->get_timestep_number() == 0,
+                  ExcMessage("After displacement of the free surface, this function can no longer be used to determine whether a point lies in the domain or not."));
+
+      AssertThrow(dynamic_cast<const InitialTopographyModel::ZeroTopography<dim>*>(&this->get_initial_topography_model()) != 0,
+                  ExcMessage("After adding topography, this function can no longer be used to determine whether a point lies in the domain or not."));
+
+      for (unsigned int d = 0; d < dim; d++)
+        if (point[d] > extents[d]+lower_box_origin[d]+std::numeric_limits<double>::epsilon()*extents[d] ||
+            point[d] < lower_box_origin[d]-std::numeric_limits<double>::epsilon()*extents[d])
+          return false;
+
+      return true;
+    }
+
+
 
     template <int dim>
     void

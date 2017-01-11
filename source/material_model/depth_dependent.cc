@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2015 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2016 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -251,17 +251,12 @@ namespace aspect
 
           if (viscosity_source == File)
             {
-              std::string datadirectory                = prm.get ("Data directory");
+              std::string data_directory = Utilities::expand_ASPECT_SOURCE_DIR(prm.get ("Data directory"));
+
               const std::string radial_viscosity_file_name   = prm.get ("Viscosity depth file");
 
-              const std::string      subst_text = "$ASPECT_SOURCE_DIR";
-              std::string::size_type position;
-              while (position = datadirectory.find (subst_text),  position!=std::string::npos)
-                datadirectory.replace (datadirectory.begin()+position,
-                                       datadirectory.begin()+position+subst_text.size(),
-                                       ASPECT_SOURCE_DIR);
               /* If using the File method for depth-dependence, initialize the lookup table */
-              read_viscosity_file(datadirectory+radial_viscosity_file_name,this->get_mpi_communicator());
+              read_viscosity_file(data_directory+radial_viscosity_file_name,this->get_mpi_communicator());
             }
 
           prm.enter_subsection("Viscosity depth function");

@@ -19,8 +19,8 @@
 */
 
 
-#ifndef __aspect__initial_conditions_S40RTS_perturbation_h
-#define __aspect__initial_conditions_S40RTS_perturbation_h
+#ifndef _aspect_initial_conditions_S40RTS_perturbation_h
+#define _aspect_initial_conditions_S40RTS_perturbation_h
 
 #include <aspect/simulator_access.h>
 #include <deal.II/base/std_cxx11/array.h>
@@ -86,7 +86,7 @@ namespace aspect
         /**
          * File directory and names
          */
-        std::string datadirectory;
+        std::string data_directory;
         std::string spline_depth_file_name;
 
         /**
@@ -119,6 +119,18 @@ namespace aspect
          * temperature at a certain depth is the background temperature.
          */
         bool zero_out_degree_0;
+
+        /**
+         * This parameter allows to use a lower maximum order when reading
+         * the spherical harmonic data file.
+         */
+        bool lower_max_order;
+
+        /**
+         * The maximum order the users specify, which is only valid when
+         * "lower_max_order" is set to true.
+         */
+        int max_order;
 
         /**
          * This parameter gives the reference temperature, which will be

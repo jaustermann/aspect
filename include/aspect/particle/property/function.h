@@ -18,8 +18,8 @@
  <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __aspect__particle_property_function_h
-#define __aspect__particle_property_function_h
+#ifndef _aspect_particle_property_function_h
+#define _aspect_particle_property_function_h
 
 #include <aspect/particle/property/interface.h>
 
@@ -49,13 +49,6 @@ namespace aspect
            * value.
            *
            * @param [in] position The current particle position.
-           *
-           * @param [in] solution The values of the solution variables at the
-           * current particle position.
-           *
-           * @param [in] gradients The gradients of the solution variables at
-           * the current particle position.
-           *
            * @param [in,out] particle_properties The properties of the particle
            * that is initialized within the call of this function. The purpose
            * of this function should be to extend this vector by a number of
@@ -64,8 +57,6 @@ namespace aspect
           virtual
           void
           initialize_one_particle_property (const Point<dim> &position,
-                                            const Vector<double> &solution,
-                                            const std::vector<Tensor<1,dim> > &gradients,
                                             std::vector<double> &particle_properties) const;
 
           /**
@@ -98,7 +89,13 @@ namespace aspect
           /**
            * A function object representing the tracer property.
            */
-          Functions::ParsedFunction<dim> function;
+          std_cxx11::unique_ptr<Functions::ParsedFunction<dim> > function;
+
+          /**
+           * A private variable that stores the number of particle property
+           * function components.
+           */
+          unsigned int n_components;
       };
     }
   }

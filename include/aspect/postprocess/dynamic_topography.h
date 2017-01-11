@@ -19,8 +19,8 @@
 */
 
 
-#ifndef __aspect__postprocess_surface_topography_h
-#define __aspect__postprocess_surface_topography_h
+#ifndef _aspect_postprocess_surface_topography_h
+#define _aspect_postprocess_surface_topography_h
 
 #include <aspect/postprocess/interface.h>
 #include <aspect/simulator_access.h>
@@ -68,6 +68,11 @@ namespace aspect
          * we should subtract the mean topography or not.
          */
         bool subtract_mean_dyn_topography;
+
+        /**
+         * A parameter allows users to set the density value outside the surface
+         */
+        double density_above;
     };
   }
 }

@@ -19,8 +19,8 @@
 */
 
 
-#ifndef __aspect__boundary_temperature_initial_temperature_h
-#define __aspect__boundary_temperature_initial_temperature_h
+#ifndef _aspect_boundary_temperature_initial_temperature_h
+#define _aspect_boundary_temperature_initial_temperature_h
 
 #include <aspect/boundary_temperature/interface.h>
 #include <aspect/simulator_access.h>
@@ -48,7 +48,7 @@ namespace aspect
          */
         virtual
         double boundary_temperature (const types::boundary_id boundary_indicator,
-                                     const Point<dim> &location) const;
+                                     const Point<dim> &position) const;
 
         /**
          * Return the minimal the temperature on that part of the boundary on

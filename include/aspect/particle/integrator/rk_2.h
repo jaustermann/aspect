@@ -18,8 +18,8 @@
  <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __aspect__particle_integrator_rk_2_h
-#define __aspect__particle_integrator_rk_2_h
+#ifndef _aspect_particle_integrator_rk_2_h
+#define _aspect_particle_integrator_rk_2_h
 
 #include <aspect/particle/integrator/interface.h>
 
@@ -33,7 +33,7 @@ namespace aspect
     namespace Integrator
     {
       /**
-       * Runge Kutta second order integrator, where y_{n+1} = y_n + dt*v(0.5*k_1), k_1 = dt*v(y_n).
+       * Runge Kutta second order integrator, where $y_{n+1} = y_n + dt*v(0.5*k_1), k_1 = dt*v(y_n)$.
        * This scheme requires storing the original location, and the read/write_data functions reflect this.
        *
        * @ingroup ParticleIntegrators

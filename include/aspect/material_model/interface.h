@@ -18,9 +18,8 @@
   <http://www.gnu.org/licenses/>.
 */
 
-
-#ifndef __aspect__material_model_interface_h
-#define __aspect__material_model_interface_h
+#ifndef _aspect_material_model_interface_h
+#define _aspect_material_model_interface_h
 
 #include <aspect/plugins.h>
 #include <deal.II/base/point.h>
@@ -1045,7 +1044,6 @@ namespace aspect
         }
       return NULL;
     }
-
 
 
     template <int dim>

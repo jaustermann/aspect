@@ -19,8 +19,8 @@
 */
 
 
-#ifndef __aspect__traction_boundary_conditions_function_h
-#define __aspect__traction_boundary_conditions_function_h
+#ifndef _aspect_traction_boundary_conditions_function_h
+#define _aspect_traction_boundary_conditions_function_h
 
 #include <aspect/traction_boundary_conditions/interface.h>
 #include <aspect/simulator_access.h>
@@ -55,8 +55,9 @@ namespace aspect
          */
         virtual
         Tensor<1,dim>
-        traction (const Point<dim> &position,
-                  const Tensor<1,dim> &normal_vector) const;
+        boundary_traction (const types::boundary_id boundary_indicator,
+                           const Point<dim> &position,
+                           const Tensor<1,dim> &normal_vector) const;
 
         /**
          * A function that is called at the beginning of each time step to

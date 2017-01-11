@@ -18,8 +18,8 @@
  <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __aspect__particle_integrator_rk_4_h
-#define __aspect__particle_integrator_rk_4_h
+#ifndef _aspect_particle_integrator_rk_4_h
+#define _aspect_particle_integrator_rk_4_h
 
 #include <aspect/particle/integrator/interface.h>
 
@@ -30,7 +30,7 @@ namespace aspect
     namespace Integrator
     {
       /**
-      * Runge Kutta fourth order integrator, where y_{n+1} = y_n + (1/6)*k1 + (1/3)*k2 + (1/3)*k3 + (1/6)*k4
+      * Runge Kutta fourth order integrator, where $y_{n+1} = y_n + (1/6)*k1 + (1/3)*k2 + (1/3)*k3 + (1/6)*k4$
       * and k1, k2, k3, k4 are defined as usual.
       * This scheme requires storing the original location and intermediate k1, k2, k3 values,
       * so the read/write_data functions reflect this.

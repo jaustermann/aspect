@@ -1,4 +1,4 @@
-# Copyright (C) 2013, 2014 by the authors of the ASPECT code.
+# Copyright (C) 2013 - 2016 by the authors of the ASPECT code.
 #
 # This file is part of ASPECT.
 #
@@ -29,7 +29,7 @@ INCLUDE_DIRECTORIES(include)
 
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8.8)
 
-FIND_PACKAGE(deal.II 8.2 QUIET
+FIND_PACKAGE(deal.II 8.4.0 QUIET
   HINTS ${deal.II_DIR} ${DEAL_II_DIR} ../ ../../ $ENV{DEAL_II_DIR}
   )
 IF(NOT ${deal.II_FOUND})
@@ -44,7 +44,7 @@ MESSAGE(STATUS "Found deal.II version ${DEAL_II_PACKAGE_VERSION} at '${deal.II_D
 
 SET(ASPECT_USE_PETSC OFF CACHE BOOL "Use PETSc instead of Trilinos if set to 'on'.")
 
-MESSAGE(STATUS "Using PETSc = '${ASPECT_USE_PETSC}'")
+MESSAGE(STATUS "Using ASPECT_USE_PETSC = '${ASPECT_USE_PETSC}'")
 
 SET(_DEALII_GOOD ON)
 
@@ -71,7 +71,7 @@ ENDIF()
 
 IF (NOT _DEALII_GOOD)
   MESSAGE(FATAL_ERROR
-    "\nAspect requires a deal.II installation built with support for Trilinos/PETSc and p4est but one or both of these appears to be missing!\n"
+    "\nASPECT requires a deal.II installation built with support for Trilinos/PETSc and p4est but one or both of these appears to be missing!\n"
     )
 ENDIF()
 
@@ -94,6 +94,16 @@ FOREACH(_source_file ${TARGET_SRC})
     APPEND PROPERTY COMPILE_DEFINITIONS ASPECT_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 ENDFOREACH()
 
+
+# load in version info and export it
+FILE(STRINGS "${CMAKE_SOURCE_DIR}/VERSION" ASPECT_PACKAGE_VERSION LIMIT_COUNT 1)
+
+INCLUDE(CMakePackageConfigHelpers)
+WRITE_BASIC_PACKAGE_VERSION_FILE(
+  "${CMAKE_BINARY_DIR}/AspectConfigVersion.cmake"
+  VERSION ${ASPECT_PACKAGE_VERSION}
+  COMPATIBILITY AnyNewerVersion
+)
 
 # Configure a cmake fragment that plugins can use to
 # set up compiler flags, include paths, etc to compile an
@@ -132,32 +142,71 @@ ENDIF()
 
 
 ADD_CUSTOM_TARGET(generate_reference_output
-  COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/cmake/generate_reference_output.sh 
+  COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/cmake/generate_reference_output.sh
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+
+# Provide "indent" target for indenting all headers and source files
+ADD_CUSTOM_TARGET(indent
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  COMMAND ./doc/indent
+  COMMENT "Indenting all source files..."
+  )
+
 
 # Depending on whether we link statically or allow for shared libs,
 # we can or can not load plugins via external shared libs. Pass this
 # down during compilation so we can disable it in the code
+SET(ASPECT_USE_SHARED_LIBS ON CACHE BOOL "If ON, we support loading shared plugin files.")
 IF (DEAL_II_STATIC_EXECUTABLE STREQUAL "ON")
   MESSAGE(STATUS "Creating a statically linked executable")
-  MESSAGE(STATUS "Disabling dynamic loading of plugins from the input file")
-  FOREACH(_source_file ${TARGET_SRC})
-    SET_PROPERTY(SOURCE ${_source_file}
-      APPEND PROPERTY COMPILE_DEFINITIONS ASPECT_USE_SHARED_LIBS=0)
-  ENDFOREACH()
-ELSE()
+  SET(ASPECT_USE_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+ENDIF()
+
+INCLUDE (CheckCXXSourceCompiles)
+
+SET(_backup_libs ${CMAKE_REQUIRED_LIBRARIES})
+LIST(APPEND CMAKE_REQUIRED_LIBRARIES ${CMAKE_DL_LIBS})
+CHECK_CXX_SOURCE_COMPILES("
+#include <cstddef>
+#include <dlfcn.h>
+
+int main()
+{
+  void *handle = dlopen (\"somelib.so\", RTLD_LAZY);
+  return handle == NULL || dlerror();
+}
+" HAVE_DLOPEN)
+SET(CMAKE_REQUIRED_LIBRARIES ${_backup_libs})
+
+IF (NOT HAVE_DLOPEN)
+  MESSAGE(STATUS "dlopen() test failed, disabling dynamic plugin loading")
+  SET(ASPECT_USE_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+ENDIF()
+
+IF (ASPECT_USE_SHARED_LIBS)
   MESSAGE(STATUS "Enabling dynamic loading of plugins from the input file")
   FOREACH(_source_file ${TARGET_SRC})
     SET_PROPERTY(SOURCE ${_source_file}
       APPEND PROPERTY COMPILE_DEFINITIONS ASPECT_USE_SHARED_LIBS=1)
   ENDFOREACH()
+ELSE()
+  MESSAGE(STATUS "Disabling dynamic loading of plugins from the input file")
+  FOREACH(_source_file ${TARGET_SRC})
+    SET_PROPERTY(SOURCE ${_source_file}
+      APPEND PROPERTY COMPILE_DEFINITIONS ASPECT_USE_SHARED_LIBS=0)
+  ENDFOREACH()
 ENDIF()
 
 # See whether we can verify that every plugin we load is compiled against
 # the same deal.II library
+SET(ASPECT_HAVE_LINK_H ON CACHE BOOL "If ON, link.h exists and is usable.")
 INCLUDE (CheckIncludeFiles)
 CHECK_INCLUDE_FILES ("link.h" _HAVE_LINK_H)
-IF (_HAVE_LINK_H)
+IF (NOT _HAVE_LINK_H)
+  SET(ASPECT_HAVE_LINK_H OFF CACHE BOOL "" FORCE)
+ENDIF()
+IF (ASPECT_HAVE_LINK_H)
   MESSAGE(STATUS "Enabling checking of compatible deal.II library when loading plugins")
   FOREACH(_source_file ${TARGET_SRC})
     SET_PROPERTY(SOURCE ${_source_file}
@@ -165,7 +214,15 @@ IF (_HAVE_LINK_H)
   ENDFOREACH()
 ENDIF()
 
+
 DEAL_II_INVOKE_AUTOPILOT()
+
+
+IF (ASPECT_USE_SHARED_LIBS)
+  # some systems need to explicitly link to some libraries to use dlopen
+  TARGET_LINK_LIBRARIES(aspect ${CMAKE_DL_LIBS})
+ENDIF()
+
 
 
 # Check if we can raise floating point exceptions.

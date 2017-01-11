@@ -30,8 +30,6 @@ namespace aspect
       template <int dim>
       void
       InitialPosition<dim>::initialize_one_particle_property(const Point<dim> &position,
-                                                             const Vector<double> &,
-                                                             const std::vector<Tensor<1,dim> > &,
                                                              std::vector<double> &data) const
       {
         for (unsigned int i = 0; i < dim; i++)
@@ -60,8 +58,15 @@ namespace aspect
                                         "initial position",
                                         "Implementation of a plugin in which the tracer "
                                         "property is given as the initial position "
-                                        "of the tracer."
-                                        "\n\n")
+                                        "of the tracer. This property is vector-valued with "
+                                        "as many components as there are space dimensions. "
+                                        "In practice, it is often most useful to only "
+                                        "visualize one of the components of this vector, "
+                                        "or the magnitude of the vector. For example, in "
+                                        "a spherical mantle simulation, the magnitude of this "
+                                        "property equals the starting radius of a particle, "
+                                        "and is thereby indicative of which part of the "
+                                        "mantle a particle comes from.")
     }
   }
 }

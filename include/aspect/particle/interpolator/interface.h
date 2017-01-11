@@ -18,8 +18,8 @@
  <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __aspect__particle_interpolator_interface_h
-#define __aspect__particle_interpolator_interface_h
+#ifndef _aspect_particle_interpolator_interface_h
+#define _aspect_particle_interpolator_interface_h
 
 #include <aspect/particle/particle.h>
 #include <aspect/plugins.h>
@@ -74,7 +74,7 @@ namespace aspect
           std::vector<std::vector<double> >
           properties_at_points(const std::multimap<types::LevelInd, Particle<dim> > &particles,
                                const std::vector<Point<dim> > &positions,
-                               const typename parallel::distributed::Triangulation<dim>::cell_iterator &cell = typename parallel::distributed::Triangulation<dim>::cell_iterator()) const = 0;
+                               const typename parallel::distributed::Triangulation<dim>::active_cell_iterator &cell = typename parallel::distributed::Triangulation<dim>::active_cell_iterator()) const = 0;
 
           /**
            * Declare the parameters this class takes through input files. The

@@ -19,8 +19,8 @@
 */
 
 
-#ifndef __aspect__boundary_composition_spherical_constant_h
-#define __aspect__boundary_composition_spherical_constant_h
+#ifndef _aspect_boundary_composition_spherical_constant_h
+#define _aspect_boundary_composition_spherical_constant_h
 
 #include <aspect/boundary_composition/interface.h>
 
@@ -51,7 +51,7 @@ namespace aspect
          */
         virtual
         double boundary_composition (const types::boundary_id boundary_indicator,
-                                     const Point<dim> &location,
+                                     const Point<dim> &position,
                                      const unsigned int compositional_field) const;
 
         /**

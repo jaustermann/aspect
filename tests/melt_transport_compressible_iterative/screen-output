@@ -1,0 +1,66 @@
+
+Loading shared library <./libmelt_transport_compressible_iterative.so>
+
+Number of active cells: 256 (on 5 levels)
+Number of degrees of freedom: 7,401 (2,178+578+2,178+289+1,089+1,089)
+
+*** Timestep 0:  t=0 seconds
+   Skipping temperature solve because RHS is zero.
+   Solving porosity system ... 0 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+1012 iterations.
+   Solving for u_f in 11 iterations.
+      Nonlinear residuals: 0, 3.58597e-18, 18.0037
+      Total relative nonlinear residual: 0.123457
+
+
+   Skipping temperature solve because RHS is zero.
+   Solving porosity system ... 0 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+176 iterations.
+   Solving for u_f in 11 iterations.
+      Nonlinear residuals: 0, 3.58597e-18, 18.0477
+      Total relative nonlinear residual: 0.123758
+
+
+   Skipping temperature solve because RHS is zero.
+   Solving porosity system ... 0 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+29 iterations.
+   Solving for u_f in 11 iterations.
+      Nonlinear residuals: 0, 3.58597e-18, 0.114756
+      Total relative nonlinear residual: 0.000786918
+
+
+   Skipping temperature solve because RHS is zero.
+   Solving porosity system ... 0 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+29 iterations.
+   Solving for u_f in 11 iterations.
+      Nonlinear residuals: 0, 3.58597e-18, 0.0178046
+      Total relative nonlinear residual: 0.000122092
+
+
+   Skipping temperature solve because RHS is zero.
+   Solving porosity system ... 0 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+27 iterations.
+   Solving for u_f in 11 iterations.
+      Nonlinear residuals: 0, 3.58597e-18, 0.00962905
+      Total relative nonlinear residual: 6.60292e-05
+
+
+
+   Postprocessing:
+     RMS, max velocity:                                      0.223 m/s, 0.337 m/s
+     Pressure min/avg/max:                                   0.5092 Pa, 1.575 Pa, 2.963 Pa
+     Max and min velocity along boundary parts:              0.3374 m/s, 0.1259 m/s, 0.3374 m/s, 0.1259 m/s, 0.125 m/s, 0.125 m/s, 0.3398 m/s, 0.3398 m/s
+     Errors u_L2, p_L2, p_f_L2, p_c_L2, porosity_L2, u_f_L2: 1.988009e-06, 4.560361e-04, 7.020945e-05, 2.041189e-04, 7.525970e-07, 2.327995e-02
+
+Termination requested by criterion: end time
+
+
++---------------------------------------------+------------+------------+
++---------------------------------+-----------+------------+------------+
++---------------------------------+-----------+------------+------------+
+

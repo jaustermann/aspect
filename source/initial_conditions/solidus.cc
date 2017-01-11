@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2015 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2016 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -24,7 +24,6 @@
 #include <aspect/geometry_model/spherical_shell.h>
 #include <aspect/boundary_temperature/interface.h>
 
-#include <boost/math/special_functions/spherical_harmonic.hpp>
 #include <cmath>
 
 namespace aspect
@@ -157,10 +156,11 @@ namespace aspect
                    ExcMessage ("Spherical harmonics can only be computed for "
                                "degree >= 0."));
           // use a spherical harmonic function as lateral perturbation
-          lateral_perturbation = boost::math::spherical_harmonic_r(lateral_wave_number_1,lateral_wave_number_2,scoord[2],scoord[1]);
+          std::pair<double,double> sph_harm_vals = Utilities::real_spherical_harmonic( lateral_wave_number_1, lateral_wave_number_2, scoord[2], scoord[1] );
+          lateral_perturbation = sph_harm_vals.first;
         }
       litho_thick_theta=litho_thick-magnitude_lith*lateral_perturbation;
-      T_litho=solidus_curve.T(0,spherical_geometry_model->R1-litho_thick_theta)+deltaT;
+      T_litho=solidus_curve.T(0,spherical_geometry_model->outer_radius()-litho_thick_theta)+deltaT;
 
       if (litho_thick_theta>0 && Depth<litho_thick_theta)
         T_solidus=T_min+(T_litho-T_min)*(Depth/litho_thick_theta);
@@ -280,23 +280,8 @@ namespace aspect
           }
           prm.leave_subsection();
           prm.enter_subsection("Data");
-          {
-            // Get the path to the data files. If it contains a reference
-            // to $ASPECT_SOURCE_DIR, replace it by what CMake has given us
-            // as a #define
-            solidus_filename = prm.get ("Solidus filename");
-            {
-              const std::string      subst_text = "$ASPECT_SOURCE_DIR";
-              std::string::size_type position;
-              while (position = solidus_filename.find (subst_text),  position!=std::string::npos)
-                solidus_filename.replace (solidus_filename.begin()+position,
-                                          solidus_filename.begin()+position+subst_text.size(),
-                                          ASPECT_SOURCE_DIR);
-            }
-
-            // then actually read the file
-            solidus_curve.read(solidus_filename,this->get_mpi_communicator());
-          }
+          solidus_filename = Utilities::expand_ASPECT_SOURCE_DIR(prm.get ("Solidus filename"));
+          solidus_curve.read(solidus_filename,this->get_mpi_communicator());
           prm.leave_subsection();
         }
         prm.leave_subsection();

@@ -19,8 +19,8 @@
 */
 
 
-#ifndef __aspect__traction_boundary_conditions_zero_traction_h
-#define __aspect__traction_boundary_conditions_zero_traction_h
+#ifndef _aspect_traction_boundary_conditions_zero_traction_h
+#define _aspect_traction_boundary_conditions_zero_traction_h
 
 #include <aspect/traction_boundary_conditions/interface.h>
 
@@ -51,8 +51,9 @@ namespace aspect
          */
         virtual
         Tensor<1,dim>
-        traction (const Point<dim> &position,
-                  const Tensor<1,dim> &normal_vector) const;
+        boundary_traction (const types::boundary_id boundary_indicator,
+                           const Point<dim> &position,
+                           const Tensor<1,dim> &normal_vector) const;
     };
   }
 }

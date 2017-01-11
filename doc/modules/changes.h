@@ -1,449 +1,362 @@
 /**
- * @page changes_current Changes after the latest release (v1.3)
+ * @page changes_current Changes after the latest release (v1.4.0)
  *
  * <p> This is the list of changes made after the release of Aspect version
- * 1.3. All entries are signed with the names of the author. </p>
+ * 1.4.0. All entries are signed with the names of the author. </p>
  *
  * <ol>
  *
- * <li> Fixed: Combining particles with initial adaptive refinement steps
- * used to create a multiple of the selected number of particles.
- * This is fixed now.
- * <br>
- * (Rene Gassmoeller, 2016/03/18)
+ * <li> New: Added a "heat flux densities" postprocessor.
+ * <br> (Timo Heister, 2016/12/26)
  *
- * <li> Improved: The Introspection class has now a new base class
- * FEVariableCollection that allows flexible modification of the finite
- * element variables involved in a computation, even inside a plugin.
+ * <li> New: ASPECT now allows querying its own version number as well as
+ * the version of all of the underlying libraries using the
+ * <code>--version</code> or <code>-v</code> command line flags.
  * <br>
- * (Timo Heister, 2016/03/08)
+ * Similarly, using <code>--help</code> or <code>-h</code> allows
+ * querying command line usage of ASPECT.
+ * <br> (Wolfgang Bangerth, 2016/12/19-31)
  *
- * <li> Fixed: The uniform radial and uniform box particle generators now
- * produce globally unique particle IDs.
- * <br>
- * (Harsha Lokavarapu, Gerry Puckett, 2016/03/04)
+ * <li> New: A material model for incompressible (using the Boussinesq
+ * approximation) and compressible computations (with ALA or TALA) for a
+ * nondimensionalized problem. This can be used for several benchmark problems
+ * like Blankenbach, King, etc..
+ * <br> (Timo Heister, Juliane Dannberg, Rene Gassmoeller, 2016/12/18)
  *
- * <li> Fixed: The 'Simpler' material model produced floating point exceptions
- * in models with compositional fields. This is fixed now.
- * <br>
- * (Lev Karatun, Rene Gassmoeller, 2016/02/26)
+ * <li> New: ASPECT now supports the choice between different formulations for
+ * the governing equations including boussinesq and anelastic liquid
+ * approximation. For this, the adiabatic conditions have been extended to
+ * provide values and gradients of the reference density. Several benchmarks
+ * for these formulations have been added.
+ * <br> (Juliane Dannberg, Rene Gassmoeller, Timo Heister, 2016/12/14)
  *
- * <li> New: The advection systems (for temperature and compositions) can now 
- * be discretized using the symmetric interior penalty discontinuous Galerkin 
- * method. This can be useful to explore solution without adding artificial 
- * smoothing. This is controlled by two new input parameters in 
- * 'Discretization': use_discontinuous_temperature_discretization and 
- * use_discontinuous_composition_discretization.
+ * <li> New: ASPECT now also generates a <code>output/particles.visit</code>
+ * file that allows Visit to read in all files from all processors and
+ * all time steps that contain particle data.
  * <br>
- * (Sam Cox, 2016/02/22)
+ * (Wolfgang Bangerth, 2016/12/02)
  *
- * <li> Changed: ASPECT by default wrote one output file per MPI process that
- * was written in a background thread to a temporary location first and then
- * moved to its final location. If any of the steps failed it tried again by
- * writing directly to the output location. This approach needed complicated
- * logic and did not succeed on all systems. In order to increase stability
- * the new default behaviour is to write straight to the output folder. This
- * might decrease performance on clusters with slow network file systems.
- * The old behaviour can be recovered by setting 'Write in background thread'
- * to true and set a temporary storage location by 'set Temporary output
- * location'. Note that this functionality was and is only available if
- * 'Number of grouped files' is set to its default value of 0, and therefore
- * MPI-IO is not used for parallel output. For larger models with hundreds of
- * parallel processes using MPI-IO is recommended.
+ * <li> Changed: The 'Stokes only' nonlinear solver scheme now uses
+ * the nonlinear solver tolerance parameter (previously it was hard-
+ * coded to 1e-8), and it computes the nonlinear residual as current
+ * residual divided by initial residual, consistent with the 'iterated
+ * Stokes' solver scheme.
  * <br>
- * (Rene Gassmoeller, 2016/02/14)
- *
- * <li> New: Added 'command' postprocessor for executing arbitrary commands.
- * <br>
- * (Jonathan Perry-Houts, 2016/02/11)
- *
- * <li> Improved: The option to increase the output resolution by linear
- * interpolation of the quadratic elements now correctly uses the mapping of
- * curved geometries to interpolate cells. This increases output accuracy for
- * models that use curved geometries and use 'Set Interpolate output = true'.
- * The simulation itself is not affected.
- * <br>
- * (Rene Gassmoeller, 2016/02/08)
- *
- * <li> Changed: The GPlates plugin is restructured in the style of the
- * AsciiData Plugin. The major difference is that the interpolation is now
- * performed in spherical coordinates instead of Cartesian coordinates. Note
- * that some input parameters have changed: "Time step" is now called "Data
- * file time step", "Velocity file start time" is now called "First data file
- * model time", "Interpolation width" does not exist any more, but there are
- * three new parameters called "First data file number", "Decreasing file
- * order" and "Lithosphere thickness".
- * <br>
- * (Eva Bredow, Rene Gassmoeller, 2016/02/04)
- *
- * <li> New: ASPECT no longer relies on the availability of a command-
- * processor (terminal) at run-time, by providing fallbacks to C
- * commands. This adds support for architectures that do not offer a
- * terminal on compute nodes (like IBM BlueGene/Q).
- * <br>
- * (Rene Gassmoeller, 2016/02/03)
- *
- * <li> Changed: The 'depth' function of the 'box' geometry model and
- * the 'two merged boxes' geometry model previously threw an exception
- * when asked for the depth of a point outside of the initial model domain.
- * This is not longer appropriate for models with free surfaces and therefore
- * the behaviour was changed to the behaviour of the 'spherical shell' geometry
- * model, which is a cutoff of the depth to the range (0,maximal_depth).
- * <br>
- * (Rene Gassmoeller, Sascha Brune, 2016/01/11)
- *
- * <li> New: There is now a parameter called 'Additional tangential
- * mesh velocity boundary indicators' that allows to specify boundaries
- * which elements are allowed to deform tangential to the boundary.
- * This can be useful in models with free surface and a prescribed
- * material in-/outflow at the sides. Previously in this case the
- * uppermost element became distorted over time, now the whole
- * boundary mesh adjusts according to the deformation. This change
- * also fixes the handling of traction boundary conditions in models
- * with free surface.
- * <br>
- * (Anne Glerum, Rene Gassmoeller, Ian Rose, 2016/01/11)
- *
- * <li> Changed: The interfaces of the boundary composition and boundary
- * temperature plugins have been deprecated. Their replacements not longer 
- * contain references to the geometry model, which was a leftover from an
- * earlier development stage. Users should derive their plugins from
- * SimulatorAccess if they need access to the geometry model. The
- * deprecated functions will be removed in a future ASPECT release.
- * <br>
- * (Rene Gassmoeller, 2016/01/04)
- *
- * <li> New: A new mesh refinement plugin was added that refines cells
- * according to the density of particles in that cell.
- * <br>
- * (Rene Gassmoeller, 2015/12/19)
- *
- * <li> Changed: The boundary_velocity(const Point<dim> &position) const 
- * function has now been deprecated in favor of the new function 
- * boundary_velocity (const types::boundary_id boundary_indicator, 
- * const Point<dim> &position) const. 
- * <br>
- * (Menno Fraters, 2015/12/16)
+ * (Juliane Dannberg, Rene Gassmoeller, 2016/11/22)
  * 
- * <li> New: Visualization postprocessors for thermal conductivity and 
- * thermal diffusivity. 
+ * <li> Changed: The adiabatic profile now contains a reference density
+ * profile, and the derivative of this reference density profile. The
+ * InitialProfile adiabatic profile now relies on the adiabatic heating
+ * to decide if the temperature increases with depth. Additionally, an
+ * off-by-one bug was fixed in InitialProfile leading to minor changes
+ * in the adiabatic profiles (relative change of ~1e-4), changing models
+ * that rely on the profile. Models that rely on the adiabatic profile
+ * might be changed by this PR if they are compressible, but do not
+ * use adiabatic heating, or vice versa.
  * <br>
- * (Anne Glerum, 2015/12/03)
+ * (Timo Heister, Juliane Dannberg, Rene Gassmoeller, 2016/11/20)
  *
- * <li> New: The tracer architecture has been completely overhauled. It is now
- * more flexible and allows for easier modification. Additionally tracers
- * now carry properties with them, which allows for a variety of new use cases.
- * A number of bugs related to curved cells in spherical models with tracers
- * have been resolved.
+ * <li> New: The visco plastic material model now includes an option for
+ * strain-weakening of cohesion and the internal angle of friction. 
+ * Strain-weakeing of these properties is commonly used to help localize 
+ * deformation in regions undergoing plastic failure. Note that using this
+ * option requires tracking the finite strain tensor through particles or
+ * compositional fields.    
  * <br>
- * (Rene Gassmöller, 2015/12/01)
+ * (John Naliboff, 2016/11/10) 
  *
- * <li> Fixed: Whenever the base models used by either the "depth dependent"
- * or "averaging" material models depended on anything that requires accessing
- * the simulator, then this led to segmentation faults. This is now fixed.
+ * <li> New: Two particle generators were added. One, generates particles
+ * at the quadrature points for each active cell in the triangulation.
+ * Two, generates a uniform distribution of particles in the unit cell
+ * and transforms each of the particles back to real region in the model
+ * domain for each active cell in the triangulation.
  * <br>
- * (Wolfgang Bangerth, Shangxin Liu, 2015/11/24)
+ * (Harsha Lokavarapu, 2016/11/10)
  *
- * <li> New: The tolerance of the preconditioners of the A and S block
- * are now available as parameters in the prm file. There is now also
- * a section added to the manual on how to use these parameters to
- * make ASPECT in certain situation faster.
+ * <li> Changed: The exchange of ghost particles that was introduced lately
+ * can be quite expensive for models with many particles,
+ * and is often unnecessary if the particles are used as passive tracers.
+ * Therefore, a new input parameter 'Update ghost particles' controls this
+ * exchange, and its default is set to 'false'. Model parameter files using
+ * active particles will need to be changed accordingly.
  * <br>
- * (Menno Fraters, 2015/11/08)
+ * (Rene Gassmoeller, 2016/10/18)
  *
- * <li> Changed: The DynamicTopography postprocessor and visualization
- * plugins now use the more accurate Gaussian quadrature rule for evaluating
- * cell averages of the surface stress.
+ * <li> Improved: The matrix assembly of Stokes and Advection systems has been
+ * optimized, by assembling less (only the relevant) DoFs, and by optimizing
+ * calls to deal.II functions. The overall speedup for box models is between
+ * 20 and 40% of the assembly time, likely somewhat less for curved geometries.
+ * This change will require changes in user written assembler plugins, because
+ * the Stokes system assembly now only loops over Stokes degrees of freedom.
  * <br>
- * (Ian Rose, 2015/11/04)
+ * (Rene Gassmoeller, 2016/10/17)
  *
- * <li> New: Add depth postprocessor which visually outputs the
- * depth for all points inside the domain, as determined by the
- * geometry model.
+ * <li> Improved: Box models without deformed mesh now use a MappingCartesian,
+ * which assumes all mesh cells are aligned with cartesian coordinate axes.
+ * Matrix assembly and particle transport in such mappings is around 20 % faster
+ * compared to a general MappingQ1 for other box models.
  * <br>
- * (Menno Fraters, 2015/10/15)
+ * (Rene Gassmoeller, 2016/10/14)
  *
- * <li> New: The "Stokes residual" postprocessor will output the convergence
- * of the Stokes residual of each linear solve.
+ * <li> Changed: HDF5 particle output files are now named 'particles-...'
+ * instead of 'particle-...' to be consistent with the vtu output. Also 
+ * particle properties with more than one component are now correctly split
+ * into scalar fields in the output files, if they have more or less components
+ * than the number of spatial dimensions in the model.
  * <br>
- * (Timo Heister, 2015/10/21)
+ * (Rene Gassmoeller, 2016/09/20)
  *
- * <li> New: The DepthAverage postprocessor can now output as a plain
- * ascii text table.
+ * </li>
+ * <li> New: Multiple particle properties can be intialized by specifying
+ * multiple particle property function components as opposed to one particle
+ * property.
  * <br>
- * (Ian Rose, 2015/10/05)
+ * (Harsha Lokavarapu, Gerry Puckett, 2016/09/20)
  *
- * <li> Fixed: Free surface computations now work with checkpointing.
+ * <li> Changed: The timestep entry in the statistics file has been moved to
+ * column 3 and is now the timestep used for the timestep corresponding to the
+ * current row.
  * <br>
- * (Ian Rose, 2015/09/29)
+ * (Jonathan Robey, 2016/09/16)
+ * </li>
  *
- * <li> Fixed: certain combinations of boundary conditions with a free surface
- * could result in accessing nonexistent matrix entries. This is fixed.
+ * <li> Changed: The 'cell average' particle interpolator is now more
+ * tolerant against cells without particles by interpolating properties
+ * from neighboring cells. This is necessary, because during refinement
+ * even children of cells with a reasonable number of particles can be
+ * void of particles.
  * <br>
- * (Ian Rose, 2015/09/28)
+ * (Rene Gassmoeller, Jonathan Perry-Houts, 2016/08/31)
  *
- * <li> New: Ability to automatically resume models from a checkpoint
- * if previous checkpoint files exist (Resume computation = auto).
+ * <li> Changed: Particle properties should now declare which solution
+ * properties they need to update themselves. The particle world then
+ * only computes values and gradients of the solution at
+ * the particle positions if necessary, which can reduce the computational
+ * cost of the particle update for simple particle properties.
  * <br>
- * (Jonathan Perry-Houts, 2015/09/25)
+ * (Rene Gassmoeller, 2016/08/30)
  *
- * <li> Changed: the user can now select a subset of the laterally-
- * averaged quantities to be computed in the DepthAverage postprocessor.
+ * <li> New: .visit output files now also contain information about
+ * the model time, as long as ASPECT was build with at least
+ * deal.II 8.5.0.pre. Previously, this information was only available
+ * in the Paraview .pvd files.
  * <br>
- * (Ian Rose, 2015/09/04)
+ * (Rene Gassmoeller, Juliane Dannberg, 2016/08/24)
  *
- * <li> New: The history of the Stokes solver residuals is saved and can
- * be accessed using the post_stokes_solver signal and will be written to
- * a file automatically in case the solver doesn't converge.
+ * <li> New: There is now an initial topography plugin that returns
+ * initial topography values based on an ascii data file.
  * <br>
- * (Timo Heister, 2015/09/02)
+ * (Anne Glerum, 2016/08/22)
  *
- * <li> Fixed: The laterally averaged sinking velocity and velocity
- * magnitude calculations did not check whether the user selected m/s
- * or m/yr for output values.  Now they do.
+ * <li> Fixed: The point value postprocessor forgot to take into
+ * account the mapping we use when describing curved boundaries.
  * <br>
- * (Ian Rose, 2015/08/28)
+ * (Rene Gassmoeller, Wolfgang Bangerth, 2016/08/16)
  *
- * <li> Fixed: The lateral averaging of the velocity magnitude was
- * mistakenly calculating the square of the velocity. Now it calculates
- * the magnitude.
+ * <li> Changed: Particles now also store their location in the
+ * coordinate system of their current cell. This decreases the
+ * number of times this location has to be computed by inverting
+ * the mapping for the current cell, which is expensive.
+ * On average this change will save 40-50% of the overall
+ * particle computing time, while increasing the particle
+ * memory footprint (which is usually small compared to the
+ * system matrix).
  * <br>
- * (Ian Rose, 2015/08/28)
+ * (Rene Gassmoeller, 2016/08/12)
  *
- * <li> Changed: The interface of material models no longer declares
- * property_depends_on() functions. The dependencies of parameters
- * on solution variables are instead handled by a structure in the
- * base class. All included material models have been updated. User
- * written material models will continue to work as before. Since
- * there is no solver yet that utilizes the other dependencies,
- * the impact of this change is limited.
+ * <li> Fixed: The chunk geometry pull back function now returns
+ * a corrected longitude value when 180 hemisphere is crossed.
  * <br>
- * (Kimberly Moore, Rene Gassmoeller, Wolfgang Bangerth, 2015/08/26)
+ * (Anne Glerum, 2016/08/09)
  *
- * <li> New: The DepthAverage postprocessor now can calculate the laterally
- * averaged heat flux in the interior of the simulation.
+ * <li> Changed: It is now possible to read in ascii data files of
+ * which the coordinates are not equally spaced.
  * <br>
- * (Ian Rose, 2015/08/24)
+ * (Anne Glerum, 2016/08/05)
  *
- * <li> New: There is now a new initial condition in which the temperature field is perturbed
- * following the SAVANI shear wave velocity model by Auer et al., 2014. The data were
- * downloaded from http://n.ethz.ch/~auerl/research.html .
+ * <li> New: It is now possible to create compositional fields that are
+ * not advected by a field method, but interpolated from particle properties.
+ * This simplifies the process of using the particles as 'active' particles
+ * that carry information that influences the solution. E.g. the material
+ * model can access the compositional field that is interpolated from particle
+ * properties and use this as 'composition' information.
  * <br>
- * (Shangxin Liu, 2015/08/20)
+ * (Rene Gassmoeller, 2016/08/02)
  *
- * <li> New: A box Geometry Model plugin with additional boundary indicators
- * for the upper part of the box and corresponding Boundary Temperature and
- * Composition Model plugins. With this plugin, different boundary conditions
- * can be prescribed on the upper and lower part of the vertical domain boundaries.
+ * <li> New: There is now an initial topography plugin which reads
+ * from the prm file polygon definitions and set the initial topography 
+ * to be constant within those polygons.
  * <br>
- * (Anne Glerum, 2015/08/14)
+ * (Menno Fraters, 2016/07/26)
+ * 
+ * <li> Changed: Particle initialization no longer routinely computes
+ * the solution at the particle positions, since it is usually not needed
+ * and complicates the initialization process. Instead it evaluates the 
+ * initial conditions at the particle positions. It is still possible to
+ * access the solution by evaluating it manually inside of particle
+ * property plugins. Additionally the 'initial composition' property
+ * now utilizes the user-provided names of the compositional fields
+ * to identify its particle properties (they are now named
+ * 'initial [field_name]', where '[field_name]'
+ * is replaced by the user provided name).
+ * <br>
+ * (Rene Gassmoeller, 2016/07/18)
  *
- * <li> New: Plugin for visualizing the boundary indicators used by the
- * Geometry Model.
+ * <li> New: Added parameter “Adapt by fraction of cells” to switch between 
+ * refining a certain number of cells based on the fraction of total error 
+ * (default behaviour) and the fraction of total number of cells
  * <br>
- * (Anne Glerum, 2015/08/14)
+ * (Lev Karatun, 2016/07/20)
  *
- * <li> New: There is a new visualization postprocessor which displays
- * the heat flux in the vertical direction, where upwards heat flux
- * is positive.
+ * <li> Changed: It is now possible to set the gravity to a negative
+ * value in order to calculate backward advection.
  * <br>
- * (Ian Rose, 2015/08/12)
+ * (Jacky Austermann, 2016/07/13)
+ * 
+ * <li> New: There is a new postprocessor that outputs statistics to 
+ * the screen about the memory usage and nonzero entries of matrices. 
+ * It can be called with the name 'matrix statistics'.
+ * <br>
+ * (Sam Cox, 2016/07/01)
  *
- * <li> New: A new material averaging option using logarithms is added.
- * This is combined with the existing averaging schemes. Taking the viscosity for example,
- * the log averaging will average 10^23 and 10^21 to 10^22.
+ * <li> New: There is now a plugin structure to add initial topography
+ * to geometry models.
  * <br>
- * (Shangxin Liu, 2015/08/09)
+ * (Menno Fraters and Anne Glerum, 2016/07/01)
  *
- * <li> New: A material model plugin for Drucker-Prager plasticity.
+ * <li> New: There is a new postprocessor that outputs statistics about
+ * the memory usage at each timestep. It can be called with the name
+ * 'memory statistics'. This replaces the helper function
+ * 'output_program_stats()', which has been removed, along with the
+ * variable 'output_parallel_statistics'.
  * <br>
- * (Anne Glerum, 2015/08/03)
+ * (Sam Cox, 2016/06/30)
  *
- * <li> Fixed: Quasi-implicit stabilization of a free surface had used the
- * reference density instead of the density as evaluated by the material
- * model.  Now it uses the actual density of at the surface.  This should
- * not change much unless the density at the surface is significantly
- * different from the reference density.
+ * <li> Changed: In input files, lines that end in a backslash now require
+ * a space before the backslash if the two lines should not be conjoined
+ * immediately, because leading spaces on the continuing line is ignored.
+ * See the Section "The structure of parameter files" in the manual.
  * <br>
- * (Ian Rose, 2015/07/22)
+ * (Jonathan Robey, 2016/06/30)
  *
- * <li> New: Plugin for visualizing groups of compositional fields as vectors.
+ * <li> Changed: The default for "Initial adaptive refinement" cycles is
+ * now 0.
  * <br>
- * (Jonathan Perry-Houts, 2015/07/12)
+ * (Timo Heister, 2016/06/28)
  *
- * <li> New: For free surface computations there is an option to advect the
- * mesh vertically (in the direction of gravity),  in addition to the old
- * formulation which advects it in the direction normal to the surface.
- * This can be enabled by setting "Surface velocity projection" to "vertical"
- * in the "Free surface" section of a parameter file.
- * This scheme can maintain better mesh regularity properties for computations
- * where there is a large deformation, or large curvature.
+ * <li> New: There is a new parameter gamma in the entropy viscosity 
+ * stabilization that allows to scale the stabilization with the strain rate 
+ * (in addition to the velocity).
  * <br>
- * (Ian Rose, 2015/07/10)
+ * (Juliane Dannberg, 2016/06/28)
  *
- * <li> New: There is now an option in the Visualization postprocessor for
- * outputting the mesh velocity in free surface runs.
+ * <li> New: There is now a postprocessor that outputs the heatflux
+ * density at each boundary face into a text file and a 
+ * postprocessor that outputs the heatflux density at each boundary
+ * face for visualization.
  * <br>
- * (Ian Rose, 2015/06/16)
+ * (Jacky Austermann, 2016/06/28)
+ *     
+ * <li> New: There is a new function Utilities::real_spherical_harmonic
+ * which calculates the values of a fully normalized real spherical harmonic.
+ * <br>
+ * (Ian Rose, 2016/06/28)
  *
- * <li> New: There are now parameter files and a section in the manual for
- * reproducing the benchmarks for free surface computations from Crameri et
- * al. (2012).
+ * <li> Changed: The files handling the free surface implementation
+ * have been renamed to free_surface.h and free_surface.cc for better
+ * consistency with the rest of the file names.
  * <br>
- * (Ian Rose, 2015/06/14)
+ * (Ian Rose, 2016/06/27)
  *
- * <li> New: One can now prescribe the traction on a boundary instead of
- * supplying velocity boundary conditions.
- * This is done in a similar way as for the prescribed velocity boundary conditions:
- * For a given boundary indicator, one can prescribe all or a selection of the
- * traction components.
+ * <li> Changed: The previously-deprecated functions 'composition' and
+ * 'temperature' have now been removed. Their replacements are
+ * 'boundary_composition' and 'boundary_temperature'.
  * <br>
- * (Wolfgang Bangerth, Anne Glerum, 2015/05/29)
+ * (Sam Cox, 2016/06/27)
  *
- * <li> Changed: We now use the exact formulation with the
- * compressible strain rate instead of an approximation
- * using the right hand side of the mass conservation equation
- * to calculate the shear heating. This is more accurate in
- * compressible models.
+ * <li> Changed: The free surface implementation now represents mesh
+ * deformation using a vector of displacements for the mesh vertices,
+ * using a MappingQ1Eulerian to transform from the reference cell to
+ * the physical cell.
  * <br>
- * (Juliane Dannberg, 2015/05/29)
+ * (Ian Rose, 2016/06/26)
  *
- * <li> New: There is now a new geometry model called chunk, which
- * takes radius, longitude (and latitude) pairs and creates a regional
- * chunk of a spherical shell. Spherical boundary and initial conditions
- * have been updated to accept this new model. The conversion conventions
- * between [longitude, latitude and radius], [phi, theta and radius] and
- * Cartesian [x, y, z] are consistent with mathematical convention and
- * other models in dealii/ASPECT.
- * This model was based largely on work on deal.ii by D. Sarah Stamps,
- * Wolfgang Bangerth, and in ASPECT by Menno Fraters.
+ * <li> Changed: The visualization postprocessor now writes every initial
+ * refinement stage if 'Run postprocessors on initial refinement' is
+ * set to true.
  * <br>
- * (Bob Myhill, 2015/05/29)
+ * (Rene Gassmoeller, 2016/06/25)
  *
- * <li> New: Added the ability to prescribe internal velocities with an ascii
- * file.
+ * <li> New: There is now a postprocessor that outputs statistics about
+ * the number of particles per cell in the model domain. It outputs
+ * global maximum, minimum and average number of particles per cell.
  * <br>
- * (Scott Tarlow, 2015/05/29)
+ * (Rene Gassmoeller, 2016/06/24)
  *
- * <li> New: Three new material averaging schemes are added. These are combined
- * with the existing averaging schemes, except for the Q1 averaging schemes into
- * a compositing material model. The new averaging schemes are normalised weighted
- * distance versions of the arithmetic, harmonic and geometric averages.
+ * <li> New: There is now the option to model melt transport (two-phase 
+ * flow). This core of the implementations includes additional 
+ * variables in the solution vector, a new assembler with an additional 
+ * equation that will be solved and a modified advection equation for the 
+ * porosity field, a new preconditioner for models with melt transport, and 
+ * additional melt outputs for the material model.
  * <br>
- * (Menno Fraters, 2015/05/28)
+ * (Juliane Dannberg, Timo Heister, 2016/06/24)
  *
- * <li> New: There are now postprocessors BoundaryDensities and
- * BoundaryPressures which calculate laterally averaged densities
- * and pressures at the top and bottom of the domain.
+ * <li> New: Particles can now carry the integrated strain they have
+ * experienced over the course of the model. They store all components
+ * of the symmetric strain tensor, which can be converted into the 
+ * invariants or investigated individually.
  * <br>
- * (Ian Rose, 2015/05/28)
+ * (Rene Gassmoeller, 2016/06/10)
  *
- * <li> New: Postprocessor and visualization postprocessor plugins can
- * now state that they require other postprocessors to run as well,
- * for example because they want to query information computed
- * by these other postprocessors in computing their own information.
- * This is done using the
- * aspect::Postprocess::Interface::requires_other_postprocessors()
- * function.
+ * <li> New: There is a new optional feature for the discontinuous temperature
+ * and compositional solutions. After solving the advection equation, 
+ * a "bound preserving limiter" working as a correction procedure is applied
+ * to the discontinuous advection fields. The limiter will stabilize the 
+ * discontinuous advection solutions and keep it in the range of user defined 
+ * global maximum/minimum values. Whether or not the limiter is used is
+ * determined by an entry to the parameter file.
  * <br>
- * (Wolfgang Bangerth, 2015/05/28)
+ * (Ying He, 2016/06/02)
  *
- * <li> New: Added cookbook to prescribe initial condition from shear
- * wave velocity model.
+ * <li> New: Tests can now be marked that they are expected to fail by the
+ * EXPECT FAILURE keyword in the .prm.
  * <br>
- * (Jacqueline Austermann, 2015/05/28)
+ * (Timo Heister, 2016/06/01)
  *
- * <li> Changed: The heating models have a new straucture now:
- * Instead of the implementation in the assembly, there is a heating
- * plugin for each model now that can be used both in the assembly
- * and the postprocessors, and a new heating model manager that
- * combines the plugins by adding the individual heating terms.
+ * <li> New: There is a new boundary traction model "ascii data"
+ * that prescribes the boundary traction according to pressure values
+ * read from an ascii data file.
  * <br>
- * (Juliane Dannberg, 2015/05/27)
+ * (Juliane Dannberg, 2016/05/24)
  *
- * <li> Fixed: There was a bug in the make pressure rhs compatibility
- * function that caused the linear solver to fail in models with a
- * significant in- or outflux of material. This is fixed now.
+ * <li> New: A material model plugin for visco-plastic rheologies,
+ * which combines diffusion, dislocation or composite viscous
+ * creep with a Drucker Prager yield criterion.
  * <br>
- * (Juliane Dannberg, 2015/05/27)
+ * (John Naliboff, 2016/05/19)
  *
- * <li> New: Added cookbook for prescribed internal velocity values.
+ * <li> Changed: The traction boundary conditions now use a new interface
+ * that includes the boundary indicator (analogous to the velocity boundary
+ * conditions).
  * <br>
- * (Jonathan Perry-Houts, 2015/05/26)
+ * (Juliane Dannberg, 2016/05/19)
  *
- * <li> New: There is now a Material model called diffusion dislocation that
- * implements diffusion and dislocation creep viscosity.
- * <br>
- * (Bob Myhill, 2015/05/26)
+ * <li> New: There is now a visualization plugin to visualize the maximum
+ * horizontal component of the compressive stress.
+ * <br> 
+ * (Wolfgang Bangerth, D. Sarah Stamps, 2016/05/12)
  *
- * <li> Changed: Modified S40RTS initial condition file to incorporate
- * the option to zero out heterogeneities within a given depth.
+ * <li> New: There is a new visualization postprocessor "artificial viscosity
+ * composition" to visualize the artificial viscosity of a compositional
+ * field.
  * <br>
- * (Jacqueline Austermann, 2015/05/26)
+ * (Juliane Dannberg, Timo Heister, 2016/05/03)
  *
- * <li> New: There is now a refinement plugin based on strain rate which
- * will come handy to capture shear bands when combined with plasticity.
+ * <li> New: Mesh refinement strategies based on artificial viscosity,
+ * composition gradients, or composition threshold.
  * <br>
- * (Cedric Thieulot, 2015/05/26)
+ * (Juliane Dannberg, Timo Heister, 2016/05/03)
  *
- * <li> New: There is now a Material model called Depth dependent that implements
- * depth-dependent viscosity through the modification of any other Material model.
- * <br>
- * (Jacqueline Austermann and Max Rudolph, 2015/05/24)
- *
- * <li> The manual.pdf is no longer part of the git repository but you can
- * find it online at http://aspect.dealii.org or you can build it yourself.
- * <br>
- * (Timo Heister, 2015/05/23)
- *
- * <li> New: There are now a set of global constants defined for physical
- * properties and for radius and gravity parameters relevant to
- * Earth and Mars.
- * <br>
- * (Bob Myhill, 2015/05/22)
- *
- * <li> New: There is now a SimulatorAccess::get_statistics_object() function
- * that allows all users of this class to record information in the statistics
- * file, whether they are postprocessors or not.
- * <br>
- * (Wolfgang Bangerth, 2015/05/22)
- *
- * <li> New: ASPECT now also provides a signals mechanism to attach user-defined
- * functions to certain events over the course of a simulation. This allows more
- * fine-grained observation and intervention to user additions. A new section
- * in the manual explains how to extend ASPECT this way.
- * <br>
- * (Wolfgang Bangerth, 2015/05/21)
- *
- * <li> Changed: The free surface handler now detaches internal manifolds
- * for cases when the domain has them, since they are not necessarily a
- * good description of the geometry when there has been large mesh deformation.
- * <br>
- * (Ian Rose, 2015/05/21)
- *
- * <li> Changed: The documentation for nullspace removal is now more
- * descriptive of what Aspect is actually doing.
- * <br>
- * (Ian Rose, 2015/05/21)
- *
- * <li> New: There is now a mesh refinement criterion called Slope, intended
- * for use with a free surface, which refines where the topography has a
- * large slope.
- * <br>
- * (Ian Rose, 2015/05/21)
- *
- * <li> Changed: The specific heating plugin has a new interface now; it gets
- * the material model inputs and outputs and fills a vector with heating
- * model outputs for the whole cell.
- * <br>
- * (Juliane Dannberg, 2015/05/20)
- *
- * <li> New: There is now an (3D) ellipsoidal chunk geometry model where two
- * of the axis have the same length. The ellipsoidal chunk can be non-coordinate
- * parallel part of the ellipsoid.
- * This plugin is a joined effort of Menno Fraters, D Sarah Stamps and Wolfgang
- * Bangerth
- * <br>
- * (Menno Fraters, 2015/08/28)
  * </ol>
  */

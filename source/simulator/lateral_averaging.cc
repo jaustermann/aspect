@@ -50,7 +50,7 @@ namespace aspect
     FEValues<dim> fe_values (this->get_mapping(),
                              this->get_fe(),
                              quadrature_formula,
-                             update_values | update_gradients | update_quadrature_points);
+                             update_values | update_gradients | update_quadrature_points | update_JxW_values);
 
     std::vector<std::vector<double> > composition_values (this->n_compositional_fields(),std::vector<double> (n_q_points));
 
@@ -103,7 +103,10 @@ namespace aspect
           for (unsigned int q = 0; q < n_q_points; ++q)
             {
               const double depth = this->get_geometry_model().depth(fe_values.quadrature_point(q));
-              const unsigned int idx = static_cast<unsigned int>((depth*num_slices)/max_depth);
+              // make sure we are rounding down and never end up with idx==num_slices:
+              const double magic = 1.0-2.0*std::numeric_limits<double>::epsilon();
+              const unsigned int idx = static_cast<unsigned int>(std::floor((depth*num_slices)/max_depth*magic));
+
               Assert(idx<num_slices, ExcInternalError());
 
               values[idx] += output_values[q] * fe_values.JxW(q);
@@ -116,8 +119,28 @@ namespace aspect
     Utilities::MPI::sum(volume, this->get_mpi_communicator(), volume_all);
     Utilities::MPI::sum(values, this->get_mpi_communicator(), values_all);
 
+    bool print_under_res_warning=false;
     for (unsigned int i=0; i<num_slices; ++i)
-      values[i] = values_all[i] / (static_cast<double>(volume_all[i])+1e-20);
+      {
+        if (volume_all[i] > 0.0)
+          {
+            values[i] = values_all[i] / (static_cast<double>(volume_all[i]));
+          }
+        else
+          {
+            print_under_res_warning = true;
+            // Output nan if no quadrature points in depth block
+            values[i] = std::numeric_limits<double>::quiet_NaN();
+          }
+      }
+    if (print_under_res_warning)
+      {
+        this->get_pcout() << "In computing depth averages, there is at least"
+                          << " one depth band that does not have any quadrature"
+                          << " points in it." << std::endl
+                          << " Consider reducing number of depth layers for "
+                          << " averaging" << std::endl;
+      }
   }
 
   namespace

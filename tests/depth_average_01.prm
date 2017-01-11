@@ -1,7 +1,7 @@
 # Test the 'depth average' postprocessor on a coarse mesh version of
-# convection_box.prm. This test makes no sense since we average over
-# 100 depth intervals but we only compute on a 4x4 mesh -- several of
-# the depth intervals will receive no quadrature points
+# convection_box.prm. This test makes no sense since we average over 10 depth
+# intervals but we only compute on a 4x4 mesh -- This is sufficient to produce
+# reasonable data, but not enough for actual resolution.
 
 set Dimension                              = 2
 
@@ -66,8 +66,6 @@ subsection Model settings
   # compressibility of the medium) or from shear friction,
   # as well as the rate of internal heating. We do not
   # want to use any of these options here:
-  set Include adiabatic heating               = false
-  set Include shear heating                   = false
 end
 
 

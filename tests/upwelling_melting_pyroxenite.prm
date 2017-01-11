@@ -107,15 +107,6 @@ subsection Model settings
   set Tangential velocity boundary indicators = 0,1
   set Fixed temperature boundary indicators   = 2
   set Fixed composition boundary indicators   = 2
-
-  # The final part of this section describes whether we
-  # want to include adiabatic heating (from a small
-  # compressibility of the medium) or from shear friction,
-  # as well as the rate of internal heating. We do not
-  # want to use any of these options here:
-  set Include adiabatic heating               = true
-  set Include latent heat                     = true
-  set Include shear heating                   = false
 end
 
 
@@ -174,14 +165,9 @@ end
 # we will obtain 50 output files.
 subsection Postprocess
   set List of postprocessors = temperature statistics
-
-  subsection Visualization
-    set Time between graphical output = 0.01
-    set List of output variables = melt fraction, viscosity, density, nonadiabatic temperature
-
-    subsection Melt fraction
-      set Mass fraction cpx = 0.10
-    end
-  end
 end
 
+
+subsection Heating model
+  set List of model names = adiabatic heating, latent heat
+end

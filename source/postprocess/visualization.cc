@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2015 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2016 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -20,8 +20,8 @@
 
 
 #include <aspect/postprocess/visualization.h>
-#include <aspect/simulator_access.h>
 #include <aspect/global.h>
+#include <aspect/utilities.h>
 
 #include <deal.II/dofs/dof_tools.h>
 #include <deal.II/numerics/data_out.h>
@@ -51,7 +51,7 @@ namespace aspect
         public:
           virtual
           void
-          compute_derived_quantities_vector (const std::vector<Vector<double> >              &uh,
+          compute_derived_quantities_vector (const std::vector<Vector<double> >              &solution_values,
                                              const std::vector<std::vector<Tensor<1,dim> > > &,
                                              const std::vector<std::vector<Tensor<2,dim> > > &,
                                              const std::vector<Point<dim> > &,
@@ -60,16 +60,33 @@ namespace aspect
           {
             const double velocity_scaling_factor =
               this->convert_output_to_years() ? year_in_seconds : 1.0;
-            const unsigned int n_q_points = uh.size();
+            const unsigned int n_q_points = solution_values.size();
             for (unsigned int q=0; q<n_q_points; ++q)
               for (unsigned int i=0; i<computed_quantities[q].size(); ++i)
-                computed_quantities[q][i]=uh[q][i] * ((i < dim) ? velocity_scaling_factor : 1.0);
+                {
+                  // scale velocities and fluid velocities by year_in_seconds if needed
+                  if (this->introspection().component_masks.velocities[i] ||
+                      (this->include_melt_transport()
+                       && this->introspection().variable("fluid velocity").component_mask[i]))
+                    computed_quantities[q][i]=solution_values[q][i] * velocity_scaling_factor;
+                  else
+                    computed_quantities[q][i]=solution_values[q][i];
+                }
           }
 
           virtual std::vector<std::string> get_names () const
           {
             std::vector<std::string> solution_names (dim, "velocity");
+
+            if (this->include_melt_transport())
+              {
+                solution_names.push_back ("p_f");
+                solution_names.push_back ("p_c");
+                for (unsigned int i=0; i<dim; ++i)
+                  solution_names.push_back ("u_f");
+              }
             solution_names.push_back ("p");
+
             solution_names.push_back ("T");
             for (unsigned int c=0; c<this->n_compositional_fields(); ++c)
               solution_names.push_back (this->introspection().name_for_compositional_index(c));
@@ -84,8 +101,15 @@ namespace aspect
             std::vector<DataComponentInterpretation::DataComponentInterpretation>
             interpretation (dim,
                             DataComponentInterpretation::component_is_part_of_vector);
-            interpretation.push_back (DataComponentInterpretation::component_is_scalar);
-            interpretation.push_back (DataComponentInterpretation::component_is_scalar);
+            if (this->include_melt_transport())
+              {
+                interpretation.push_back (DataComponentInterpretation::component_is_scalar);
+                interpretation.push_back (DataComponentInterpretation::component_is_scalar);
+                for (unsigned int i=0; i<dim; ++i)
+                  interpretation.push_back (DataComponentInterpretation::component_is_part_of_vector);
+              }
+            interpretation.push_back (DataComponentInterpretation::component_is_scalar); // p
+            interpretation.push_back (DataComponentInterpretation::component_is_scalar); // T
             for (unsigned int c=0; c<this->n_compositional_fields(); ++c)
               interpretation.push_back (DataComponentInterpretation::component_is_scalar);
 
@@ -112,22 +136,22 @@ namespace aspect
 
           virtual
           void
-          compute_derived_quantities_vector (const std::vector<Vector<double> >              &uh,
+          compute_derived_quantities_vector (const std::vector<Vector<double> >              &solution_values,
                                              const std::vector<std::vector<Tensor<1,dim> > > &,
                                              const std::vector<std::vector<Tensor<2,dim> > > &,
                                              const std::vector<Point<dim> > &,
                                              const std::vector<Point<dim> > &,
                                              std::vector<Vector<double> >                    &computed_quantities) const
           {
-            //check that the first quadruatre point has dim components
+            //check that the first quadrature point has dim components
             Assert( computed_quantities[0].size() == dim,
                     ExcMessage("Unexpected dimension in mesh velocity postprocessor"));
             const double velocity_scaling_factor =
               this->convert_output_to_years() ? year_in_seconds : 1.0;
-            const unsigned int n_q_points = uh.size();
+            const unsigned int n_q_points = solution_values.size();
             for (unsigned int q=0; q<n_q_points; ++q)
               for (unsigned int i=0; i<dim; ++i)
-                computed_quantities[q][i]= uh[q][i] * velocity_scaling_factor;
+                computed_quantities[q][i]= solution_values[q][i] * velocity_scaling_factor;
           }
       };
     }
@@ -221,33 +245,62 @@ namespace aspect
       const std::string
       pvtu_master_filename = (solution_file_prefix +
                               ".pvtu");
-      std::ofstream pvtu_master ((this->get_output_directory() +
+      std::ofstream pvtu_master ((this->get_output_directory() + "solution/" +
                                   pvtu_master_filename).c_str());
       data_out.write_pvtu_record (pvtu_master, filenames);
 
       // now also generate a .pvd file that matches simulation
       // time and corresponding .pvtu record
       times_and_pvtu_names.push_back(std::make_pair
-                                     (time_in_years_or_seconds, pvtu_master_filename));
+                                     (time_in_years_or_seconds, "solution/"+pvtu_master_filename));
       const std::string
       pvd_master_filename = (this->get_output_directory() + "solution.pvd");
       std::ofstream pvd_master (pvd_master_filename.c_str());
+#if DEAL_II_VERSION_GTE(8,5,0)
+      DataOutBase::write_pvd_record (pvd_master, times_and_pvtu_names);
+#else
       data_out.write_pvd_record (pvd_master, times_and_pvtu_names);
+#endif
 
       // finally, do the same for Visit via the .visit file for this
       // time step, as well as for all time steps together
       const std::string
-      visit_master_filename = (this->get_output_directory() +
-                               solution_file_prefix +
-                               ".visit");
+      visit_master_filename = (this->get_output_directory()
+                               + "solution/"
+                               + solution_file_prefix
+                               + ".visit");
       std::ofstream visit_master (visit_master_filename.c_str());
+#if DEAL_II_VERSION_GTE(8,5,0)
+      DataOutBase::write_visit_record (visit_master, filenames);
+#else
       data_out.write_visit_record (visit_master, filenames);
+#endif
 
-      output_file_names_by_timestep.push_back (filenames);
+      {
+        // the global .visit file needs the relative path because it sits a
+        // directory above
+        std::vector<std::string> filenames_with_path;
+        for (std::vector<std::string>::const_iterator it = filenames.begin();
+             it != filenames.end();
+             ++it)
+          {
+            filenames_with_path.push_back("solution/" + (*it));
+          }
+        output_file_names_by_timestep.push_back (filenames_with_path);
+      }
 
       std::ofstream global_visit_master ((this->get_output_directory() +
                                           "solution.visit").c_str());
+
+#if DEAL_II_VERSION_GTE(8,5,0)
+      std::vector<std::pair<double, std::vector<std::string> > > times_and_output_file_names;
+      for (unsigned int timestep=0; timestep<times_and_pvtu_names.size(); ++timestep)
+        times_and_output_file_names.push_back(std::make_pair(times_and_pvtu_names[timestep].first,
+                                                             output_file_names_by_timestep[timestep]));
+      DataOutBase::write_visit_record (global_visit_master, times_and_output_file_names);
+#else
       data_out.write_visit_record (global_visit_master, output_file_names_by_timestep);
+#endif
     }
 
     template <int dim>
@@ -263,7 +316,8 @@ namespace aspect
         }
 
       // return if graphical output is not requested at this time
-      if (this->get_time() < last_output_time + output_interval)
+      if ((this->get_time() < last_output_time + output_interval)
+          && (this->get_timestep_number() != 0))
         return std::pair<std::string,std::string>();
 
 
@@ -278,9 +332,6 @@ namespace aspect
       // will then also destroy the object
       DataOut<dim> data_out;
       data_out.attach_dof_handler (this->get_dof_handler());
-
-
-
       data_out.add_data_vector (this->get_solution(),
                                 base_variables);
 
@@ -393,7 +444,7 @@ namespace aspect
                                   DataOut<dim>::no_curved_cells);
         }
       else
-        data_out.build_patches();
+        data_out.build_patches(this->get_mapping()); //Giving the mapping ensures that the case with mesh deformation works correctly.
 
       // Now prepare everything for writing the output and choose output format
       std::string solution_file_prefix = "solution-" + Utilities::int_to_string (output_file_number, 5);
@@ -403,16 +454,16 @@ namespace aspect
       if (output_format=="hdf5")
         {
           XDMFEntry new_xdmf_entry;
-          std::string     h5_solution_file_name = solution_file_prefix + ".h5";
-          std::string     xdmf_filename = this->get_output_directory() + "solution.xdmf";
+          const std::string h5_solution_file_name = "solution/" + solution_file_prefix + ".h5";
+          const std::string xdmf_filename = "solution.xdmf";
 
           // Filter redundant values
-          DataOutBase::DataOutFilter   data_filter(DataOutBase::DataOutFilterFlags(true, true));
+          DataOutBase::DataOutFilter data_filter(DataOutBase::DataOutFilterFlags(true, true));
 
           // If the mesh changed since the last output, make a new mesh file
-          std::string mesh_file_prefix = "mesh-" + Utilities::int_to_string (output_file_number, 5);
+          const std::string mesh_file_prefix = "mesh-" + Utilities::int_to_string (output_file_number, 5);
           if (mesh_changed)
-            last_mesh_file_name = mesh_file_prefix + ".h5";
+            last_mesh_file_name = "solution/" + mesh_file_prefix + ".h5";
 
           data_out.write_filtered_data(data_filter);
           data_out.write_hdf5_parallel(data_filter,
@@ -426,7 +477,7 @@ namespace aspect
                                                       time_in_years_or_seconds,
                                                       this->get_mpi_communicator());
           xdmf_entries.push_back(new_xdmf_entry);
-          data_out.write_xdmf_file(xdmf_entries, xdmf_filename.c_str(),
+          data_out.write_xdmf_file(xdmf_entries, this->get_output_directory() + xdmf_filename,
                                    this->get_mpi_communicator());
           mesh_changed = false;
         }
@@ -448,11 +499,19 @@ namespace aspect
             }
 
           const unsigned int my_file_id = (group_files == 0) ? my_id : my_id % group_files;
-          const std::string filename = this->get_output_directory() +
-                                       solution_file_prefix +
-                                       "." +
-                                       Utilities::int_to_string (my_file_id, 4) +
-                                       ".vtu";
+          const std::string filename = this->get_output_directory()
+                                       + "solution/"
+                                       + solution_file_prefix
+                                       + "."
+                                       + Utilities::int_to_string (my_file_id, 4)
+                                       + ".vtu";
+
+          // pass time step number and time as metadata into the output file
+          DataOutBase::VtkFlags vtk_flags;
+          vtk_flags.cycle = this->get_timestep_number();
+          vtk_flags.time = time_in_years_or_seconds;
+
+          data_out.set_flags (vtk_flags);
 
           // Write as many files as processes. For this case we support writing in a
           // background thread and to a temporary location, so we first write everything
@@ -464,13 +523,6 @@ namespace aspect
               const std::string *file_contents;
               {
                 std::ostringstream tmp;
-
-                // pass time step number and time as metadata into the output file
-                DataOutBase::VtkFlags vtk_flags;
-                vtk_flags.cycle = this->get_timestep_number();
-                vtk_flags.time = time_in_years_or_seconds;
-
-                data_out.set_flags (vtk_flags);
 
                 data_out.write (tmp, DataOutBase::parse_output_format(output_format));
                 file_contents = new std::string (tmp.str());
@@ -517,11 +569,12 @@ namespace aspect
         {
           const unsigned int myid = Utilities::MPI::this_mpi_process(this->get_mpi_communicator());
 
-          const std::string filename = this->get_output_directory() +
-                                       solution_file_prefix +
-                                       "." +
-                                       Utilities::int_to_string (myid, 4) +
-                                       DataOutBase::default_suffix
+          const std::string filename = this->get_output_directory()
+                                       + "solution/"
+                                       + solution_file_prefix
+                                       + "."
+                                       +  Utilities::int_to_string (myid, 4)
+                                       + DataOutBase::default_suffix
                                        (DataOutBase::parse_output_format(output_format));
 
           std::ofstream out (filename.c_str());
@@ -534,7 +587,9 @@ namespace aspect
 
       // record the file base file name in the output file
       statistics.add_value ("Visualization file name",
-                            this->get_output_directory() + solution_file_prefix);
+                            this->get_output_directory()
+                            + "solution/"
+                            + solution_file_prefix);
 
       // up the counter of the number of the file by one; also
       // up the next time we need output
@@ -543,7 +598,9 @@ namespace aspect
 
       // return what should be printed to the screen.
       return std::make_pair (std::string ("Writing graphical output:"),
-                             this->get_output_directory() + solution_file_prefix);
+                             this->get_output_directory()
+                             + "solution/"
+                             + solution_file_prefix);
     }
 
 
@@ -758,6 +815,11 @@ namespace aspect
       Assert (std_cxx11::get<dim>(registered_plugins).plugins != 0,
               ExcMessage ("No postprocessors registered!?"));
       std::vector<std::string> viz_names;
+
+      std::string visualization_subdirectory = this->get_output_directory() + "solution/";
+      Utilities::create_directory (visualization_subdirectory,
+                                   this->get_mpi_communicator(),
+                                   true);
 
       prm.enter_subsection("Postprocess");
       {

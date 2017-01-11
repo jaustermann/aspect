@@ -29,24 +29,23 @@ namespace aspect
       template <int dim>
       Function<dim>::Function()
         :
-        function (1)
+        n_components (0)
       {}
 
       template <int dim>
       void
       Function<dim>::initialize_one_particle_property(const Point<dim> &position,
-                                                      const Vector<double> &,
-                                                      const std::vector<Tensor<1,dim> > &,
                                                       std::vector<double> &data) const
       {
-        data.push_back(function.value(position));
+        for (unsigned int i = 0; i < n_components; i++)
+          data.push_back(function->value(position, i));
       }
 
       template <int dim>
       std::vector<std::pair<std::string, unsigned int> >
       Function<dim>::get_property_information() const
       {
-        const std::vector<std::pair<std::string,unsigned int> > property_information (1,std::make_pair("function",1));
+        const std::vector<std::pair<std::string,unsigned int> > property_information (1,std::make_pair("function",n_components));
         return property_information;
       }
 
@@ -61,6 +60,10 @@ namespace aspect
           {
             prm.enter_subsection("Function");
             {
+              prm.declare_entry ("Number of components", "1",
+                                 Patterns::Integer (0),
+                                 "The number of function components where each component is described"
+                                 "by a function expression delimited by a ';'.");
               Functions::ParsedFunction<dim>::declare_parameters (prm, 1);
             }
             prm.leave_subsection();
@@ -80,9 +83,11 @@ namespace aspect
           prm.enter_subsection("Tracers");
           {
             prm.enter_subsection("Function");
+            n_components = prm.get_integer ("Number of components");
             try
               {
-                function.parse_parameters (prm);
+                function.reset (new Functions::ParsedFunction<dim>(n_components));
+                function->parse_parameters (prm);
               }
             catch (...)
               {
@@ -117,8 +122,7 @@ namespace aspect
                                         "function is defined in the parameters in section "
                                         "``Tracers|Function''. The format of these "
                                         "functions follows the syntax understood by the "
-                                        "muparser library, see Section~\\ref{sec:muparser-format}."
-                                        "\n\n")
+                                        "muparser library, see Section~\\ref{sec:muparser-format}.")
     }
   }
 }

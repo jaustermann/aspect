@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011, 2012 by the authors of the ASPECT code.
+  Copyright (C) 2011, 2012, 2016 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -19,8 +19,8 @@
 */
 
 
-#ifndef __aspect__postprocess_depth_average_h
-#define __aspect__postprocess_depth_average_h
+#ifndef _aspect_postprocess_depth_average_h
+#define _aspect_postprocess_depth_average_h
 
 #include <aspect/postprocess/interface.h>
 #include <aspect/simulator_access.h>
@@ -49,7 +49,7 @@ namespace aspect
         DepthAverage ();
 
         /**
-         * Generate graphical output from the current solution.
+         * Evaluate the solution and compute the requested depth averages.
          */
         virtual
         std::pair<std::string,std::string>

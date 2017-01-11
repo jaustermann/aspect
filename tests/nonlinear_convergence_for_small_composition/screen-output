@@ -1,0 +1,406 @@
+
+Loading shared library <./libnonlinear_convergence_for_small_composition.so>
+
+Number of active cells: 1,024 (on 6 levels)
+Number of degrees of freedom: 15,942 (8,450+1,089+4,225+1,089+1,089)
+
+*** Timestep 0:  t=0 years
+   Solving temperature system... 0 iterations.
+   Skipping porosity composition solve because RHS is zero.
+   Skipping peridotite composition solve because RHS is zero.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+9 iterations.
+      Nonlinear residuals: 1.42313e+06, 0, 0, 2.94296e+13
+      Total relative nonlinear residual: 1
+
+
+   Solving temperature system... 0 iterations.
+   Skipping porosity composition solve because RHS is zero.
+   Skipping peridotite composition solve because RHS is zero.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+0 iterations.
+      Nonlinear residuals: 1.42313e+06, 0, 0, 10691
+      Total relative nonlinear residual: 3.63275e-10
+
+
+
+   Postprocessing:
+     Compositions min/max/mass: 0/0/0 // 0/0/0
+
+*** Timestep 1:  t=6329.51 years
+   Solving temperature system... 14 iterations.
+   Solving porosity system ... 7 iterations.
+   Solving peridotite system ... 7 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+8 iterations.
+      Nonlinear residuals: 1.4598e+20, 5.68522, 5.68522, 1.00324e+13
+      Total relative nonlinear residual: 1
+
+
+   Solving temperature system... 14 iterations.
+   Solving porosity system ... 7 iterations.
+   Solving peridotite system ... 7 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+7 iterations.
+      Nonlinear residuals: 8.97357e+18, 55.8979, 55.8979, 6.98359e+11
+      Total relative nonlinear residual: 9.83214
+
+
+   Solving temperature system... 14 iterations.
+   Solving porosity system ... 7 iterations.
+   Solving peridotite system ... 7 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+7 iterations.
+      Nonlinear residuals: 2.17449e+18, 55.066, 55.066, 1.62685e+11
+      Total relative nonlinear residual: 9.68581
+
+
+   Solving temperature system... 13 iterations.
+   Solving porosity system ... 7 iterations.
+   Solving peridotite system ... 7 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+6 iterations.
+      Nonlinear residuals: 7.00349e+17, 15.2994, 15.2994, 5.0951e+10
+      Total relative nonlinear residual: 2.69109
+
+
+   Solving temperature system... 12 iterations.
+   Solving porosity system ... 7 iterations.
+   Solving peridotite system ... 7 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+6 iterations.
+      Nonlinear residuals: 2.35563e+17, 13.7038, 13.7038, 1.69676e+10
+      Total relative nonlinear residual: 2.41042
+
+
+   Solving temperature system... 12 iterations.
+   Solving porosity system ... 7 iterations.
+   Solving peridotite system ... 7 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+5 iterations.
+      Nonlinear residuals: 7.82296e+16, 10.6102, 10.6102, 5.61983e+09
+      Total relative nonlinear residual: 1.86628
+
+
+   Solving temperature system... 11 iterations.
+   Solving porosity system ... 7 iterations.
+   Solving peridotite system ... 7 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+5 iterations.
+      Nonlinear residuals: 2.55608e+16, 46.6841, 46.6841, 1.84012e+09
+      Total relative nonlinear residual: 8.21147
+
+
+   Solving temperature system... 11 iterations.
+   Solving porosity system ... 7 iterations.
+   Solving peridotite system ... 7 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+4 iterations.
+      Nonlinear residuals: 8.25741e+15, 39.1263, 39.1263, 5.98614e+08
+      Total relative nonlinear residual: 6.8821
+
+
+   Solving temperature system... 10 iterations.
+   Solving porosity system ... 7 iterations.
+   Solving peridotite system ... 7 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+4 iterations.
+      Nonlinear residuals: 2.65491e+15, 43.0605, 43.0605, 1.94648e+08
+      Total relative nonlinear residual: 7.57411
+
+
+   Solving temperature system... 9 iterations.
+   Solving porosity system ... 7 iterations.
+   Solving peridotite system ... 7 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+3 iterations.
+      Nonlinear residuals: 8.5443e+14, 31.4608, 31.4608, 6.34711e+07
+      Total relative nonlinear residual: 5.53379
+
+
+   Solving temperature system... 9 iterations.
+   Solving porosity system ... 7 iterations.
+   Solving peridotite system ... 7 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+3 iterations.
+      Nonlinear residuals: 2.76217e+14, 50.4664, 50.4664, 2.07471e+07
+      Total relative nonlinear residual: 8.87677
+
+
+   Solving temperature system... 8 iterations.
+   Solving porosity system ... 7 iterations.
+   Solving peridotite system ... 7 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+2 iterations.
+      Nonlinear residuals: 8.90346e+13, 38.7651, 38.7651, 6.73081e+06
+      Total relative nonlinear residual: 6.81857
+
+
+   Solving temperature system... 7 iterations.
+   Solving porosity system ... 7 iterations.
+   Solving peridotite system ... 7 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+2 iterations.
+      Nonlinear residuals: 2.87126e+13, 32.7063, 32.7063, 2.16941e+06
+      Total relative nonlinear residual: 5.75286
+
+
+   Solving temperature system... 7 iterations.
+   Solving porosity system ... 7 iterations.
+   Solving peridotite system ... 7 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+2 iterations.
+      Nonlinear residuals: 9.01426e+12, 25.9431, 25.9431, 677432
+      Total relative nonlinear residual: 4.56325
+
+
+   Solving temperature system... 6 iterations.
+   Solving porosity system ... 7 iterations.
+   Solving peridotite system ... 7 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+1 iterations.
+      Nonlinear residuals: 2.79031e+12, 7.90726, 7.90726, 207681
+      Total relative nonlinear residual: 1.39084
+
+
+   Solving temperature system... 5 iterations.
+   Solving porosity system ... 7 iterations.
+   Solving peridotite system ... 7 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+1 iterations.
+      Nonlinear residuals: 1.19272e+12, 45.2257, 45.2257, 145505
+      Total relative nonlinear residual: 7.95495
+
+
+   Solving temperature system... 5 iterations.
+   Solving porosity system ... 6 iterations.
+   Solving peridotite system ... 6 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+0 iterations.
+      Nonlinear residuals: 5.40042e+11, 12.908, 12.908, 113042
+      Total relative nonlinear residual: 2.27044
+
+
+   Solving temperature system... 1 iterations.
+   Solving porosity system ... 0 iterations.
+   Solving peridotite system ... 0 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+0 iterations.
+      Nonlinear residuals: 2.1625e+08, 2.06288e-13, 2.06288e-13, 113044
+      Total relative nonlinear residual: 6.22964e-09
+
+
+   Solving temperature system... 0 iterations.
+   Solving porosity system ... 0 iterations.
+   Solving peridotite system ... 0 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+0 iterations.
+      Nonlinear residuals: 3.45757e+07, 2.06288e-13, 2.06288e-13, 113044
+      Total relative nonlinear residual: 6.22964e-09
+
+
+   Solving temperature system... 0 iterations.
+   Solving porosity system ... 0 iterations.
+   Solving peridotite system ... 0 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+0 iterations.
+      Nonlinear residuals: 3.45757e+07, 2.06288e-13, 2.06288e-13, 113044
+      Total relative nonlinear residual: 6.22964e-09
+
+
+
+   Postprocessing:
+     Compositions min/max/mass: -9.583e-09/1.344e-08/-3.553e-06 // -9.583e-09/1.344e-08/-3.553e-06
+
+*** Timestep 2:  t=10000 years
+   Solving temperature system... 16 iterations.
+   Solving porosity system ... 6 iterations.
+   Solving peridotite system ... 6 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+7 iterations.
+      Nonlinear residuals: 3.09271e+19, 12.755, 12.755, 1.94698e+12
+      Total relative nonlinear residual: 0.151867
+
+
+   Solving temperature system... 15 iterations.
+   Solving porosity system ... 6 iterations.
+   Solving peridotite system ... 6 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+7 iterations.
+      Nonlinear residuals: 2.17181e+18, 64.0505, 64.0505, 1.45129e+11
+      Total relative nonlinear residual: 0.501361
+
+
+   Solving temperature system... 14 iterations.
+   Solving porosity system ... 6 iterations.
+   Solving peridotite system ... 6 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+6 iterations.
+      Nonlinear residuals: 3.70011e+17, 29.0619, 29.0619, 2.47726e+10
+      Total relative nonlinear residual: 0.227484
+
+
+   Solving temperature system... 12 iterations.
+   Solving porosity system ... 6 iterations.
+   Solving peridotite system ... 6 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+5 iterations.
+      Nonlinear residuals: 6.75048e+16, 12.2438, 12.2438, 4.50243e+09
+      Total relative nonlinear residual: 0.0958392
+
+
+   Solving temperature system... 11 iterations.
+   Solving porosity system ... 6 iterations.
+   Solving peridotite system ... 6 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+4 iterations.
+      Nonlinear residuals: 1.24535e+16, 13.9613, 13.9613, 8.27896e+08
+      Total relative nonlinear residual: 0.109283
+
+
+   Solving temperature system... 10 iterations.
+   Solving porosity system ... 6 iterations.
+   Solving peridotite system ... 6 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+4 iterations.
+      Nonlinear residuals: 2.29033e+15, 34.185, 34.185, 1.51896e+08
+      Total relative nonlinear residual: 0.267586
+
+
+   Solving temperature system... 9 iterations.
+   Solving porosity system ... 6 iterations.
+   Solving peridotite system ... 6 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+3 iterations.
+      Nonlinear residuals: 4.18488e+14, 25.6009, 25.6009, 2.7709e+07
+      Total relative nonlinear residual: 0.200393
+
+
+   Solving temperature system... 8 iterations.
+   Solving porosity system ... 6 iterations.
+   Solving peridotite system ... 6 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+2 iterations.
+      Nonlinear residuals: 7.60659e+13, 15.8028, 15.8028, 5.03117e+06
+      Total relative nonlinear residual: 0.123698
+
+
+   Solving temperature system... 7 iterations.
+   Solving porosity system ... 6 iterations.
+   Solving peridotite system ... 6 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+2 iterations.
+      Nonlinear residuals: 1.36806e+13, 14.2755, 14.2755, 906721
+      Total relative nonlinear residual: 0.111743
+
+
+   Solving temperature system... 6 iterations.
+   Solving porosity system ... 6 iterations.
+   Solving peridotite system ... 6 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+1 iterations.
+      Nonlinear residuals: 2.39695e+12, 14.1138, 14.1138, 158383
+      Total relative nonlinear residual: 0.110477
+
+
+   Solving temperature system... 5 iterations.
+   Solving porosity system ... 6 iterations.
+   Solving peridotite system ... 6 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+0 iterations.
+      Nonlinear residuals: 5.76546e+11, 24.2244, 24.2244, 111019
+      Total relative nonlinear residual: 0.189619
+
+
+   Solving temperature system... 1 iterations.
+   Solving porosity system ... 0 iterations.
+   Solving peridotite system ... 0 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+0 iterations.
+      Nonlinear residuals: 1.24861e+08, 7.04349e-14, 7.04349e-14, 111015
+      Total relative nonlinear residual: 8.6593e-09
+
+
+   Solving temperature system... 0 iterations.
+   Solving porosity system ... 0 iterations.
+   Solving peridotite system ... 0 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+0 iterations.
+      Nonlinear residuals: 1.46257e+07, 7.04349e-14, 7.04349e-14, 111015
+      Total relative nonlinear residual: 8.6593e-09
+
+
+   Solving temperature system... 0 iterations.
+   Solving porosity system ... 0 iterations.
+   Solving peridotite system ... 0 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+0 iterations.
+      Nonlinear residuals: 1.46257e+07, 7.04349e-14, 7.04349e-14, 111015
+      Total relative nonlinear residual: 8.6593e-09
+
+
+   Solving temperature system... 0 iterations.
+   Solving porosity system ... 0 iterations.
+   Solving peridotite system ... 0 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+0 iterations.
+      Nonlinear residuals: 1.46257e+07, 7.04349e-14, 7.04349e-14, 111015
+      Total relative nonlinear residual: 8.6593e-09
+
+
+   Solving temperature system... 0 iterations.
+   Solving porosity system ... 0 iterations.
+   Solving peridotite system ... 0 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+0 iterations.
+      Nonlinear residuals: 1.46257e+07, 7.04349e-14, 7.04349e-14, 111015
+      Total relative nonlinear residual: 8.6593e-09
+
+
+   Solving temperature system... 0 iterations.
+   Solving porosity system ... 0 iterations.
+   Solving peridotite system ... 0 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+0 iterations.
+      Nonlinear residuals: 1.46257e+07, 7.04349e-14, 7.04349e-14, 111015
+      Total relative nonlinear residual: 8.6593e-09
+
+
+   Solving temperature system... 0 iterations.
+   Solving porosity system ... 0 iterations.
+   Solving peridotite system ... 0 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+0 iterations.
+      Nonlinear residuals: 1.46257e+07, 7.04349e-14, 7.04349e-14, 111015
+      Total relative nonlinear residual: 8.6593e-09
+
+
+   Solving temperature system... 0 iterations.
+   Solving porosity system ... 0 iterations.
+   Solving peridotite system ... 0 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+0 iterations.
+      Nonlinear residuals: 1.46257e+07, 7.04349e-14, 7.04349e-14, 111015
+      Total relative nonlinear residual: 8.6593e-09
+
+
+   Solving temperature system... 0 iterations.
+   Solving porosity system ... 0 iterations.
+   Solving peridotite system ... 0 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 0+0 iterations.
+      Nonlinear residuals: 1.46257e+07, 7.04349e-14, 7.04349e-14, 111015
+      Total relative nonlinear residual: 8.6593e-09
+
+
+
+   Postprocessing:
+     Compositions min/max/mass: -1.009e-08/1.605e-08/-3.637e-06 // -1.009e-08/1.605e-08/-3.637e-06
+
+Termination requested by criterion: end time
+
+
++---------------------------------------------+------------+------------+
++---------------------------------+-----------+------------+------------+
++---------------------------------+-----------+------------+------------+
+

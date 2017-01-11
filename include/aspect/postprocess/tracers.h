@@ -18,12 +18,11 @@
  <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __aspect__postprocess_tracer_h
-#define __aspect__postprocess_tracer_h
+#ifndef _aspect_postprocess_tracer_h
+#define _aspect_postprocess_tracer_h
 
 #include <aspect/postprocess/interface.h>
 #include <aspect/particle/world.h>
-#include <aspect/particle/output/interface.h>
 
 #include <aspect/simulator_access.h>
 #include <aspect/particle/particle.h>
@@ -155,20 +154,15 @@ namespace aspect
         Particle::World<dim> world;
 
         /**
-         * Pointer to an output object
-         */
-        std_cxx11::shared_ptr<Particle::Output::Interface<dim> > output;
-
-        /**
          * Interval between output (in years if appropriate simulation
          * parameter is set, otherwise seconds)
          */
-        double                          output_interval;
+        double output_interval;
 
         /**
          * Records time for next output to occur
          */
-        double                          last_output_time;
+        double last_output_time;
 
         /**
          * Save the last time output was generated assuming that

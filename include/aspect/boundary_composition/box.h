@@ -19,8 +19,8 @@
 */
 
 
-#ifndef __aspect__boundary_composition_box_h
-#define __aspect__boundary_composition_box_h
+#ifndef _aspect_boundary_composition_box_h
+#define _aspect_boundary_composition_box_h
 
 #include <aspect/boundary_composition/interface.h>
 #include <aspect/simulator_access.h>
@@ -48,7 +48,7 @@ namespace aspect
          */
         virtual
         double boundary_composition (const types::boundary_id boundary_indicator,
-                                     const Point<dim> &location,
+                                     const Point<dim> &position,
                                      const unsigned int compositional_field) const;
 
         /**

@@ -37,7 +37,12 @@ namespace aspect
                const Point<dim> &) const
     {
       const double delta_temp = temperature-reference_T;
-      double temperature_dependence = std::max(std::min(std::exp(-thermal_viscosity_exponent*delta_temp/reference_T),1e2),1e-2);
+      const double T_dependence = (thermal_viscosity_exponent == 0.0
+                                   ?
+                                   0.0
+                                   :
+                                   thermal_viscosity_exponent*delta_temp/reference_T);
+      double temperature_dependence = std::max(std::min(std::exp(-T_dependence),1e2),1e-2);
 
       if (std::isnan(temperature_dependence))
         temperature_dependence = 1.0;
@@ -129,9 +134,8 @@ namespace aspect
       if (this->include_adiabatic_heating ())
         {
           // temperature dependence is 1 - alpha * (T - T(adiabatic))
-          if (this->get_adiabatic_conditions().is_initialized())
-            temperature_dependence -= (temperature - this->get_adiabatic_conditions().temperature(position))
-                                      * thermal_expansion_coefficient(temperature, pressure, compositional_fields, position);
+          temperature_dependence -= (temperature - this->get_adiabatic_conditions().temperature(position))
+                                    * thermal_expansion_coefficient(temperature, pressure, compositional_fields, position);
         }
       else
         temperature_dependence -= temperature * thermal_expansion_coefficient(temperature, pressure, compositional_fields, position);
@@ -166,8 +170,7 @@ namespace aspect
                                    const std::vector<double> &composition,
                                    const Point<dim> &position) const
     {
-      if (!(this->get_adiabatic_conditions().is_initialized()))
-        return thermal_alpha;
+      return thermal_alpha;
 
       const double melt_frac = melt_fraction(temperature, pressure, composition, position);
       return thermal_alpha * (1-melt_frac) + melt_thermal_alpha * melt_frac;
@@ -297,6 +300,21 @@ namespace aspect
         }
 
       return entropy_gradient;
+    }
+
+
+    template <int dim>
+    void
+    LatentHeatMelt<dim>::
+    melt_fractions (const MaterialModel::MaterialModelInputs<dim> &in,
+                    std::vector<double> &melt_fractions) const
+    {
+      for (unsigned int q=0; q<in.temperature.size(); ++q)
+        melt_fractions[q] = melt_fraction(in.temperature[q],
+                                          std::max(0.0, in.pressure[q]),
+                                          in.composition[q],
+                                          in.position[q]);
+      return;
     }
 
     template <int dim>
@@ -430,7 +448,7 @@ namespace aspect
                              "Units: $W/m/K$.");
           prm.declare_entry ("Reference specific heat", "1250",
                              Patterns::Double (0),
-                             "The value of the specific heat $cp$. "
+                             "The value of the specific heat $C_p$. "
                              "Units: $J/kg/K$.");
           prm.declare_entry ("Thermal expansion coefficient", "4e-5",
                              Patterns::Double (0),

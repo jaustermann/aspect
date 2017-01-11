@@ -1,5 +1,7 @@
 \documentclass{article}
 \usepackage[pdftex]{graphicx,color}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
 \usepackage{amsmath}
 \usepackage{amsfonts}
 \usepackage{subfigure}
@@ -32,8 +34,15 @@
 % use the listings package for code snippets. define keywords for prm files
 % and for gnuplot
 \usepackage{listings}
-\lstset{language=C++,basicstyle=\small\ttfamily,columns=fullflexible,keepspaces=true,frame=single}
-%\lstset{language=C++,basicstyle=\small\ttfamily,columns=flexible}
+\lstset{
+  language=C++,
+  basicstyle=\small\ttfamily,
+  columns=fullflexible,
+  keepspaces=true,
+  frame=single,
+  breaklines=true,
+  postbreak=\raisebox{0ex}[0ex][0ex]{\hspace{5em}\ensuremath{\color{red}\hookrightarrow\space}}
+}
 \lstdefinelanguage{prmfile}{morekeywords={set,subsection,end},
                             morecomment=[l]{\#},escapeinside={\%\%}{\%},}
 \lstdefinelanguage{gnuplot}{morekeywords={plot,using,title,with,set,replot},
@@ -123,42 +132,44 @@ COMPUTATIONAL INFRASTRUCTURE FOR GEODYNAMICS (CIG)
 \hfill{\Huge \fontfamily{\sfdefault}\selectfont User Manual \\
 \raggedleft \huge \fontfamily{\sfdefault}\selectfont Version
 % keep the following line as is so that we can replace this using a script:
-1.4.0-pre %VERSION-INFO%
-\\\large(generated \today)\\}
+1.5.0-pre %VERSION-INFO%
+\\\large(generated \today)\\
+{\Large Wolfgang Bangerth\\Juliane Dannberg\\Rene Gassm{\"o}ller\\Timo Heister\\}
+}
 
 %AUTHOR(S) & WEBSITE%
 \null
-\vspace{22em}
+\vspace{18em}
 \color{dark_grey}
-\Large \hfill {\raggedleft \fontfamily{\sfdefault}\selectfont
+{\fontfamily{\sfdefault}\selectfont
 % FILL: author list
 % e.g. Author One\\Author Two\\Author Three\\
 % be sure to have a newline (\\) after the final author
-Wolfgang Bangerth\\Timo Heister\\
 \large
-    with contributions by:\\
+\noindent with contributions by: \\
     Jacqueline Austermann,
     Markus B{\"u}rg,
-    Juliane Dannberg,
-    William Durkin, \\
+    Samuel Cox,
+    William Durkin,
     Grant Euen,
-    Ren{\'e} Ga{\ss}m{\"o}ller,
+    Menno Fraters,
     Thomas Geenen,
     Anne Glerum,
     Ryan Grove,
-    Eric Heien, \\
+    Eric Heien,
+    Louise Kellogg,
     Scott King,
     Martin Kronbichler,
     Shangxin Liu,
     Elvira Mulyukova,
-    Jonathan Perry-Houts, \\
+    Jonathan Perry-Houts,
     Tahiry Rajaonarison,
     Ian Rose,
     D.~Sarah Stamps,
     Cedric Thieulot,
     Iris van Zelst,
     Siqi Zhang \\
-
+\vspace{1em}
 }
 
 {\fontfamily{\sfdefault}\selectfont \href{https://geodynamics.org}{geodynamics.org}}
@@ -276,8 +287,11 @@ geodynamics community and beyond!
 
 As with all scientific work, funding agencies have a reasonable expectation
 that if we ask for continued funding for this work, we need to demonstrate
-relevance. To this end, we ask that if you publish results that were obtained
-to some part using \aspect{}, you cite the following, canonical reference for
+relevance. 
+In addition, many have contributed to the development of \aspect{} and deserve credit
+for their work.
+To this end, we ask that if you publish results that were obtained
+to some part using \aspect{}, cite the following, canonical reference for
 this software:
 \begin{lstlisting}[frame=single,language=tex]
 @Article{KHB12,
@@ -286,29 +300,26 @@ this software:
   journal =      {Geophysics Journal International},
   year =         2012,
   volume =       191,
-  pages =        {12--29}}
+  pages =        {12--29}
+}
 \end{lstlisting}
-You can refer to the website by citing the following:
-\begin{lstlisting}[frame=single,language=tex]
-
-      @MANUAL{aspectweb,
-        title  = {ASPECT: Advanced Solver for Problems in Earth's ConvecTion},
-        author = {W. Bangerth and T. Heister and others},
-        year   = {2014},
-        note   = {\texttt{https://aspect.dealii.org/}},
-        url    = {https://aspect.dealii.org/}
-      }
-\end{lstlisting}
-The manual's proper reference is this:
+Please also cite the User's Manual:
 \begin{lstlisting}[frame=single,language=tex]
 @Manual{aspectmanual,
-        title =        {\textsc{ASPECT}: Advanced Solver for Problems in Earth's
-                        ConvecTion},
-        author =       {W. Bangerth and T. Heister and others},
-        organization = {Computational Infrastructure for Geodynamics},
-        year =         2014
-      }
+  title =        {\textsc{ASPECT}: {Advanced Solver for Problems in Earth's
+                  ConvecTion} v1.4.0}, 
+  author =       {W. Bangerth and J. Dannberg and
+                  R. Gassm{\"o}ller and T. Heister and others},
+  organization = {Computational Infrastructure for Geodynamics},
+  year =         2016
+}
 \end{lstlisting}
+
+
+
+Updated citation information can also be found on the \aspect{}
+website at \url{https://aspect.dealii.org/}.
+
 
 
 \subsection{Acknowledgments}
@@ -356,12 +367,12 @@ $c_i$ that we call \textit{compositional fields}:
                                   - \frac{1}{3}(\nabla \cdot \mathbf u)\mathbf 1\right)
                 \right] + \nabla p &=
   \rho \mathbf g
-  & \qquad
+  &
   & \textrm{in $\Omega$},
   \\
   \label{eq:stokes-2}
   \nabla \cdot (\rho \mathbf u) &= 0
-  & \qquad
+  &
   & \textrm{in $\Omega$},
   \\
   \label{eq:temperature}
@@ -384,7 +395,7 @@ $c_i$ that we call \textit{compositional fields}:
   \\
   &\quad
   + \rho T \Delta S \left(\frac{\partial X}{\partial t} + \mathbf u\cdot\nabla X\right)
-  & \quad
+  &
   & \textrm{in $\Omega$},
   \notag
   \\
@@ -392,13 +403,26 @@ $c_i$ that we call \textit{compositional fields}:
   \frac{\partial c_i}{\partial t} + \mathbf u\cdot\nabla c_i
   &=
   q_i
-  & \quad
+  &
   & \textrm{in $\Omega$},
   i=1\ldots C
 \end{align}
 where $\varepsilon(\mathbf u) = \frac{1}{2}(\nabla \mathbf u + \nabla\mathbf
 u^T)$ is the symmetric gradient of the velocity (often called the
-\textit{strain rate}).
+\textit{strain rate}).%
+\footnote{There is no consensus in the sciences on the notation used
+  for strain and strain rate. The symbols $\varepsilon$,
+  $\dot\varepsilon$,  $\varepsilon(\mathbf u)$, and
+  $\dot\varepsilon(\mathbf u)$, can all be found. In this manual, and
+  in the code, we will consistently use $\varepsilon$ as an
+  \textit{operator}, i.e., the symbol is not used on its own but only
+  as applied to a field. In other words, if $\mathbf u$ is the
+  velocity field, then $\varepsilon(\mathbf u) = \frac{1}{2}(\nabla
+  \mathbf u + \nabla\mathbf u^T)$ will denote the strain rate. On the
+  other hand, if $\mathbf d$ is the
+  displacement field, then $\varepsilon(\mathbf d) = \frac{1}{2}(\nabla
+  \mathbf d + \nabla\mathbf d^T)$ will denote the strain.}
+
 
 In this set of equations, \eqref{eq:stokes-1} and \eqref{eq:stokes-2}
 represent the compressible Stokes equations in which $\mathbf u=\mathbf
@@ -493,8 +517,12 @@ due to $\mathbf g$ pointing downwards)
   & \approx -\alpha \rho T \mathbf u \cdot \mathbf g.
 \end{align*}
 While this simplification is possible, it is not necessary if you have access
-to the total pressure. \aspect{} therefore implements the original term
-without this simplification.
+to the total pressure. \aspect{} therefore by default implements the original 
+term without this simplification, but allows to simplify this term by setting
+the ``\texttt{Use simplified adiabatic heating}'' 
+\index[prmindex]{Use simplified adiabatic heating}
+\index[prmindexfull]{Heating model!Adiabatic heating!Use simplified adiabatic heating}
+parameter in section~\ref{parameters:Heating_20model/Adiabatic_20heating}.
 
 \subsubsection{Boundary conditions}
 Having discussed \eqref{eq:temperature}, let us come to the last one of the
@@ -512,7 +540,7 @@ essentially as tracer quantities that only keep track of where material came
 from.
 
 These equations are
-augmented by boundary conditions that can either be of Dirichlet-, Neumann, or
+augmented by boundary conditions that can either be of Dirichlet, Neumann, or
 tangential type on subsets of the boundary $\Gamma=\partial\Omega$:
 \begin{align}
   \mathbf u &= 0 & \qquad &\textrm{on $\Gamma_{0,\mathbf u}$},
@@ -532,8 +560,9 @@ tangential type on subsets of the boundary $\Gamma=\partial\Omega$:
   \mathbf n \cdot k\nabla T &= 0
    & \qquad &\textrm{on $\Gamma_{N,T}$}.
   \\
-  c_i &= 0
-   & \qquad &\textrm{on $\Gamma_\textit{in}=\{\mathbf x: \mathbf
+  \label{eq:gamma-in-composition}
+  c_i &= c_{i,\text{prescribed}}
+   & \qquad &\textrm{on $\Gamma_{\text{in}}=\{\mathbf x: \mathbf
    u\cdot\mathbf n<0\}$}.
 \end{align}
 Here, the boundary conditions for velocity and temperature are subdivided into
@@ -560,14 +589,26 @@ tangential component undetermined.
 of the shell that constitutes the domain the Earth mantle occupies is
 simulated).
 \end{itemize}
- We require that one of these boundary conditions hold at each
+We require that one of these boundary conditions hold at each
 point for both velocity and temperature, i.e.,
 $\Gamma_{0,\mathbf u}\cup\Gamma_{\text{prescribed},\mathbf
   u}\cup\Gamma_{\parallel,\mathbf u}\cup\Gamma_{\text{traction},\mathbf
   u}=\Gamma$ and
-$\Gamma_{D,T}\cup\Gamma_{N,T}=\Gamma$. No boundary conditions have to be
-posed for the compositional fields at those parts of the boundary where flow is either
-tangential to the boundary or points outward.
+$\Gamma_{D,T}\cup\Gamma_{N,T}=\Gamma$. 
+
+Boundary conditions have to be imposed for the compositional fields only
+at those parts of the boundary where flow points inward, see equation
+\eqref{eq:gamma-in-composition}, but not where it is either tangential
+to the boundary or points outward. The difference in treatment between
+temperature and compositional boundary conditions is due to the fact
+that the temperature equation contains a (possibly small) diffusion
+component, whereas the compositional equations do not.
+
+There are other equations that \aspect{} can optionally solve. For example, it
+can deal with free surfaces (see Section~\ref{sec:freesurface}), melt generation and
+transport (see Section~\ref{sec:melt_transport}), and it can advect along
+particles or tracers (see Section~\ref{sec:particles}). These optional models
+are discussed in more detail in the indicated sections.
 
 
 \subsubsection{Comments on the final set of equations}
@@ -593,12 +634,6 @@ if $C>0$), coefficients may also depend on them. Alternatively, they may be
 parameterized as a function
 of the spatial variable $\mathbf x$. \aspect{} allows both kinds of
 parameterizations.
-
-\note{One of the next versions of \aspect{} will actually iterate out
-  nonlinearities in the material description. However, in the current version,
-  we simply evaluate all nonlinear dependence of coefficients at the solution
-  variables from the previous time step or a solution suitably extrapolated from
-  the previous time steps.}
 
 Note that below we will discuss examples of the dependence of coefficients on
 other quantities; which dependence is actually implemented in the code is a
@@ -634,12 +669,12 @@ c,\mathbf x)$:} Units $\textrm{Pa}\cdot \textrm{s} =
 
   The simplest parameterization for the density is to assume a linear
   dependence on temperature, yielding the form
-  $\rho(T)=\rho_{\text{ref}}[1-\beta (T-T_{\text{ref}})]$ where
+  $\rho(T)=\rho_{\text{ref}}[1-\alpha (T-T_{\text{ref}})]$ where
   $\rho_{\text{ref}}$ is the reference density at temperature $T_{\text{ref}}$
-  and $\beta$ is the linear thermal expansion coefficient. For the earth
+  and $\alpha$ is the linear thermal expansion coefficient. For the earth's
   mantle, typical values for this parameterization would be
   $\rho_{\text{ref}}=3300\frac{\textrm{kg}}{\textrm{m}^3}$,
-  $T_{\text{ref}}=293 \textrm{K}$, $\beta=2\cdot 10^{-5}
+  $T_{\text{ref}}=293 \textrm{K}$, $\alpha=2\cdot 10^{-5}
   \frac{1}{\mathrm{K}}$.
 
 \item \textit{The gravity vector $\mathbf g=\mathbf g(\mathbf x)$:} Units
@@ -704,6 +739,27 @@ Units $\frac{\textrm{J}}{\textrm{kg}\cdot\textrm{K}} =
   temperature, but may depend on the location due to different chemical
   composition of material in the earth mantle. The literature suggests a value
   of $\gamma=7.4\cdot 10^{-12}\frac{\textrm{W}}{\textrm{kg}}$.
+
+\item \textit{The thermal expansion coefficient $\alpha=\alpha(p,T,\mathfrak c ,\mathbf x)$:} Units
+  $\frac{1}{\textrm{K}}$.
+
+  This term denotes by how much the material under consideration
+  expands due to temperature increases. This coefficient is defined as
+  $\alpha = -\frac{1}{\rho}\frac{\partial \rho}{\partial T}$, where
+  the negative sign is due the fact that the density
+  \textit{decreases} as a function of temperature. Alternatively, if
+  one considers the \textit{volume} $V=V(T)$ a piece of material of mass $M$
+  occupies, $V=\frac{M}{\rho}$, then the thermal expansion coefficient
+  is defined as the relative increase in volume,
+  $\alpha=\frac{1}{V}\frac{\partial V(T)}{\partial T}$, because 
+  $\frac{\partial V(T)}{\partial T} =
+   \frac{\partial \frac{M}{\rho}}{\partial T} =
+   -\frac{M}{\rho^2} \frac{\partial \rho}{\partial T} =
+   -\frac{V}{\rho} \frac{\partial \rho}{\partial T}$.
+
+   The literature suggests that values of $\alpha=1\cdot
+   10^{-5}\frac{1}{\textrm{K}}$ at the core-mantle boundary and $\alpha=4\cdot
+   10^{-5}\frac{1}{\textrm{K}}$ are appropriate for Earth.
 
 \item \textit{The change of entropy $\Delta S$ at a
   phase transition together with the derivatives of the phase function
@@ -801,13 +857,13 @@ physical units. On the other hand, there are also downsides:
   often vastly different.%
   \footnote{To illustrate this, consider convection in the Earth as a
   back-of-the-envelope example.
-  With the length scale of the mantle $L=3\cdot 10^6\;m$, viscosity
-  $\eta=10^{24} \; kg/m/s$, density $\rho=3\cdot 10^3 \; kg/m^3$ and a typical
-  velocity of $U=0.1\;m/year=3\cdot 10^{-9}\; m/s$, we get that the friction
+  With the length scale of the mantle $L=3\cdot 10^6\;\text{m}$, viscosity
+  $\eta=10^{24} \; \text{kg}/\text{m}/\text{s}$, density $\rho=3\cdot 10^3 \; \text{kg}/\text{m}^3$ and a typical
+  velocity of $U=0.1\;\text{m}/\text{year}=3\cdot 10^{-9}\; \text{m}/\text{s}$, we get that the friction
   term in \eqref{eq:stokes-1} has size $\eta U/L^2 \approx 3\cdot 10^2 \;
-  kg/m/s^3$. On the other hand, the term $\nabla\cdot(\rho u)$ in the
+  \text{kg}/\text{m}^2/\text{s}^2$. On the other hand, the term $\nabla\cdot(\rho u)$ in the
   continuity equation \eqref{eq:stokes-2} has size $\rho U/L\approx 3\cdot
-  10^{-12} \; kg/s/m^3$. In other words, their \textit{numerical values} are 14
+  10^{-12} \; \text{kg}/\text{s}/\text{m}^3$. In other words, their \textit{numerical values} are 14
   orders of magnitude apart.}
   Of course, these values can not be compared: they have different physical
   units, and the ratios between these values depends on whether we choose to
@@ -873,7 +929,7 @@ One typically chooses $p_s$ as the pressure one would get if the whole medium
 were at rest -- i.e., as the hydrostatic pressure. This pressure can be
 computed noting that \eqref{eq:stokes-1} reduces to
 \begin{gather*}
-  \nabla p_s = \rho(p_s,T_s,\mathbf x)\mathbf g
+  \nabla p_s = \rho(p_s,T_s,\mathbf x)\mathbf g = \bar\rho \mathbf g
 \end{gather*}
 in the absence of any motion where $T_s$ is some static temperature field (see
 also Section~\ref{sec:adiabatic}). This, our rewritten version of
@@ -970,6 +1026,15 @@ it with the same accuracy one would get if one were to solve for only the
 dynamic component. The methods that ensure this are described in detail in
 \cite{KHB12} and in particular in the appendix of that paper.
 
+\note{By default, \aspect{} uses the full pressure in the equations, and only prescribing 
+density deviations from a reference state on the right-hand side of \eqref{eq:stokes-1} 
+would lead to negative densities in the energy equation \eqref{eq:temperature}.  
+However, when using one of the approximations described in Section \ref{sec:approximate-equations}, 
+the energy balance uses the reference density $\bar\rho$ instead of the full density, 
+which makes it possible to formulate the Stokes system in terms of the dynamic instead of
+the full pressure. In order to do this, one would have to use a material model 
+(see Section~\ref{sec:material-models}) in which the density is in fact a density variation, 
+and then the pressure solution variable would only be the dynamic pressure.}
 
 \subsection{Pressure normalization}
 \label{sec:pressure}
@@ -1022,9 +1087,11 @@ derivatives on these variables in the model).
 Nevertheless, a nonlinear solver will have difficulty converging to
 the correct solution if we start with a completely unphysical pressure
 for models in which coefficients such as density $\rho$ and viscosity
-$\eta$ depend on the pressure and temperature. To this end, \aspect{} computes
-pressure and temperature fields $p_{\textrm{ad}}(z),
-T_{\textrm{ad}}(z)$ that satisfy adiabatic conditions:
+$\eta$ depend on the pressure and temperature. To this end, \aspect{} 
+uses pressure and temperature fields $p_{\textrm{ad}}(z),
+T_{\textrm{ad}}(z)$ computed in the adiabatic conditions model 
+(see Section~\ref{parameters:Adiabatic_20conditions_20model}).
+By default, these fields satisfy adiabatic conditions:
 \begin{align}
   \rho C_p \frac{\textrm{d}}{\textrm{d}z} T_{\textrm{ad}}(z)
   &=
@@ -1048,10 +1115,13 @@ and an adiabatic surface temperature $T_{\textrm{ad}}(0)$ that is
 \index[prmindexfull]{Adiabatic surface temperature}
 also selected in the input parameter file.
 
+However, users can also supply their own adiabatic conditions models or 
+define an arbitrary profile using the ``function'' plugin.
+
 \note{The adiabatic surface temperature is often chosen significantly
   higher than the actual surface temperature. For example, on earth,
   the actual surface temperature is on the order of 290 K, whereas a
-  reasonable adiabatic surface temperature is maybe 1200 K. The reason
+  reasonable adiabatic surface temperature is maybe 1600 K. The reason
   is that the bulk of the mantle is more or less in thermal equilibrium
   with a thermal profile that corresponds to the latter temperature,
   whereas the very low actual surface temperature and the very high
@@ -1076,14 +1146,17 @@ a vector $\mathfrak c$.
 
 Compositional fields were originally intended to track what their name
 suggest, namely the chemical composition of the convecting medium. In this
-interpretation, they composition is a quantity that is simply advected along
+interpretation, the composition is a non-diffusive quantity that is simply advected along
 passively, i.e., it would satisfy the equation
 \begin{align*}
   \frac{\partial \mathfrak c}{\partial t} + \mathbf u \cdot \nabla \mathfrak c
   = 0.
 \end{align*}
-However, these compositional fields participate in determining the values of
-the various coefficients as discussed in Section~\ref{sec:coefficients}.
+However, the compositional fields may also participate in determining the values of
+the various coefficients as discussed in
+Section~\ref{sec:coefficients}, and in this sense the equation above
+describes a composition that is \textit{passively advected}, but an
+\textit{active participant} in the equations.
 
 That said, over time compositional fields have shown to be a much more useful
 tool than originally intended. For example, they can be used to track where
@@ -1094,13 +1167,30 @@ and, if one allows for a reaction rate $\mathfrak q$ on the right hand side,
   = \mathfrak q,
 \end{align*}
 then one can also model interaction between species -- for example to simulate
-phase changes where one compositional field indicating a particular phase
+phase changes where one compositional field, indicating a particular phase,
 transforms into another phase depending on pressure and temperature, or where
-several phases combine to other phases. Inside the material model, the interaction is given by {\tt reaction\_term}
-which is defined as $\triangle t \cdot \mathfrak q$.
+several phases combine to other phases. Another example of using a
+right hand side -- quite outside what the original term
+\textit{compositional field} was supposed to indicate -- is to track
+the accumulation of finite strain, see Section~\ref{sec:finite-strain}.
 
-Modeling reactions between different compositional fields often involves
-finding an equilibrium state between state between different fields because
+In actual practice, one finds that it is often useful to allow
+$\mathfrak q$ to be a function that has both a smooth (say,
+continuous) in time component, and one that is singular in time (i.e.,
+contains Dirac delta, or ``impulse'' functions). Typical time
+integrators require the evaluation of the right hand side at specific
+points in time, but this would preclude the use of delta
+functions. Consequently, the integrators in \aspect{} only require
+material models to provide an \textit{integrated} value
+$\int_t^{t+\Delta t} \mathfrak q(\tau) \;
+\text{d}\tau$ through the {\tt reaction\_term} output
+variable. Implementations often approximate this as $\triangle t \cdot
+\mathfrak q(t)$, or similar formulas.
+
+A second application for only providing integrated right hand sides
+comes from the fact that
+modeling reactions between different compositional fields often involves
+finding an equilibrium state between different fields because
 chemical reactions happen on a much faster time scale than transport. In other
 words, one then often assumes that there is a $\mathfrak c^\ast(p,T)$ so that
 \begin{align*}
@@ -1109,9 +1199,12 @@ words, one then often assumes that there is a $\mathfrak c^\ast(p,T)$ so that
 Consequently, the material model methods that deal with source terms for the
 compositional fields need to compute an \textit{increment} $\Delta\mathfrak c$
 to the previous value of the compositional fields so that the sum of the
-previous values and the increment equals $\mathfrak c^\ast$. This is opposed
-to the usual approach of evaluating the right hand side term $\mathfrak q$,
-which corresponds to a \textit{rate}, instead of an increment.
+previous values and the increment equals $\mathfrak c^\ast$. This
+corresponds to an \textit{impulse change} in the compositions at every
+time step, as opposed
+to the usual approach of evaluating the right hand side term
+$\mathfrak q$ as a continuous function in time,
+which corresponds to a \textit{rate}.
 
 On the other hand, there are other uses of compositional fields that do not
 actually have anything to do with quantities that can be considered related to
@@ -1126,7 +1219,7 @@ form (assuming one uses only a single compositional field)
 \end{align*}
 where in the simplest case one could postulate
 \begin{align*}
-  q(T,c) = -\alpha c + \beta \max\{T-T_\text{healing},0\} c.
+  q(T,c) = -A c + B \max\{T-T_\text{healing},0\} c.
 \end{align*}
 One would then use this compositional field in the definition of the viscosity
 of the material: more damage means lower viscosity because the rocks are weaker.
@@ -1176,7 +1269,7 @@ and the shear heating term in equation \eqref{eq:temperature} to
 where $C = C_{ijkl}$ is defined by the material model. For physical reasons, $C$ needs
 to be a symmetric rank-4 tensor: i.e., when multiplied by a symmetric (strain rate)
 tensor of rank 2 it needs to return another symmetric tensor of rank 2. In mathematical
-terms this, this means that $C_{ijkl}=C_{jikl}=C_{ijlk}=C_{jilk}$. Energy considerations
+terms, this means that $C_{ijkl}=C_{jikl}=C_{ijlk}=C_{jilk}$. Energy considerations
 also require that $C$ is positive definite: i.e., for any $\varepsilon \neq 0$, the
 scalar $\varepsilon : (C \varepsilon)$ must be positive.
 
@@ -1204,9 +1297,9 @@ algorithms:
   the flow field without the need to refine the mesh globally. Since the
   location of plumes that require high resolution change and move with time,
   meshes also need to be adapted every few time steps.
-\item \textit{Accurate discretizations:} The Boussinesq problem upon which
+\item \textit{Accurate discretizations:} The equations upon which
   most models for the earth mantle are based
-  has a number of intricacies that make the choice of discretization
+  have a number of intricacies that make the choice of discretization
   non-trivial. In particular, the finite elements chosen for velocity and
   pressure need to satisfy the usual compatibility condition for saddle point
   problems. This can be worked around using pressure stabilization schemes for
@@ -1215,8 +1308,9 @@ algorithms:
   a stabilization method for the highly advection-dominated temperature
   equation. \aspect{} uses a nonlinear artificial diffusion method for the latter.
 \item \textit{Efficient linear solvers:} The major obstacle in solving the
-  Boussinesq system is the saddle-point nature of the Stokes equations. Simple
-  linear solvers and preconditioners can not efficiently solve this system in
+  system of linear equations that results from discretization is the
+  saddle-point nature of the Stokes equations.
+  Simple linear solvers and preconditioners can not efficiently solve this system in
   the presence of strong heterogeneities or when the size of the system
   becomes very large. \aspect{} uses an efficient solution strategy based on a
   block triangular preconditioner utilizing an algebraic multigrid that
@@ -1252,21 +1346,235 @@ refer to the paper by Kronbichler, Heister and Bangerth \cite{KHB12} that
 gives a detailed description and rationale for the various building blocks.
 
 
-\subsection{Simplifications of the basic equations}
+\subsection{Approximate equations}
+\label{sec:approximate-equations}
 
-There are two common variations to equations
-\eqref{eq:stokes-1}--\eqref{eq:temperature} that are frequently used and that
-make the system much simpler to solve and analyze: assuming that the fluid is
-incompressible (the Boussinesq approximation) and a linear dependence of the
-density on the temperature with constants that are otherwise independent of
-the solution variables. These are
-discussed in the following; \aspect{} has
-run-time parameters that allow both of these simpler models to be used.
+There are a number of common variations to equations
+\eqref{eq:stokes-1}--\eqref{eq:temperature} that are frequently used in the
+geosciences. For example, one frequently finds references to the anelastic liquid
+approximation (ALA), truncated anelastic liquid approximation (TALA), and the
+Boussinesq approximation (BA). These can all be derived from the basic
+equations~\eqref{eq:stokes-1}--\eqref{eq:temperature} via various approximations, 
+and we will discuss them in the following. Since they are typically only provided
+considering velocity, pressure and temperature, we will in the following omit
+the dependence on the compositional fields used in previous sections, though
+this dependence can easily be added back into the equations stated below. A
+detailed discussion of the approximations introduced below can also be found in
+\cite{KLKLZTTK10}.
 
-\subsubsection{The Boussinesq approximation: Incompressibility}
+The three approximations mentioned all start by writing the pressure and
+temperature as the sum of a (possibly depth dependent)
+reference state plus a perturbation, i.e., we will write
+\begin{align*}
+  p(\mathbf x,t) &= \bar p(z) + p'(\mathbf x,t),
+  \\
+  T(\mathbf x,t) &= \bar T(z) + T'(\mathbf x,t).
+\end{align*}
+Here, barred quantities are reference states and may depend on the depth $z$
+(not necessarily the third component of $\mathbf x$) whereas primed quantities
+are the spatially and temporally variable deviations of the temperature and
+pressure fields from this reference state. In particular, the reference pressure
+is given by solving the hydrostatic equation,
+\begin{align}
+\label{eq:hydrostatic-pressure}
+  \nabla \bar p = \bar\rho \mathbf g,
+\end{align}
+where $\bar\rho=\rho(\bar p,\bar T)$ is a \textit{reference density} that
+depends on depth and represents a typical change of material parameters and solution 
+variables with depth. $\bar T(z)$ is chosen as an adiabatic profile accounting for the
+fact that the temperature increases as the pressure increases.
+With these definitions, equations \eqref{eq:stokes-1}--\eqref{eq:stokes-2} can equivalently be written as follows:
+\begin{align}
+  \label{eq:stokes-decomposed-1}
+  -\nabla \cdot \left[2\eta \left(\varepsilon(\mathbf u)
+                                  - \frac{1}{3}(\nabla \cdot \mathbf u)\mathbf 1\right)
+                \right] + \nabla p' &=
+  (\rho-\bar\rho) \mathbf g
+  & \qquad
+  & \textrm{in $\Omega$},
+  \\
+  \label{eq:stokes-decomposed-2}
+  \nabla \cdot (\rho \mathbf u) &= 0
+  & \qquad
+  & \textrm{in $\Omega$}.
+\end{align}
+The temperature equation, when omitting entropic effects, still reads as
+\begin{multline}
+  \label{eq:temperature-decomposed}
+  \rho C_p \left(\frac{\partial T}{\partial t} + \mathbf u\cdot\nabla T\right)
+  - \nabla\cdot k\nabla T
+  \\
+  =
+  \rho H
+  +
+  2\eta
+  \left(\varepsilon(\mathbf u) - \frac{1}{3}(\nabla \cdot \mathbf u)\mathbf 1\right)
+  :
+  \left(\varepsilon(\mathbf u) - \frac{1}{3}(\nabla \cdot \mathbf u)\mathbf 1\right)
+  +\alpha T \left( \mathbf u \cdot \nabla p \right)
+  \quad
+  \textrm{in $\Omega$},
+\end{multline}
+where the right-hand side includes radiogenic heat production, shear heating and adiabatic heating (in that order).
+  
+Starting from these equations, the approximations discussed in the next few
+subsections make use of the fact that for the flows for which these approximations are valid, the
+perturbations $p'$, $T'$ are much smaller than typical values of the reference
+quantities $\bar p$, $\bar T$. 
+The terms influenced by these approximations are $\nabla \cdot (\rho u) =0$ in the 
+continuity equation, and all occurrences of $\rho(p,T)$ in the temperature equation, 
+and we will discuss them separately below. The equations for these approximations are
+almost always given in terms of non-dimensionalized quantities. We will for
+now stick with the dimensional form because it expresses in a clearer way the
+approximations that are made. The non-dimensionalization can then be done on
+each of the forms below separately.
+
+\subsubsection{The anelastic liquid approximation (ALA)}
+\label{sec:ala}
+
+The \textit{anelastic liquid approximation (ALA)} is based on two assumptions.
+First, that the density variations $\rho(p,T)-\bar\rho$ are small and in
+particular can be accurately described by a Taylor expansion:
+\begin{align*}
+  \rho(p,T) \approx 
+  \bar\rho 
+  + \frac{\partial \rho(\bar p,\bar T)}{\partial p} p'
+  + \frac{\partial \rho(\bar p,\bar T)}{\partial T} T'.
+\end{align*}
+Here, $\frac{\partial \rho(\bar p,\bar T)}{\partial T}$ is related to the
+thermal expansion coefficient $\alpha = -\frac{1}{\rho}\frac{\partial \rho}{\partial T}$, 
+and $\frac{\partial \rho(\bar p,\bar T)}{\partial p}$ to the compressibility
+$\kappa = \frac{1}{\rho}\frac{\partial \rho}{\partial p}$.
+
+The second assumption is that the variation of the density
+from the reference density can be neglected in the mass balance and
+temperature equations.
+This yields the following system of equations for the velocity and pressure
+equations:
+\begin{align}
+  \label{eq:stokes-ALA-1}
+  -\nabla \cdot \left[2\eta \left(\varepsilon(\mathbf u)
+                                  - \frac{1}{3}(\nabla \cdot \mathbf u)\mathbf 1\right)
+                \right] + \nabla p' &=
+  \left(\frac{\partial \rho(\bar p,\bar T)}{\partial p} p'
+  + \frac{\partial \rho(\bar p,\bar T)}{\partial T} T' \right) \mathbf g
+  & \qquad
+  & \textrm{in $\Omega$},
+  \\
+  \label{eq:stokes-ALA-2}
+  \nabla \cdot (\bar\rho \mathbf u) &= 0
+  & \qquad
+  & \textrm{in $\Omega$}.
+\end{align}
+
+For the temperature equation, using the definition of the hydrostatic pressure gradient \eqref{eq:hydrostatic-pressure}, we arrive at the following:
+
+\begin{multline}
+  \label{eq:temperature-decomposed}
+  \bar\rho C_p \left(\frac{\partial T}{\partial t} + \mathbf u\cdot\nabla
+  T\right) - \nabla\cdot k\nabla T
+  \\
+  =
+  \bar\rho H
+  +
+  2\eta
+  \left(\varepsilon(\mathbf u) - \frac{1}{3}(\nabla \cdot \mathbf u)\mathbf 1\right)
+  :
+  \left(\varepsilon(\mathbf u) - \frac{1}{3}(\nabla \cdot \mathbf u)\mathbf 1\right)
+  +\alpha \bar\rho T (\mathbf u \cdot \mathbf g)
+  \quad
+  \textrm{in $\Omega$}.
+\end{multline}
+
+\note{Our energy equation is formulated in terms of $T$, while in the literature, the equation
+has sometimes been formulated in terms of $T'$, which yields additional terms
+containing $\bar T$ on the right-hand side.
+Both ways of writing the equation are equivalent.}
+
+\subsubsection{The truncated anelastic liquid approximation (TALA)}
+\label{sec:tala}
+
+The \textit{truncated anelastic liquid approximation (TALA)} further simplifies
+the ALA by assuming that the variation of the density due to pressure variations
+is small, i.e., that
+\begin{align*}
+  \rho(p,T) \approx 
+  \bar\rho 
+  + \frac{\partial \rho(\bar p,\bar T)}{\partial T} T'.
+\end{align*}
+This does not mean that the density is not pressure dependent -- it will, for
+example, continue to be depth dependent because the hydrostatic pressure grows
+with depth. It simply means that the deviations from the reference pressure are
+assumed to be so small that they do not matter in describing the density.
+Because the pressure variation $p'$ is induced by the flow field (the static
+component pressure is already taken care of by the hydrostatic pressure), this
+assumption in essence means that we assume the flow to be very slow, even beyond
+the earlier assumption that we can neglect inertial terms when
+deriving~\eqref{eq:stokes-1}--\eqref{eq:stokes-2}.
+
+This further assumption then
+transforms~\eqref{eq:stokes-ALA-1}--\eqref{eq:stokes-ALA-2} into the following
+equations:
+\begin{align}
+  \label{eq:stokes-TALA-1}
+  -\nabla \cdot \left[2\eta \left(\varepsilon(\mathbf u)
+                                  - \frac{1}{3}(\nabla \cdot \mathbf u)\mathbf 1\right)
+                \right] + \nabla p' &=
+  \frac{\partial \rho(\bar p,\bar T)}{\partial T} T' \mathbf g
+  & \qquad
+  & \textrm{in $\Omega$},
+  \\
+  \label{eq:stokes-TALA-2}
+  \nabla \cdot (\bar\rho \mathbf u) &= 0
+  & \qquad
+  & \textrm{in $\Omega$}.
+\end{align}
+The energy equation is the same as in the ALA case. 
+
+\subsubsection{The Boussinesq approximation (BA)}
 \label{sec:boussinesq}
 
-The original Boussinesq approximation assumes that the density can be
+If we further assume that the reference temperature and the reference density are constant, 
+$\bar T(z)=T_0$, $\bar\rho(\bar p,\bar T)=\rho_0$, 
+-- in other words, density variations are so small that 
+they are negligible everywhere except for in the right-hand side of the velocity 
+equation (the buoyancy term), which describes the driving force of the flow, 
+then we can further simplify the mass conservation equations of the
+TALA to $\nabla \cdot \mathbf u=0$. 
+This means that the density in all other parts of the equations is not only independent of
+the pressure variations $p'$ as assumed in the TALA, but also does not depend on
+the much larger hydrostatic pressure $\bar p$ nor on the reference temperature
+$\bar T$. We then obtain the following set of
+equations that also uses the incompressibility in the definition of the strain rate:
+\begin{align}
+  \label{eq:stokes-BA-1}
+  -\nabla \cdot \left[2\eta \varepsilon(\mathbf u)
+                \right] + \nabla p' &=
+  \frac{\partial \rho(\bar p,\bar T)}{\partial T} T' \mathbf g
+  & \qquad
+  & \textrm{in $\Omega$},
+  \\
+  \label{eq:stokes-BA-2}
+  \nabla \cdot \mathbf u &= 0
+  & \qquad
+  & \textrm{in $\Omega$}.
+\end{align}
+In addition, as the reference temperature is constant, one needs to neglect the
+adiabatic and shear heating in the energy equation
+\begin{equation}
+  \label{eq:temperature-BA}
+  \bar\rho C_p \left(\frac{\partial T}{\partial t} + \mathbf u\cdot\nabla
+  T\right) - \nabla\cdot k\nabla T
+  =
+  \bar\rho H
+  \quad
+  \textrm{in $\Omega$}.
+\end{equation}
+
+\paragraph*{On incompressibility.}
+\label{sec:boussinesq}
+
+The Boussinesq approximation assumes that the density can be
 considered constant in all occurrences in the equations with the exception of
 the buoyancy term on the right hand side of \eqref{eq:stokes-1}. The primary
 result of this assumption is that the continuity equation \eqref{eq:stokes-2}
@@ -1281,29 +1589,26 @@ these two equations symmetric. And secondly, because the two equations are now
 linear in pressure and velocity (assuming that the viscosity $\eta$ and the
 density $\rho$ are considered fixed). In addition, one can drop all terms
 involving $\nabla \cdot \mathbf u$ from the left hand side of the momentum
-equation \eqref{eq:stokes-1} as well as from the shear heating term on the
-right hand side of \eqref{eq:temperature}; while dropping these terms does not
+equation \eqref{eq:stokes-1}; while dropping these terms does not
 affect the solution of the equations, it makes assembly of linear systems
-faster. In addition, in the incompressible case, one needs to neglect the
-adiabatic heating term $\frac{\partial \rho}{\partial T} T \mathbf u \cdot
-\mathbf g$ on the right hand side of \eqref{eq:temperature}.
+faster. 
 
 From a physical perspective, the assumption that the density is constant in
 the continuity equation but variable in the momentum equation is of course
 inconsistent. However, it is justified if the variation is small since the
 momentum equation can be rewritten to read
 \begin{gather*}
-  -\nabla \cdot 2\eta \varepsilon(\mathbf u) + \nabla p_d =
+  -\nabla \cdot 2\eta \varepsilon(\mathbf u) + \nabla p' =
   (\rho-\rho_0) \mathbf g,
 \end{gather*}
-where $p_d$ is the \textit{dynamic} pressure and $\rho_0$ is the constant
+where $p'$ is the \textit{dynamic} pressure and $\rho_0$ is the constant
 reference density. This makes it clear that the true driver of motion is in
 fact the \textit{deviation} of the density from its background value, however
 small this value is: the resulting velocities are simply proportional to the
 density variation, not to the absolute magnitude of the density.
 
 As such, the Boussinesq approximation can be justified. On the other hand,
-given the real pressures and temperatures at the bottom of the earth mantle,
+given the real pressures and temperatures at the bottom of the Earth's mantle,
 it is arguable whether the density can be considered to be almost
 constant. Most realistic models predict that the density of mantle rocks
 increases from somewhere around 3300 at the surface to over 5000 kilogram per
@@ -1332,95 +1637,21 @@ the compressibility to the continuity equation is very small. This may be
 different, however, for models in which the density changes rather abruptly,
 for example due to phase changes at mantle discontinuities.
 
-In summary, models that use the approximation of incompressibility solve the
-following set of equations instead of \eqref{eq:stokes-1}--\eqref{eq:temperature}:
-\begin{align}
-  \label{eq:stokes-1-boussinesq}
-  -\nabla \cdot \left[2\eta \varepsilon(\mathbf u)
-                \right] + \nabla p &=
-  \rho \mathbf g
-  & \qquad
-  & \textrm{in $\Omega$},
-  \\
-  \label{eq:stokes-2-boussinesq}
-  \nabla \cdot \mathbf u &= 0
-  & \qquad
-  & \textrm{in $\Omega$},
-  \\
-  \label{eq:temperature-boussinesq}
-  \rho C_p \left(\frac{\partial T}{\partial t} + \mathbf u\cdot\nabla T\right)
-  - \nabla\cdot k\nabla T
-  &=
-  \rho H
-  +
-  2\eta
-  \varepsilon(\mathbf u)
-  :
-  \varepsilon(\mathbf u)
-  & \quad
-  & \textrm{in $\Omega$},
-\end{align}
-where the coefficients $\eta,\rho,\mathbf g,C_p$ may possible depend on the
-solution variables.
-
-\note{As we will see in Section~\ref{sec:extending}, it is easy to add new material
-models to \aspect. Each model can decide whether it wants to use the
-Boussinesq approximation or not. The description of the models in
-Section~\ref{parameters:Material_20model} also gives an answer which of the
-models already implemented uses the approximation or considers the material
-sufficiently compressible to go with the fully compressible continuity equation.}
-
-
-\subsubsection{Almost linear models}
+\paragraph{On almost linear models.}
 
 A further simplification can be obtained if one assumes that all coefficients
 with the exception of the density do not depend on the solution variables but
 are, in fact, constant. In such models, one typically assumes that the density
-satisfies a relationship of the form $\rho=\rho(T)=\rho_0(1-\beta(T-T_0))$
-with a small thermal expansion coefficient $\beta$ and a reference density
+satisfies a relationship of the form $\rho=\rho(T)=\rho_0(1-\alpha(T-T_0))$
+with a small thermal expansion coefficient $\alpha$ and a reference density
 $\rho_0$ that is attained at temperature $T_0$. Since the thermal expansion is
-considered small, this naturally leads to the following variant of the Boussinesq
+considered small, this naturally leads to the following variant of the the Boussinesq
 model discussed above:
-\begin{align*}
-  -\nabla \cdot \left[2\eta \varepsilon(\mathbf u)
-                \right] + \nabla p &=
-  \rho_0 (1-\beta (T-T_0)) \mathbf g
-  & \qquad
-  & \textrm{in $\Omega$},
-  \\
-  \nabla \cdot \mathbf u &= 0
-  & \qquad
-  & \textrm{in $\Omega$},
-  \\
-  \rho C_p \left(\frac{\partial T}{\partial t} + \mathbf u\cdot\nabla T\right)
-  - \nabla\cdot k\nabla T
-  &=
-  \rho H
-  +
-  2\eta
-  \varepsilon(\mathbf u)
-  :
-  \varepsilon(\mathbf u)
-  & \quad
-  & \textrm{in $\Omega$},
-\end{align*}
-If the gravitational acceleration $\mathbf g$ results from a gravity potential
-$\varphi$ via $\mathbf g = -\nabla \varphi$, then one can rewrite the
-equations above in the following, commonly used form:%
-\footnote{Note, however, that \aspect{} does not solve the equations in the
-  form given in
-  \eqref{eq:stokes-1-boussinesq-linear}--\eqref{eq:temperature-boussinesq-linear}. Rather,
-  it takes the original form with the real density, not the variation of
-  the density. That said, you can use the formulation
-  \eqref{eq:stokes-1-boussinesq-linear}--\eqref{eq:temperature-boussinesq-linear}
-  by implementing a material model (see Section~\ref{sec:material-models}) in
-  which the density in fact has the form $\rho(T)=\beta \rho_0 T$ even though
-  this is not physical.}
 \begin{align}
   \label{eq:stokes-1-boussinesq-linear}
   -\nabla \cdot \left[2\eta \varepsilon(\mathbf u)
-                \right] + \nabla p_d &=
-  -\beta\rho_0 T \mathbf g
+                \right] + \nabla p' &=
+  -\alpha\rho_0 T \mathbf g
   & \qquad
   & \textrm{in $\Omega$},
   \\
@@ -1430,46 +1661,49 @@ equations above in the following, commonly used form:%
   & \textrm{in $\Omega$},
   \\
   \label{eq:temperature-boussinesq-linear}
-  \rho C_p \left(\frac{\partial T}{\partial t} + \mathbf u\cdot\nabla T\right)
+  \rho_0 C_p \left(\frac{\partial T}{\partial t} + \mathbf u\cdot\nabla T\right)
   - \nabla\cdot k\nabla T
   &=
   \rho H
-  +
-  2\eta
-  \varepsilon(\mathbf u)
-  :
-  \varepsilon(\mathbf u)
   & \quad
-  & \textrm{in $\Omega$},
+  & \textrm{in $\Omega$}.
 \end{align}
-where $p_d=p+\rho_0(1+\beta T_0)\varphi$ is the dynamic pressure, as opposed
-to the total pressure $p=p_d+p_s$ that also includes the hydrostatic pressure
-$p_s=-\rho_0(1+\beta T_0)\varphi$. Note that the right hand side forcing term
+Note that the right hand side forcing term
 in \eqref{eq:stokes-1-boussinesq-linear} is now only the deviation of the
 gravitational force from the force that would act if the material were at
 temperature $T_0$.
 
 Under the assumption that all other coefficients are constant, one then
-arrives at equations in which the only nonlinear terms are the advection term,
-$\mathbf u \cdot \nabla T$, and the shear friction, $2\eta\varepsilon(\mathbf
-u):\varepsilon(\mathbf u)$, in the temperature equation
+arrives at equations in which the only nonlinear term is the advection term,
+$\mathbf u \cdot \nabla T$ in the temperature equation
 \eqref{eq:temperature-boussinesq-linear}. This facilitates the use of a
-particular class of time stepping scheme in which one does not solve the whole
+particular class of time stepping schemes in which one does not solve the whole
 set of equations at once, iterating out nonlinearities as necessary, but
 instead in each time step solves first the Stokes system with the previous
 time step's temperature, and then uses the so-computed velocity to solve the
 temperature equation. These kind of time stepping schemes are often referred
-to as \textit{IMPES} methods (they originate in the porous media flow
+to as \textit{operator splitting} methods. 
+
+\note{\aspect{} does not solve the equations in the way described in this paragraph, 
+however, a particular operator splitting method was used in
+earlier \aspect{} versions. It first solves the Stokes equations and then
+uses a semi-explicit time stepping method for the temperature equation
+where diffusion is handled implicitly and advection explicitly.
+This algorithm is often called \textit{IMPES} (it originated in the
+porous media flow 
 community, where the acronym stands for \textit{Im}plicit \textit{P}ressure,
-\textit{E}xplicit \textit{S}aturation). For details see \cite{KHB12}.
+\textit{E}xplicit \textit{S}aturation) and is explained in more detail
+in \cite{KHB12}. Since then the algorithm in \aspect{} has
+been rewritten to use an implicit time stepping algorithm also for the
+temperature equation because this allows to use larger time steps.}
 
 
+\subsubsection{The isothermal compression approximation (ICA)}
+\label{sec:ica}
 
-\subsubsection{Compressible models}
-In the compressible case, the conservation of mass equation in
-equation~\eqref{eq:stokes-2} becomes $\nabla 
-\cdot \left( \rho \textbf{u} \right)= 0$ instead of $\nabla \cdot \textbf{u} =
-0$, which is nonlinear and no longer symmetric to the $\nabla p$ term in the
+In the compressible case and without the assumption of a reference state, 
+the conservation of mass equation in equation~\eqref{eq:stokes-2} is $\nabla 
+\cdot \left( \rho \textbf{u} \right)= 0$, which is nonlinear and not symmetric to the $\nabla p$ term in the
 force balance equation \eqref{eq:stokes-1}, making solving and preconditioning
 the resulting linear and nonlinear systems difficult. To make this work in
 \aspect{}, we consequently reformulate this equation. Dividing by $\rho$ and
@@ -1481,12 +1715,12 @@ We will now make two basic assumptions: First, the variation of the density
 $\rho(p,T,\mathbf x, \mathfrak c)$ is dominated by the dependence on the
 (total) pressure; in other words, $\nabla \rho \approx \frac{\partial \rho}{\partial
   p}\nabla p$. This assumption is primarily justified by the fact that, in the
-Earth mantle, the density increases by at least 50\% between Earth crust and
+Earth's mantle, the density increases by at least 50\% between Earth's crust and
 the core-mantle boundary due to larger pressure there. Secondly, we assume
-that the pressure is dominated by the static pressure, which can be written as
-$\nabla p \approx \nabla p_s \approx \rho \textbf{g}$. This is essentially
-motivated by the slowness of the movement in the Earth or, alternatively,
-based on the fact that the viscosity is so large.
+that the pressure is dominated by the static pressure, which implies that
+$\nabla p \approx \nabla p_s \approx \rho \textbf{g}$. This is justified, 
+because the viscosity in the Earth is large and velocities are small, 
+hence $\nabla p' \ll \nabla p_s$.
 This finally allows us to write
 \begin{equation*}
 \frac{1}{\rho} \nabla \rho \cdot \textbf{u} \approx \frac{1}{\rho} \frac{\partial \rho}{\partial p} \nabla p \cdot \textbf{u} \approx \frac{1}{\rho} \frac{\partial \rho}{\partial p} \nabla p_s \cdot \textbf{u} \approx \frac{1}{\rho} \frac{\partial \rho}{\partial p} \rho \textbf{g} \cdot \textbf{u} 
@@ -1499,13 +1733,210 @@ so we get
 where $\frac{1}{\rho} \frac{\partial \rho}{\partial p}$ is often referred to
 as the compressibility.
 
-In the implementation used in \aspect{}, this equation replaces
-\eqref{eq:stokes-2}. It has the advantage that it retains the symmetry of the
+For this approximation, Equation \eqref{eq:stokes-2-compressible} replaces
+Equation \eqref{eq:stokes-2}. It has the advantage that it retains the symmetry of the
 Stokes equations if we can treat the right hand side of
 \eqref{eq:stokes-2-compressible} as known. We do so by evaluating $\rho$ and
 $\mathbf u$ using the solution from the last time step (or values extrapolated
-from previous time steps).
+from previous time steps), or using a nonlinear solver scheme.
 
+\note{This is the default approximation \aspect{} uses to model compressible convection,
+see Section~\ref{sec:combined_formulations}.}
+
+
+\subsection{Choosing a formulation in \aspect{}}
+
+After discussing different reasonable approximations for modeling compressible or 
+incompressible mantle convection, we will now describe the different steps one has 
+to take to use one of these approximations in a computation.  
+This includes 
+\begin{enumerate}
+\item Choosing an approximation for the mass conservation equation; 
+\item Choosing an approximation for the density in the energy balance, and deciding which heating terms should be included; 
+\item Formulating the buoyancy term in the material model to be used on the right-hand side of the momentum equation; 
+\item Prescribing a suitable reference state for the temperature, pressure, and density; i.e. the adiabatic profile,
+if necessary for the approximations chosen in the first three steps.
+\end{enumerate}
+
+All of these choices can be made in the input file by selecting the corresponding parameters (see Sections~\ref{parameters:Formulation} and \ref{parameters:Adiabatic_20conditions_20model}).
+A description of how to run \aspect{} and the basic structure of the input file can be found in
+Section~\ref{sec:running}.
+
+\subsubsection{Mass conservation approximation}
+
+First, we have to choose how to approximate the conservation of mass: $\nabla \cdot (\rho \mathbf u) = 0$ (see Equation~\eqref{eq:stokes-2}). 
+We provide the following options, which can be selected in the parameter file in the subsection 
+\texttt{Formulation/Mass conservation} (see also \ref{parameters:Formulation/Mass conservation}):
+
+\begin{itemize}
+
+\item
+``incompressible'':
+\[
+ \nabla \cdot \textbf{u} = 0,
+\]
+
+\item
+``isothermal compression'':
+\[
+ \nabla \cdot \textbf{u} = -\frac{1}{\rho} \frac{\partial \rho}{\partial p} \rho \textbf{g} \cdot \textbf{u},
+\]
+where $\frac{1}{\rho} \frac{\partial \rho}{\partial p} = \kappa$ is the compressibility, and 
+is defined in the material model. 
+
+\item
+``reference density profile'':
+\[
+ \nabla \cdot \textbf{u} = -\frac{1}{\bar{\rho}} \frac{\partial \bar{\rho}}{\partial z} \frac{\textbf{g}}{\|\textbf{g}\|} \cdot \textbf{u},
+\]
+where the reference profiles for the density $\bar{\rho}$ and the density gradient $\frac{\partial \bar{\rho}}{\partial z}$
+provided by the adiabatic conditions model (\ref{sec:adiabatic})
+are used. Note that the
+gravity is assumed to point downwards in depth direction.
+
+\item
+``implicit reference density profile'':
+\[
+ \nabla \cdot \textbf{u} + \frac{1}{\bar{\rho}} \frac{\partial \bar{\rho}}{\partial z} \frac{\textbf{g}}{g} \cdot \textbf{u} = 0,
+\]
+which uses the same approximation for the density as ``reference density profile'', 
+but implements this term on the left-hand side instead of the right-hand side of the mass
+conservation equation. This effectively uses the current velocity $\textbf{u}$ instead
+of an extrapolated velocity from the last timesteps.
+
+ \item 
+``ask material model'', which uses ``isothermal compression'' if the material model reports 
+that it is compressible and ``incompressible'' otherwise.
+\end{itemize}
+
+
+\note{\textbf{The stress tensor approximation.}
+
+Incompressibility in the mass conservation equation automatically simplifies the shear strain rate in the momentum and temperature equation from
+\[
+ \nabla \cdot \tau = 
+ \nabla \cdot \left[
+ 2\eta \left(\varepsilon(\mathbf u)
+                                  - \frac{1}{3}(\nabla \cdot \mathbf u)\mathbf 1\right)
+                                  \right]
+\]
+to
+\[
+  \nabla \cdot \tau =  \nabla \cdot \left[
+ 2\eta \varepsilon(\mathbf u) \right], 
+\]
+as $\nabla \cdot \mathbf u = 0$.
+}
+
+\subsubsection{Temperature equation approximation}
+
+The density occurs multiple times in the temperature equation. Depending on the selected approximation it is computed in one of two different ways. Which of these options is used can be chosen in the parameter file in the subsection 
+\texttt{Formulation/Temperature equation} (see also \ref{parameters:Formulation/Temperature equation}):
+
+\begin{itemize}
+ \item 
+``real density'': Use the full density $\rho(p,T)$ that equals the one also used in the buoyancy term of the force balance equation; this is also the value that is computed by the material models when asked for the density,
+
+\item
+``reference density profile'': Use the density as computed for the reference profile (which can be constant, an adiabatic profile, or an entirely different function, and is determined by the adiabatic conditions model).
+\end{itemize}
+
+\subsubsection{Approximation of the buoyancy term}
+The buoyancy term (right-hand side of the momentum equation) always uses the 
+density that is provided by the material model (see Section~\ref{sec:material-models}). 
+Depending on the material model, this density could for example depend on temperature 
+and pressure (such as in ALA), or on temperature and depth (as in TALA); and the model can also be set up in a way 
+that it uses density deviations from a reference state instead of a full density 
+(see Section~\ref{sec:pressure-static-dyn}).
+
+\note{In the current version of \aspect{}, it is the responsibility of the user to select a 
+material model that is consistent with the formulation they want to use in their model. 
+In the future, we plan to make it more obvious which approximations are supported by a 
+particular material model.}
+
+\subsubsection{Reference state: The adiabatic profile}
+
+The reference temperature profile $\bar{T}$, reference density profile $\bar{\rho}$
+and the reference pressure $\bar{p}$ are computed in the adiabatic conditions model 
+(provided by the class \texttt{AdiabaticConditions}, see Section~\ref{sec:adiabatic}). 
+By default, these fields satisfy adiabatic conditions (if adiabatic heating is included 
+in the model, see Section~\ref{parameters:Heating_20model/Adiabatic_20heating}):
+\begin{align}
+  \frac{\textrm{d} \bar{T}(z)}{\textrm{d}z} 
+  &=
+  \frac{\alpha \bar{T}(z) g_z}{C_p},
+\\
+  \frac{\textrm{d} \bar{p}(z)}{\textrm{d}z} 
+  &=
+  \bar\rho g_z,
+\\
+  \bar{\rho} &= \bar\rho (\bar{p}, \bar{T}, z) \qquad \text{(as defined by the material model)},
+\end{align}
+where strictly speaking $g_z$ is the magnitude of the vertical
+component of the gravity vector field, but in practice we take the
+magnitude of the entire gravity vector.
+If there is no adiabatic heating in the model, $\bar{T}$ is constant 
+by default and set to the adiabatic surface temperature.
+The density gradient is always computed by a simple finite difference approximation 
+of the depth derivative of $\bar{\rho}$.
+
+However, users can also supply their own adiabatic conditions models or 
+define an arbitrary profile using the ``function'' plugin, 
+which allows the user to define arbitrary functions for 
+$\bar{T}(z)$, $\bar{p}(z)$ and $\bar{\rho}(z)$, see Section~\ref{parameters:Adiabatic_20conditions_20model}.
+
+\subsubsection{Combined formulations}
+\label{sec:combined_formulations}
+Not all combinations of the different approximations discussed above 
+are physically reasonable, and to help users choose between these options, 
+we provide a number of combined ``Formulations'' that are equivalent to the 
+approximate equations discussed above (Section~\ref{sec:approximate-equations}).
+They can be selected in the subsection \texttt{Formulation/Formulation} 
+(see also \ref{parameters:Formulation/Formulation}):
+
+\begin{itemize}
+ \item 
+``anelastic liquid approximation'': This formulation sets the mass conservation approximation to ``reference density profile'', 
+the temperature equation approximation to ``reference density profile'' and checks that both
+adiabatic and shear heating are included in the list of heating plugins used in the model, using the 
+simplified version of the adiabatic heating term 
+(see Section~\ref{parameters:Heating_20model/Adiabatic_20heating}).
+The default setting for the adiabatic conditions is an adiabatic temperature profile, and hydrostatic
+pressure and density profiles. This option should be chosen together with a material model 
+that defines a density that depends on temperature and pressure (and potentially depth), 
+which would be equivalent to the anelastic liquid approximation (Section~\ref{sec:ala}), 
+or with a material model that defines a density that depends on temperature and depth 
+(and not on the pressure), which would be equivalent to the truncated anelastic liquid approximation 
+(Section~\ref{sec:tala}).
+
+\item
+``boussinesq approximation'': This formulation sets the mass conservation approximation to ``incompressible'', 
+the temperature equation approximation to ``reference density profile'' and checks that neither
+adiabatic nor shear heating are included in the list of heating plugins used in the model. 
+The default setting for the adiabatic conditions is a constant temperature, and hydrostatic
+pressure and density profiles. This option should be chosen together with a material model 
+that defines a density that only depends on temperature and depth (and not on the pressure).
+This is equivalent to the Boussinesq approximation (Section~\ref{sec:boussinesq}).
+
+\item
+``isothermal compression'': This formulation sets the mass conservation approximation to 
+``isothermal compression'', the temperature equation approximation to ``real density''
+and checks that both
+adiabatic and shear heating are included in the list of heating plugins used in the model.
+The default setting for the adiabatic conditions is an adiabatic temperature profile, and hydrostatic
+pressure and density profiles. The density can depend on any of the solution variables. 
+This is equivalent to the isothermal compression approximation (Section~\ref{sec:ica}).
+
+\item
+``custom'': By default, this formulation sets the mass conservation approximation 
+to ``ask material model'' and the temperature equation approximation to ``real density''.
+The adiabatic conditions model uses an adiabatic temperature profile if adiabatic heating
+is included in the model, and a constant temperature if adiabatic heating is not included.
+Pressure and density profiles are hydrostatic. The density can depend on any of the solution variables.
+However, this option can also be used to arbitrarily combine the different approximations 
+described in this section. Users should be careful when using this option, as some combinations
+may lead to unphysical model behaviour. 
+\end{itemize}
 
 
 \subsection{Free surface calculations}
@@ -1572,6 +2003,142 @@ the details of which may be found in \cite{KMM2010}.
 
 An example of a simple model which uses a free surface may be found in Section \ref{sec:cookbooks-freesurface}.
 
+\subsection{Calculations with melt transport}
+\label{sec:melt_transport}
+
+The original formulation of the equations in Section~\ref{sec:equations} describes the movement of solid mantle material. These computations also allow for taking into account how partially molten material changes the material properties and the energy balance through the release of latent heat. However, this will not consider melt extraction or any relative movement between melt and solid and there might be problems where the transport of melt is of interest. Thus, \aspect{} allows for solving additional equations describing the behavior of silicate melt percolating through and interacting with a viscously deforming host rock. This requires 
+the advection of a compositional field representing the volume fraction of melt present at any given time (the porosity $\phi$), 
+and also a change of the mechanical part of the system. The latter is implemented using the approach of \cite{KMK2013} and changes 
+the Stokes system to
+
+\begin{align}
+  \label{eq:stokes-1-melt}
+  -\nabla \cdot \left[2\eta \left(\varepsilon(\mathbf{u}_s)
+                                  - \frac{1}{3}(\nabla \cdot \mathbf{u}_s)\mathbf 1\right)
+                \right] + \nabla p_f + \nabla p_c  &=
+  \rho \mathbf g
+  & \qquad
+  & \textrm{in $\Omega$},
+  \\
+  \label{eq:stokes-2-melt}
+  \nabla \cdot \mathbf{u}_s - \nabla \cdot K_D \nabla p_f 
+  - K_D \nabla p_f \cdot \frac{\nabla \rho_f}{\rho_f}
+  &= 
+  - \nabla \cdot K_D \rho_f \mathbf g
+  \notag
+  \\
+  &\quad
+  + \Gamma \left( \frac{1}{\rho_f} - \frac{1}{\rho_s} \right)
+  \\
+  &\quad
+  - \frac{\phi }{\rho_f} \mathbf{u}_s \cdot \nabla\rho_f 
+  - \frac{1 - \phi }{\rho_s} \mathbf{u}_s \cdot \nabla\rho_s
+  \notag
+  \\
+  &\quad
+  - K_D \mathbf g \cdot \nabla \rho_f 
+  & \qquad
+  & \textrm{in $\Omega$},
+  \notag
+  \\
+  \label{eq:stokes-3-melt}
+  \nabla \cdot \mathbf{u}_s + \frac{p_c}{\xi} 
+  &=
+  0.
+\end{align}
+
+We use the indices $s$ to indicate properties of the solid and $f$ for the properties of the fluid. 
+The equations are solved for the solid velocity $\mathbf{u}_s$, the fluid pressure $p_f$, and an additional 
+variable, the compaction pressure $p_c$, which is related to the fluid and solid pressure through the relation 
+$p_c = (1-\phi) (p_s-p_f)$. $K_D$ is the Darcy coefficient, which is defined as the quotient of the permeability 
+and the fluid viscosity and $\Gamma$ is the melting rate. $\eta$ and $\xi$ are the shear and compaction viscosities 
+and can depend on the porosity, temperature, pressure, strain rate and composition. However, there are various 
+laws for these quantities and so they are implemented in the material model. Common formulations for the dependence 
+on porosity are $\eta = (1-\phi) \eta_0 e^{-\alpha_\phi \phi}$ with $\alpha_\phi \approx 25...30$ and 
+$\xi = \eta_0 \phi^{-n}$ with $n \approx 1$.
+
+To avoid the density gradients in Equation~\eqref{eq:stokes-2-melt}, which would have to be specified individually 
+for each material model by the user, we can use the same method as for the mass conservation (described in Section~\ref{sec:boussinesq}) and assume the change in solid density is dominated by the change in static pressure, 
+which can be written as
+$\nabla p_s \approx \nabla p_\text{static} \approx \rho_s \textbf{g}$.
+This finally allows us to write
+\begin{equation*}
+\frac{1}{\rho_s} \nabla \rho_s
+\approx \frac{1}{\rho_s} \frac{\partial \rho_s}{\partial p_s} \nabla p_s
+\approx \frac{1}{\rho_s} \frac{\partial \rho_s}{\partial p_s} \nabla p_s
+\approx \frac{1}{\rho_s} \frac{\partial \rho_s}{\partial p_s} \rho_s \textbf{g}
+\approx \kappa_s \rho_s \textbf{g}. 
+\end{equation*}
+For the fluid pressure, choosing a good approximation depends on the model parameters and setup (see \cite{DH2015}). 
+Hence, we make $\nabla \rho_{f}$ a model input parameter, which can be adapted based on the forces that are expected 
+to be dominant in the model. 
+We can then replace the second equation by
+\begin{align*}
+\nabla \cdot \mathbf{u}_s - \nabla \cdot K_D \nabla p_f 
+  - K_D \nabla p_f \cdot \frac{\nabla \rho_f}{\rho_f}
+  &= 
+  - \nabla \cdot (K_D\rho_f \mathbf g)
+  \\
+  &\quad
+  + \Gamma \left( \frac{1}{\rho_f} - \frac{1}{\rho_s} \right)
+  \notag
+  \\
+  &\quad
+  - \frac{\phi }{\rho_f} \mathbf{u}_s \cdot \nabla\rho_f
+  - (\mathbf{u}_s \cdot \mathbf g ) (1 - \phi) \kappa_s \rho_s
+  \notag
+  \\
+  &\quad
+  - K_D \mathbf g \cdot \nabla \rho_f .
+  \notag
+\end{align*}
+%
+The melt velocity is computed as
+\[
+ \mathbf{u}_f =  \mathbf{u}_s - \frac{K_D}{\phi} (\nabla p_f - \rho_f g),
+\]
+but is only used for postprocessing purposes and for computing the time step length.  
+
+\note{Here, we do not use the visco-elasto-plastic rheology of the \cite{KMK2013} formulation. 
+Hence, we do not consider the elastic deformation terms that would appear on the right hand side of Equation 
+\eqref{eq:stokes-1-melt} and Equation~\eqref{eq:stokes-3-melt} and that include the elastic and compaction stress 
+evolution parameters $\xi_\tau$ and $\xi_p$. Moreover, our viscosity parameters $\eta$ and $\xi$ only cover viscous 
+deformation instead of combining visco-elasticity and plastic failure. This would require a modification of the rheologic 
+law using effective shear and compaction viscosities $\eta_\text{eff}$ and $\xi_\text{eff}$ combining a failure criterion 
+and shear and compaction visco-elasticities.}
+
+Moreover, melt transport requires an advection equation for the porosity field $\phi$:
+\begin{align}
+  \label{eq:porosity}
+  \rho_s \frac{\partial (1 - \phi)}{\partial t} + \nabla \cdot \left[ \rho_s (1 - \phi) \mathbf{u}_s \right]
+  &=
+  - \Gamma
+  & \quad
+  & \textrm{in $\Omega$},
+  i=1\ldots C
+\end{align}
+
+In order to solve this equation in the same way as the other advection equations, we replace the second term of the equation by: 
+
+\begin{equation*}
+\nabla \cdot \left[ \rho_s (1 - \phi) \mathbf{u}_s \right]
+= \left( 1-\phi \right) \left( \rho_s \nabla \cdot \mathbf{u}_s 
++ \nabla \rho_s \cdot \mathbf{u}_s \right)
+- \nabla \phi \cdot \rho_s \mathbf{u}_s 
+\end{equation*}
+Then we use the same method as described above and assume again that the change in density is dominated by the change in static pressure
+\begin{equation*}
+\frac{1}{\rho_s} \nabla \rho_s \cdot \mathbf{u}_s 
+\approx \kappa_s \rho_s \textbf{g} \cdot \mathbf{u}_s 
+\end{equation*}
+so we get
+\begin{equation*}
+\frac{\partial \phi}{\partial t} + \mathbf{u}_s \cdot \nabla \phi
+= \frac{\Gamma}{\rho_s}
++ (1 - \phi) (\nabla \cdot \mathbf{u}_s + \kappa_s \rho_s \textbf{g} \cdot \mathbf{u}_s ).
+\end{equation*}
+
+More details on the implementation can be found in \cite{DH2015}. A benchmark case demonstrating the propagation of solitary waves can be found in Section~\ref{sec:benchmark-solitary_wave}.
 
 \subsection{Nullspace removal}
 
@@ -1635,7 +2202,7 @@ though removing linear/angular momentum is more physically motivated.
 
 The user can flag the nullspace for removal by setting the \texttt{Remove nullspace} option,
 as described in Section~\ref{parameters:Model_20settings}.
-Figure \ref{fig:rigid_rotation} shows the result of removing angular momentum from a convection 
+Figure~\ref{fig:rigid_rotation} shows the result of removing angular momentum from a convection 
 model in a 2D annulus with free-slip velocity boundary conditions. 
 
 \begin{figure}[tbp]
@@ -1647,6 +2214,53 @@ show the mantle flow. On the right there is a significant clockwise rotation to 
 solution which is making the more interesting flow features difficult to see. }
   \label{fig:rigid_rotation}
 \end{figure}
+
+
+\subsection{Particles}
+\label{sec:particles}
+
+\aspect{} can, optionally, also deal with particles (sometimes called
+``tracers''). Particles can be thought of as point-like objects that are simply
+advected along with the flow. In other words, if $\mathbf u(\mathbf x,t)$ is the
+flow field that results from solving equations
+\eqref{eq:stokes-1}--\eqref{eq:stokes-2}, then the $k$th particle's position
+satisfies the equations
+\begin{align}
+  \frac{\partial}{\partial t} \mathbf x_k(t)
+  = \mathbf u(\mathbf x_k(t),t).
+\end{align}
+The initial positions of all particles also need to be given and are usually
+either chosen randomly, based on a fixed pattern, or are read from a file.
+
+Particles are typically used to track visually where material that starts
+somewhere ends up after some time of a simulation. It can also be used to track
+the \textit{history} of the volume of the fluid that surrounds a particle, for
+example by tracking how much strain has accumulated, or what the minimal or maximal
+temperature may have been in the medium along the trajectory of a particle. To
+this end, particles can carry \textit{properties}. These are scalar-
+or vector-valued quantities that are attached to each particle, that are
+initialized at the beginning of a simulation, and that are then updated at each time step. In other words, if we
+denote by $\mathbf p_{k,m}(t)$ the value of the $m$th property attached to
+the $k$th particle, then $\mathbf p_{k,m}(t)$ will satisfy a differential
+equation of the form
+\begin{align*}
+  \frac{\partial}{\partial t} \mathbf p_{k,m}(t)
+  = \mathbf g_m\left(\mathbf p_{k,m}, 
+  p(\mathbf x_k(t),t)), T(\mathbf x_k(t),t)), 
+  \varepsilon(\mathbf u(\mathbf x_k(t),t)),
+  \mathfrak c(\mathbf x_k(t),t)\right).
+\end{align*}
+The exact form of $\mathbf g_m$ of course depends on what exactly a particular
+property represents. Like with compositional fields (see
+Section~\ref{sec:compositional}), it is possible to describe the right hand side
+$\mathbf g_m$ in ways that also allows for impulse (delta) functions in time.
+
+How particles are used in practice is probably best explained using examples. To
+this end, see in particular Section~\ref{sec:cookbooks-particles}. All
+particle-related input parameters are listed in
+Section~\ref{parameters:Postprocess/Tracers}. The implementation of particles is
+discussed in great detail in \cite{GHPB17}.
+
 
 \section{Installation}
 \label{sec:installation}
@@ -1733,7 +2347,7 @@ prerequisites:
 %  Once \dealii{} 7.2 is available, this will suffice as well.
 
 \item \textit{\dealii{}:}
-  The current version of \aspect{} requires \dealii{} version 8.2 or later.
+  The current version of \aspect{} requires \dealii{} version 8.4.0 or later.
   This version can be downloaded and installed from
   \url{https://www.dealii.org/download.html}.
 
@@ -1844,70 +2458,82 @@ point for exploring the documentation.
 The here mentioned build was tested on a Cray XC30 cluster, which was set up for default static compiling and linking. On machines that default to dynamic linking additional compiler and/or linker flags may be required (e.g. "-fPIC" / "--static"). In case of questions send an email to the mailing list.
 
 \subsection{Installing and running \aspect{} on Mac OS X}
-OS X has some eccentricities which can complicate installation of \aspect{}. Currently the easiest and most reliable way to run \aspect{} under Mac OS X Mavericks (10.9) and Yosemite (10.10) is to install and run the binary package for \dealii{}. The step-by-step process is described in detail, with screenshots, here: \url{https://wiki.geodynamics.org/_media/software:aspect:aspect_yosemite_20150529.pdf}
+OS X has some eccentricities which can complicate installation of \aspect{}. Currently the easiest and most reliable way to run \aspect{} under Mac OS X Mavericks (10.9), Yosemite (10.10) and El Capitan (10.11) is to install and run the binary package for \dealii{}. The step-by-step process is described in detail, with screenshots, here: \url{https://wiki.geodynamics.org/_media/software:aspect:aspect_yosemite_20150529.pdf}
 
 \begin{enumerate}
+\item Install Xcode from the app store. You might need to install the command line tools. Open a terminal and make sure ``clang'' does not report ``command not found''. You might need to run
+\begin{verbatim}
+  xcode-select --install
+\end{verbatim}
+to install the tools.
+
 \item Install Cmake.
 
 CMake is a cross-platform, open-source build system that can be downloaded from \url{http://www.cmake.org}.  After installation of CMake.app, the terminal command for cmake will be
 \begin{verbatim}
-/Applications/CMake.app/Contents/bin/cmake
+  /Applications/CMake.app/Contents/bin/cmake
 \end{verbatim}
 
 \item Download and install the parallel \dealii{}. This is the binary package for Mac OS .dmg file.
-%Current latest deal.ii version is 8.2.1.
-{\footnotesize
 \begin{verbatim}
-open  https://github.com/dealii/dealii/releases/download/v8.2.1/dealii-8.2.1-parallel-bundle.dmg
+  open  https://github.com/dealii/dealii/releases/download/v8.4.1/dealii-8.4.1.dmg
 \end{verbatim}
-}
+
 Open the downloaded disk image, and drag \dealii{}.app into the Applications folder.
  To start the \dealii{} app, double click the icon in the Applications folder or use the open command:
-{\footnotesize \begin{verbatim}
-open /Applications/deal.II.app
-\end{verbatim}}
+\begin{verbatim}
+  open /Applications/deal.II.app
+\end{verbatim}
 \dealii{} app opens a terminal window and displays a \dealii{} message.   \dealii{}.app will install all required libraries for \aspect{} (p4est, parMeTiS, and Trilinos) and will include the environment variables needed to use these libraries.
+
+To ensure the correct compilers are picked up when configuring \aspect{}, add the following lines to your \texttt{\textasciitilde/.profile} or \texttt{\textasciitilde/.bash\_profile}:
+
+\begin{verbatim}
+  export OMPI_CXX=clang++
+  export OMPI_CC=clang
+\end{verbatim}
 
 \item Download  the  \aspect{} source from the git repository.
 
-{\footnotesize \begin{verbatim}
-cd $HOME/src
-git clone https://github.com/geodynamics/aspect.git
-\end{verbatim}}
+\begin{verbatim}
+  cd $HOME/src
+  git clone https://github.com/geodynamics/aspect.git
+\end{verbatim}
 
-
-Note: you {\bf MUST} \underline{build} and \underline{run} \aspect{} in the terminal window started by \dealii{}.
+If you wish to use Xcode as your IDE it is recommended to skip to step 7 below. Otherwise, proceed with steps 5 and 6 below.
 
 \item Build \aspect{}
+
+Note: if you are not using Xcode (see step 7 below), you {\bf MUST} \underline{build} and \underline{run} \aspect{} in the terminal window started by \dealii{}, rather than in the Terminal app.
 
 \begin{enumerate}
 \item Go to the  directory where you wish to install \aspect{}  and run the following commands:
 
 {\footnotesize
 \begin{verbatim}
-cmake .
+  cmake .
 \end{verbatim}}
 
 This should display something like:
 
 {\footnotesize
 \begin{verbatim}
-Project  aspect  set up with  deal.II-8.2.1  found at /Applications/deal.II.app/Contents/Resources
+  Project aspect set up with  deal.II-8.4.1  found at /Applications/deal.II.app/Contents/Resources
 \end{verbatim}}
 
 \item Run make:
 
 {\footnotesize
 \begin{verbatim}
-bash-3.2$ make
-Scanning dependencies of target aspect
-[  0%] Building CXX object CMakeFiles/aspect.dir/source/adiabatic_conditions/initial_profile.cc.o
-[  0%] Building CXX object CMakeFiles/aspect.dir/source/adiabatic_conditions/interface.cc.o
-...
-Linking CXX executable aspect
-[100%] Built target aspect
-bash-3.2$ ls -l aspect
--rwxr-xr-x  1 <name>  staff  19131292 May  7 15:02 aspect
+  bash-3.2$ make
+  Scanning dependencies of target aspect
+  [  0%] Building CXX object CMakeFiles/aspect.dir/source/adiabatic_conditions/initial_profile.cc.o
+  [  0%] Building CXX object CMakeFiles/aspect.dir/source/adiabatic_conditions/interface.cc.o
+  ...
+  Linking CXX executable aspect
+  [100%] Built target aspect
+  bash-3.2$ ls -l aspect
+  -rwxr-xr-x  1 <name>  staff  19131292 May  7 15:02 aspect
 \end{verbatim}
 }
 There may be  warnings from the compiler, but if the \aspect{} target is created then it was successful.
@@ -1915,14 +2541,14 @@ There may be  warnings from the compiler, but if the \aspect{} target is created
 \item By default,  \aspect{}  compiles the debug version of the code.
 To compile the optimized version:
 {\footnotesize\begin{verbatim}
-make release 
+  make release 
 \end{verbatim}}
 
 \item Run make test
 
 {\footnotesize
 \begin{verbatim}
-make test
+  make test
 \end{verbatim}}
 
 
@@ -1935,17 +2561,39 @@ make test
 A reminder: you {\bf must} run  \aspect{}  on the terminal window which is opened by \dealii{}.app.
 
 To start \aspect{} using MPI for parallelization, from the directory where you installed \aspect{}:
-{\footnotesize
 \begin{verbatim}
-mpirun -np <# of processes> ./aspect <parameter file>
-\end{verbatim}}
+  mpirun -np <# of processes> ./aspect <parameter file>
+\end{verbatim}
 
 To check quickly whether you are running  \aspect{} on the  \dealii{}.app terminal, check the location of the \verb|mpirun| command:
-{\footnotesize
 \begin{verbatim}
-bash-3.2$ which mpirun
-/Applications/deal.II.app/Contents/Resources/opt/openmpi-1.6.5/bin/mpirun
-\end{verbatim}}
+  bash-3.2$ which mpirun
+  /Applications/deal.II.app/Contents/Resources/opt/openmpi-1.6.5/bin/mpirun
+\end{verbatim}
+
+\item Build \aspect{} as an Xcode project.
+
+After completing step 4 above, do the following:
+\begin{enumerate}
+\item Go to the directory where you wish to install \aspect{} and run the following command:
+
+\begin{verbatim}
+  cmake -G Xcode .
+\end{verbatim}
+
+Now open the resulting \texttt{aspect.xcodeproj} in Xcode.
+
+\item Open Product\textgreater Scheme\textgreater Manage Schemes, then select ``aspect'' and click ``Edit''. Go to Run\textgreater Arguments, and under "Arguments Passed On Launch" add the filepath to the desired parameter file. Click "Close" then select Product\textgreater Run to run \aspect{} with this parameter file.
+
+\item If you want to run in parallel in Xcode, the easiest way is to create a new scheme. Open Product\textgreater Scheme\textgreater Manage Schemes, select ``aspect'' then select the gear icon, then ``Duplicate scheme''. Rename the new scheme to ``aspect parallel''. Go to Run\textgreater Info, and in Executable choose ``Other...''. Navigate to 
+\begin{verbatim}
+  /Applications/deal.II.app/Contents/Resources/opt/openmpi-1.10.2/bin
+\end{verbatim}
+and select ``orterun'', then click ``Choose''.
+
+\item Now go to the Arguments tab, and add 3 arguments: first, add \texttt{-np4} (for 4 processors -- you may use however many your machine has). Then add a path to your aspect executable -- this should be within your aspect folder, or the subfolders Debug or Release. Finally, ensure you have a path to your parameter file as above. Ensure these are in the correct order, or reorder them if necessary. Click ``Close'' then select Product\textgreater Run to run \aspect{} in parallel with this parameter file.
+\end{enumerate}
+
 
 
 \end{enumerate}
@@ -2018,7 +2666,7 @@ Number of degrees of freedom: 33,859 (20,786+2,680+10,393)
    Solving temperature system... 8 iterations.
 
    Postprocessing:
-     Writing graphical output: output/solution-00000
+     Writing graphical output: output/solution/solution-00000
      RMS, max velocity:        0.0946 cm/year, 0.183 cm/year
      Temperature min/avg/max:  300 K, 3007 K, 6300 K
      Inner/outer heat fluxes:  1.076e+05 W, 1.967e+05 W
@@ -2029,7 +2677,7 @@ Number of degrees of freedom: 33,859 (20,786+2,680+10,393)
    Solving temperature system... 8 iterations.
 
    Postprocessing:
-     Writing graphical output: output/solution-00001
+     Writing graphical output: output/solution/solution-00001
      RMS, max velocity:        0.104 cm/year, 0.217 cm/year
      Temperature min/avg/max:  300 K, 3008 K, 6300 K
      Inner/outer heat fluxes:  1.079e+05 W, 1.988e+05 W
@@ -2088,37 +2736,44 @@ directory in which \aspect{} runs). In a simple case, this will look as
 follows:
 \begin{lstlisting}[frame=single,language=ksh]
 aspect> ls -l output/
-total 780
--rw------- 1 b   9863 Dec  1 15:13 parameters.prm
--rw------- 1 b 306562 Dec  1 15:13 solution-00000.0000.vtu
--rw------- 1 b  97057 Nov 30 05:58 solution-00000.0001.vtu
-...
--rw------- 1 b   1061 Dec  1 15:13 solution-00000.pvtu
--rw------- 1 b     35 Dec  1 15:13 solution-00000.visit
--rw------- 1 b 306530 Dec  1 15:13 solution-00001.0000.vtu
--rw------- 1 b   1061 Dec  1 15:13 solution-00001.pvtu
--rw------- 1 b     35 Dec  1 15:13 solution-00001.visit
-...
--rw-r--r-- 1 b    997 Dec  1 15:13 solution.pvd
--rw-r--r-- 1 b    997 Dec  1 15:13 solution.visit
--rw------- 1 b    924 Dec  1 15:13 statistics
+total 932
+-rw-rw-r-- 1 bangerth bangerth  11134 Dec 11 10:08 depth_average.gnuplot
+-rw-rw-r-- 1 bangerth bangerth  11294 Dec 11 10:08 log.txt
+-rw-rw-r-- 1 bangerth bangerth 326074 Dec 11 10:07 parameters.prm
+-rw-rw-r-- 1 bangerth bangerth 577138 Dec 11 10:07 parameters.tex
+drwxr-xr-x 2 bangerth bangerth   4096 Dec 11 10:08 solution
+-rw-rw-r-- 1 bangerth bangerth    484 Dec 11 10:08 solution.pvd
+-rw-rw-r-- 1 bangerth bangerth    451 Dec 11 10:08 solution.visit
+-rw-rw-r-- 1 bangerth bangerth   8267 Dec 11 10:08 statistics
 \end{lstlisting}
 The purpose of these files is as follows:
 \begin{itemize}
 \item \textit{A listing of all run-time parameters:} The
   \texttt{output/parameters.prm} file contains a complete listing of all
-  run-time parameters. In particular, this includes the one that have been
+  run-time parameters. In particular, this includes the ones that have been
   specified in the input parameter file passed on the command line, but it
   also includes those parameters for which defaults have been used. It is
   often useful to save this file together with simulation data to allow for
   the easy reproduction of computations later on.
+  
+  There is a second file, \texttt{output/parameters.prm}, that lists these
+  parameters in \LaTeX{} format.
 
-\item \textit{Graphical output files:} One of the postprocessors you select
-  when you say ``all'' in the parameter files is the one that generates output
-  files that represent the solution at certain time steps. The screen output
-  indicates that it has run at time step 0, producing output files of the form
-  \texttt{output/solution-00000}. At the current time, the default is that \aspect{} generates
-  this output in VTK format%
+\item \textit{Graphical output files:} One of the postprocessors chosen
+  in the parameter file used for this computation is the one that generates
+  output files that represent the solution at certain time steps. The screen output
+  indicates that it has run at time step 0, producing output files that start
+  with \texttt{output/solution/solution-00000}. Depending on the settings in the
+  parameter file, output will be generated every so many seconds or years of
+  simulation time, and subsequent output files will then start with
+  \texttt{output/solution/solution-00001}, all placed in the
+  \texttt{output/solution} subdirectory. This is because there are often
+  \textit{a lot} of output files: For many time steps, times the number of
+  processors, so they are placed in a subdirectory so as not to make it more
+  difficult than necessary to find the other files.
+  
+  At the current time, the
+  default is that \aspect{} generates this output in VTK format%
   \footnote{The output is in fact in the VTU version of the VTK file
     format. This is the XML-based version of this file format in which
     contents are compressed. Given that typical file sizes for 3d simulation
@@ -2131,9 +2786,9 @@ The purpose of these files is as follows:
     VTK, you can select this using the run-time parameters discussed in
     Section~\ref{parameters:Postprocess/Visualization}.}  If
   the program has been run with multiple MPI processes, then the list of
-  output files will look as shown above, with the base \texttt{solution-x.y}
-  denoting that this the \texttt{x}th time we create output files and that the
-  file was generated by the \texttt{y}th processor.
+  output files will be \texttt{output/solution/solution-XXXXX.YYYY}
+  denoting that this the \texttt{XXXXX}th time we create output files and that
+  the file was generated by the \texttt{YYYY}th processor.
 
   VTK files can be visualized by many of the large visualization packages. In
   particular, the
@@ -2143,18 +2798,21 @@ The purpose of these files is as follows:
   de-facto standard for data visualization in scientific computing, there
   doesn't appear to be an agreed upon way to describe which files jointly make
   up for the simulation data of a single time step (i.e., all files with the
-  same \texttt{x} but different \texttt{y} in the example above). Visit and
-  Paraview both have their method of doing things, through \texttt{.pvtu} and
+  same \texttt{XXXXX} but different \texttt{YYYY} in the example above). Visit
+  and Paraview both have their method of doing things, through \texttt{.pvtu} and
   \texttt{.visit} files. To make it easy for you to view data, \aspect{}
   simply creates both kinds of files in each time step in which graphical data
-  is produced.
+  is produced, and these are then also placed into the subdirectories as
+  \texttt{output/solution/solution-XXXXX.pvtu} and
+  \texttt{output/solution/solution-XXXXX.visit}.
 
-  The final two files of this kind, \texttt{solution.pvd} and
-  \texttt{solution.visit}, are files that
+  The final two files of this kind, \texttt{output/solution.pvd} and
+  \texttt{output/solution.visit}, are files that
   describes to Paraview and Visit, respectively, which
-  \texttt{solution-xxxx.pvtu} and \texttt{solution-xxxx.yyyy.vtu} jointly form
-  a complete simulation. In the former case, the file lists the \texttt{.pvtu}
-  files of all
+  \texttt{output/solution/solution-XXXXX.pvtu} and
+  \texttt{output/solution/solution-XXXXX.YYYY.vtu} jointly form a complete
+  simulation.
+  In the former case, the file lists the \texttt{.pvtu} files of all
   timesteps together with the simulation time to which they correspond. In the
   latter case, it actually lists all \texttt{.vtu} that belong to one
   simulation, grouped by the timestep they correspond to.
@@ -2163,11 +2821,15 @@ The purpose of these files is as follows:
   use Paraview or Visit.%
   \footnote{At the time of writing this, current versions of Visit (starting
     with version 2.5.1) actually have a bug that prevents them from
-    successfully reading the \texttt{solution.visit} or
-    \texttt{solution-xxxx.visit} files -- Visit believes that each of these
-    files corresponds to an individual time step, rather than that a whole
+    successfully reading the \texttt{output/solution.visit} or
+    \texttt{output/solution/solution-XXXXX.visit} files -- Visit believes that
+    each of these files corresponds to an individual time step, rather than that a whole
     group of files together form one time step. This bug is not fixed in Visit
     2.6.3, but may be fixed in later versions.}
+  Because loading an \textit{entire} simulation is the most common use case,
+  these are the two files you will most often load, and so they are placed in
+  the \texttt{output} directory, not the subdirectory where the actual
+  \texttt{.vtu} data files are located.
 
   For more on visualization, see also Section~\ref{sec:viz}.
 
@@ -2176,7 +2838,8 @@ The purpose of these files is as follows:
   (e.g., the current time for a time step, the time step length, etc.) as well
   as from the postprocessors that run at the end of each time step. The file
   is essentially a table that allows for the simple production of time
-  trends. In the example above, it looks like this:
+  trends. In the example above, and at the time when we are writing this
+  section, it looks like this:
   \begin{lstlisting}[frame=single,language=ksh]
 # 1: Time step number
 # 2: Time (years)
@@ -2192,10 +2855,10 @@ The purpose of these files is as follows:
 # 12: Average nondimensional temperature (K)
 # 13: Core-mantle heat flux (W)
 # 14: Surface heat flux (W)
-0 0.0000e+00 33 2.9543e+07 8                    "" 0.0000 0.0000   0.0000    0.0000 ...
-0 0.0000e+00 34 1.9914e+07 8 output/solution-00000 0.0946 0.1829 300.0000 3007.2519 ...
-1 1.9914e+07 33 1.9914e+07 8 output/solution-00001 0.1040 0.2172 300.0000 3007.8406 ...
-2 3.9827e+07 33 1.9914e+07 8                    "" 0.1114 0.2306 300.0000 3008.3939 ...
+0 0.000e+00 33 2.9543e+07 8                             "" 0.0000 0.0000 0.0000 0.0000    ...
+0 0.000e+00 34 1.9914e+07 8 output/solution/solution-00000 0.0946 0.1829 300.00 3007.2519 ...
+1 1.991e+07 33 1.9914e+07 8 output/solution/solution-00001 0.1040 0.2172 300.00 3007.8406 ...
+2 3.982e+07 33 1.9914e+07 8                             "" 0.1114 0.2306 300.00 3008.3939 ...
   \end{lstlisting}
   The actual columns you have in your statistics file may differ from the ones above,
   but the format of this file should be obvious. Since the hash mark is a comment
@@ -2203,8 +2866,8 @@ The purpose of these files is as follows:
   files that start with a hash mark), it is simple to plot these columns as time
   series. Alternatively, the data can be imported into a spreadsheet and
   plotted there.
-\note{As noted in Section~\ref{sec:equations}, \aspect{} can be thought to compute
-  in the meter-kilogram-second (MKS, or SI) system. Unless otherwise noted,
+\note{As noted in Section~\ref{sec:non-dimensional}, \aspect{} can be
+  thought of as using the meter-kilogram-second (MKS, or SI) system. Unless otherwise noted,
   the quantities in the output file are therefore also in MKS units.}
 
   A simple way to plot the contents of this file is shown in Section~\ref{sec:viz-stat}.
@@ -2212,14 +2875,15 @@ The purpose of these files is as follows:
 \item \textit{Output files generated by other postprocessors:} Similar to the
   \texttt{output/statistics} file, several of the existing
   postprocessors one can select from the parameter file generate their
-  data in their own files in the output directory. For example, \aspect{} can
-  write depth-average statistics into \texttt{output/depth\_average.gnuplot}.
-  This is done by the ``depth average'' postprocessor and the user can control
-  how often this file is updated, as well as what graphical file format to use
-  (if anything other than \texttt{gnuplot} is desired).
+  data in their own files in the output directory. For example, \aspect{}'s
+  ``depth average'' postprocessor will write depth-average statistics into
+  the file \texttt{output/depth\_average.gnuplot}.
+  Input parameters chosen in the input file control how often this file is
+  updated by the postprocessor, as well as what graphical file format to use (if
+  anything other than \texttt{gnuplot} is desired).
 
-  By default, the data is written in text format that can be easily displayed
-  by e.g. gnuplot. For an example, see Figure \ref{fig:depthaverage}. The plot
+  By default, the data is written in text format that can be easily visualized,
+  see for example Figure~\ref{fig:depthaverage}. The plot
   shows how an initially linear temperature profile forms upper and lower
   boundary layers.
 
@@ -2237,6 +2901,11 @@ The purpose of these files is as follows:
 
 \end{itemize}
 
+There are other parts of \aspect{} that may also create files in the output
+directory. For example, if your simulation includes advecting along particles
+(see Section~\ref{sec:particles}), then visualization information for these
+particles will also appear in this file. See
+Section~\ref{sec:cookbooks-particles} for an example of how this looks like.
 
 
 \subsection{Selecting between 2d and 3d runs}
@@ -2441,14 +3110,18 @@ In order to visualize one time step, follow these steps:%
   computations we usually generate one output file per processor in each time
   step for which visualization data is produced (see, however,
   Section~\ref{sec:viz-data}). To tell Visit which files together make up one
-  time step, \aspect{} creates a \texttt{solution-NNNNN.visit} file in the
-  output directory. To open it, start Visit, click on the ``Open'' button in
+  time step, \aspect{} creates a \texttt{output/solution/solution-XXXXX.visit}
+  file in the output directory. To open it, start Visit, click on the ``Open'' button in
   the ``Sources'' area of
   its main window (see Fig.~\ref{fig:visit-1:a}) and select the file you
   want. Alternatively, you can also select files using the ``File $>$ Open''
   menu item, or hit the corresponding keyboard short-cut. After adding an
   input source, the ``Sources'' area of the main window should list the
-  selected file name.
+  selected file name. More easily, you can also just open
+  \texttt{output/solution.visit} which references \textit{all} output files for
+  all time steps. If you open this, Visit will display a slider that allows you
+  to select which time step you want to visualize, along with forward, backward,
+  and play buttons that allow you to move between time steps.
 
 \item \textit{Selecting what to plot:} \aspect{} outputs all sorts of
   quantities that characterize the solution, such as temperature, pressure,
@@ -2986,10 +3659,8 @@ improvements in run-time.
 \index[prmindexfull]{Material model!Material averaging}
 
 
-\section{Run-time input parameters}
-\label{sec:parameters}
 
-\subsection{Overview}
+\subsection{Input parameter files}
 \label{sec:parameters-overview}
 
 What \aspect{} computes is driven by two things:
@@ -3010,7 +3681,7 @@ What \aspect{} computes is driven by two things:
 \end{itemize}
 In this section, let us give an overview of what can be selected in the
 parameter file. Specific parameters, their default values, and allowed values
-for these parameters are documented in the following subsections. An index
+for these parameters are documented in Section~\ref{sec:parameters}. An index
 with page numbers for all run-time parameters can be found on
 page~\pageref{sec:runtime-parameter-index}.
 
@@ -3047,7 +3718,18 @@ program will simply use the default provided when declaring the parameter.
 end a line in the input file with a backslash. This indicates that the
 following line will simply continue to be part of the text of the current line,
 in the same way as the C/C++ preprocessor expands lines that end in
-backslashes.}
+backslashes. The underlying implementation always eats whitespace at
+the beginning of each continuing line, but not before the
+backslash. This means that the parameter file \\
+\hspace*{.25cm} \texttt{set Some parameter = abc}$\backslash$ \\
+\hspace*{.25cm} \texttt{\phantom{set Some parameter = }def}\\
+is equivalent to \\
+\hspace*{.25cm} \texttt{set Some parameter = abcdef}\\
+that is, with no space between \texttt{abc} and \texttt{def} despite
+the leading whitespace at the beginning of the second line. If you
+do want space between these two parts, you need to add it before the
+backslash in the first of the two lines.
+}
 
 \subsubsection{Categories of parameters}
 
@@ -3136,19 +3818,14 @@ particular plugin uses different variables, such as the depth), the symbol
 \texttt{t} for time in many situations, and allows you to use all of the
 typical mathematical functions such as sine and cosine. Another common case is
 an if-statement that has the general form
-\texttt{if(condition,true-expression,false-expression)}. For more examples of
+\texttt{if(condition, true-expression, false-expression)}. For more examples of
 the syntax understood, reference the documentation of the muparser library
 linked to above.
 
 
-% now include a file that describes all currently available run-time parameters
-\input{parameters}
-
 
 \section{Cookbooks}
 \label{sec:cookbooks}
-
-\marginpar{Provide approximate run-times for each of these cookbooks.}
 
 In this section, let us present a number of ``cookbooks'' -- examples of how
 to use \aspect{} in typical or less typical ways. As discussed in
@@ -3218,7 +3895,7 @@ specify the details of these geometries.
 
 Similarly, you describe boundary conditions using parameters such as this:
 %
-\lstinputlisting[language=prmfile]{cookbooks/overview/boundary-conditions.part.prm}
+\lstinputlisting[language=prmfile]{cookbooks/overview/boundary-conditions.part.prm.out}
 %
 This snippet describes which of the four boundaries of the two-dimensional box
 we have selected above should have a prescribed temperature or an insulating
@@ -3268,7 +3945,7 @@ In this first example, let us consider a simple situation: a 2d box of dimension
 $[0,1]\times [0,1]$ that is heated from below, insulated at the left and right,
 and cooled from the top. We will also consider the simplest model, the
 incompressible Boussinesq approximation with constant coefficients
-$\eta,\rho_0,\mathbf g,C_p k$, for this testcase. Furthermore, we
+$\eta,\rho_0,\mathbf g,C_p, k$, for this testcase. Furthermore, we
 assume that the medium expands linearly with
 temperature. This leads to the following set of equations:
 \begin{align}
@@ -3290,23 +3967,26 @@ temperature. This leads to the following set of equations:
   & \textrm{in $\Omega$}.
 \end{align}
 It is well known that we can non-dimensionalize this set of equations by
-introducing the Raleigh number $Ra=\frac{g\alpha}{\eta k}$. Formally,
+introducing the Rayleigh number $Ra=\frac{\rho_0 g \alpha \Delta T h^3}{\eta \kappa}$, 
+where $h$ is the height of the box, $\kappa = \frac{k}{\rho C_p}$ is the thermal diffusivity
+and $\Delta T$ is the temperature difference between top and bottom of the box. Formally,
 we can obtain the non-dimensionalized equations by using the above form and
 setting coefficients in the following way:
 \begin{align*}
-  \rho_0=C_p=k=\alpha=\eta=1, \qquad T_0=0, \qquad g=Ra,
+  \rho_0=C_p=\kappa=\alpha=\eta=h=\Delta T=1, \qquad T_0=0, \qquad g=Ra,
 \end{align*}
 where $\mathbf g=-g \mathbf e_z$ is the gravity vector in negative
 $z$-direction. While this would be a valid description of the problem, it is not
 what one typically finds in the literature because there the density in the
-temperature equation is chosen as $\rho_0$ rather than $\rho(1-\alpha(T-T_0))$
+temperature equation is chosen as reference density $\rho_0$ rather than the 
+full density $\rho(1-\alpha(T-T_0))$
 as used by \aspect{}. However, we can mimic this by choosing a very small value
 for $\alpha$ -- small enough to ensure that for all reasonable temperatures,
 the density used here is equal to $\rho_0$ for all practical purposes --, and
 instead making $g$ correspondingly larger.
 Consequently, in this cookbook we will use the following set of parameters:
 \begin{align*}
-  \rho_0=C_p=T_0=k=\eta=1, \qquad T_0=0, \qquad \alpha=10^{-10}, \qquad
+  \rho_0=C_p=\kappa=\eta=h=\Delta T=1, \qquad T_0=0, \qquad \alpha=10^{-10}, \qquad
   g=10^{10} Ra.
 \end{align*}
 We will see all of these values again in the input file discussed below.
@@ -4082,7 +4762,6 @@ The reason is, of course, that there is no incompressible (divergence free) flow
 field that allows for a constant vertical outflow component along the top
 boundary without corresponding inflow anywhere else.}
 
-\marginpar{Is there a reason that this is not a listings environment?}
 
 The remainder of the setup is described in the following, complete input file:
 \lstinputlisting[language=prmfile]{cookbooks/platelike-boundary/platelike.prm.out}
@@ -4150,7 +4829,7 @@ ends up, as well as the material that started in the top 20\%. For the moment,
 let us assume that there is no material between the materials at the bottom, the
 top, and the middle. The way to describe this situation is to simply add the
 following block of definitions to the parameter file (you can find the full
-parameter file in \url{cookbooks/compositional-passive.prm}:
+parameter file in \url{cookbooks/composition-passive.prm}:
 
 \lstinputlisting[language=prmfile]{cookbooks/composition-passive/passive.part.prm.out}
 
@@ -4187,7 +4866,7 @@ the domain we are interested in.}
     field is larger than 0.5 (in blue, indicating material from the top
     of the domain. The results were obtained with two more global
     refinement steps compared to the
-    \url{cookbooks/compositional-passive.prm} input file.}
+    \url{cookbooks/composition-passive.prm} input file.}
   \label{fig:compositional-passive}
 \end{figure}
 
@@ -4249,7 +4928,7 @@ While the scheme we use to advect the compositional fields is not strictly
 conservative, it is almost perfectly so in practice. For example, in
 the computations shown in this section (using two additional global mesh
 refinements over the settings in the parameter file
-\url{cookbooks/compositional-passive.prm}), Fig.~\ref{fig:compositional-passive-mass}
+\url{cookbooks/composition-passive.prm}), Fig.~\ref{fig:compositional-passive-mass}
 shows the maximal and minimal values of the first compositional fields over time,
 along with the mass $m_1(t)$ (these are all tabulated in columns of the
 statistics file, see Sections~\ref{sec:running-overview} and \ref{sec:viz-stat}). While
@@ -4300,7 +4979,7 @@ exerted by whatever is driving the velocity at the top.}
 This setup of the problem can be described using an input file that is almost
 completely unchanged from the passive case. The only difference is the use of
 the following section (the complete input file can be found in
-\url{cookbooks/compositional-active.prm}:
+\url{cookbooks/composition-active.prm}:
 
 
 \lstinputlisting[language=prmfile]{cookbooks/composition-active/active.part.prm.out}
@@ -4337,7 +5016,7 @@ postprocessing section, using the \texttt{density} visualization plugin:
   \includegraphics[width=0.3\textwidth]{cookbooks/composition-active/visit0001.png}
   \hfill
   \includegraphics[width=0.3\textwidth]{cookbooks/composition-active/visit0002.png}
-  \\
+  \\[6pt]
   \includegraphics[width=0.3\textwidth]{cookbooks/composition-active/visit0003.png}
   \hfill
   \includegraphics[width=0.3\textwidth]{cookbooks/composition-active/visit0004.png}
@@ -4402,7 +5081,7 @@ Moreover, instead of the \texttt{simple} material model, we will use the \texttt
   \includegraphics[width=0.3\textwidth]{cookbooks/composition-reaction/2.png}
   \hfill
   \includegraphics[width=0.3\textwidth]{cookbooks/composition-reaction/4.png}
-  \\
+  \\[6pt]
   \includegraphics[width=0.3\textwidth]{cookbooks/composition-reaction/8.png}
   \hfill
   \includegraphics[width=0.3\textwidth]{cookbooks/composition-reaction/12.png}
@@ -4423,6 +5102,7 @@ of the domain ascends, reaches the reaction depth and gets converted to the seco
 
 
 \subsubsection{Using tracer particles}
+\label{sec:cookbooks-particles}
 
 Using compositional fields to trace where material has come from or is going to
 has many advantages from a computational point of view. For example, the
@@ -4434,13 +5114,13 @@ is that the value of a compositional field is well defined at every point within
 the domain. On the other hand, compositional fields over time diffuse initially
 sharp interfaces, as we have seen in the images of the previous section.
 
-On the other hand, the geodynamics community has a history of using tracers for
+At the same time, the geodynamics community has a history of using tracers for
 this purpose. Historically, this may have been because it is conceptually
 simpler to advect along individual particles rather than whole fields, since it
 only requires an ODE integrator rather than the stabilization techniques
 necessary to advect fields. They also provide the appearance of no diffusion,
-though this is arguable. Leaving the debate whether fields or particles are the
-way to go aside, \aspect{} supports using tracers.
+though this is arguable. Leaving aside the debate whether fields or particles are the
+way to go, \aspect{} supports both: using fields and using tracers.
 
 In order to advect tracer particles along with the flow field, one just needs to
 add the \texttt{tracers} postprocessor to the list of postprocessors and specify
@@ -4459,12 +5139,44 @@ The 1000 particles we are asking here are initially uniformly distributed
 throughout the domain and are, at the end of each time step, advected along with
 the velocity field just computed. (There are a number of options to decide which
 method to use for advecting particles, see
-Section~\ref{parameters:Postprocess/Tracers}.) We can visualize them by opening
-both the field-based output files and the ones that correspond to particles
-(for example, \texttt{output/solution-00072.visit} and
-\texttt{output/particles-00072.visit}) and using a pseudo-color plot for the
-particles, selecting the ``id'' of particles to color each particle. This
-results in a plot like the one shown in
+Section~\ref{parameters:Postprocess/Tracers}.) 
+
+If you run this cookbook, information about all particles will be written into
+the output directory selected in the input file (as discussed in
+\index[prmindex]{Output directory}
+\index[prmindexfull]{Output directory}
+Section~\ref{sec:running-overview}). In the current case, in addition to the
+files already discussed there, a directory listing at the end of a run will show
+several particle related files:
+\begin{lstlisting}[frame=single,language=ksh]
+aspect> ls -l output/
+total 932
+-rw-rw-r-- 1 bangerth bangerth  11134 Dec 11 10:08 depth_average.gnuplot
+-rw-rw-r-- 1 bangerth bangerth  11294 Dec 11 10:08 log.txt
+-rw-rw-r-- 1 bangerth bangerth 326074 Dec 11 10:07 parameters.prm
+-rw-rw-r-- 1 bangerth bangerth 577138 Dec 11 10:07 parameters.tex
+drwxrwxr-x 2 bangerth bangerth   4096 Dec 11 18:40 particles
+-rw-rw-r-- 1 bangerth bangerth    335 Dec 11 18:40 particles.pvd
+-rw-rw-r-- 1 bangerth bangerth    168 Dec 11 18:40 particles.visit
+drwxr-xr-x 2 bangerth bangerth   4096 Dec 11 10:08 solution
+-rw-rw-r-- 1 bangerth bangerth    484 Dec 11 10:08 solution.pvd
+-rw-rw-r-- 1 bangerth bangerth    451 Dec 11 10:08 solution.visit
+-rw-rw-r-- 1 bangerth bangerth   8267 Dec 11 10:08 statistics
+\end{lstlisting}
+Here, the \texttt{particles.pvd} and \texttt{particles.visit} files contain
+a list of all visualization files from all processors and time steps. These
+files can be loaded in much the same way as the \texttt{solution.pvd} and
+\texttt{solution.visit} files that were discussed in Section~\ref{sec:viz}. The
+actual data files -- possibly a large number, but not of much immediate interest
+to users -- are located in the \texttt{particles} subdirectory.
+
+Coming back to the example at hand, we can visualize the particles that
+were advected along by opening both the field-based output files and the ones
+that correspond to particles (for example, \texttt{output/solution.visit} and
+\texttt{output/particles.visit}) and using a pseudo-color plot
+for the particles, selecting the ``id'' of particles to color each particle.
+By going to, for example, the output from the 72nd visualization output, this
+then results in a plot like the one shown in
 Fig.~\ref{fig:composition-passive-tracers}.
 
 \begin{figure}
@@ -4476,30 +5188,204 @@ Fig.~\ref{fig:composition-passive-tracers}.
 \end{figure}
 
 The particles shown here are not too impressive in still pictures since they are
-colorized by their particle number, which -- since particles were initially
-randomly distributed -- is essentially a random number. The purpose of using the
-particle id to colorize becomes more apparent if you use it when viewing an
-animation of time steps. There, the different colors of adjacent particles come
-in handy because they allow the eye to follow the motion of a single particle.
-This makes it rather intuitive to understand a flow field, but it can of course
-not be reproduced in a static medium such as this manual.
+colorized by their particle number, which does not carry any particular meaning
+other than the fact that it enumerates the particles.%
+\footnote{Particles are enumerated in a way so that first the first processor
+in a parallel computations numbers all of the particles on its first cell, then
+its second cell, and so on; then the second processor does the same with
+particles in the order of the cells it owns; etc. Thus, the ``id'' shown in the
+picture is not just a random number, but rather shows the order of cells and
+how they belonged to the processors that participated in the computation at the
+time when particles were created. After some time, particles may of course have
+become well mixed. In any case, this ordering is of no real practical use.} 
+The particle ``id'' can, however, be useful when viewing an animation of time steps.
+There, the different colors of particles allows the eye to follow the motion of
+a single particle. This is especially true if, after some time, particles have
+become well mixed by the flow field and adjacent particles no longer have
+similar colors. In any case, viewing such animations makes it rather intuitive
+to understand a flow field, but it can of course not be reproduced in a static medium such as this manual.
 
-\paragraph{Using tracer properties}
+In any case, we will see in the next section how to attach more interesting
+information to particles, and how to visualize these.
 
-The particles in the above example only fulfil the purpose of visualizing the convection pattern. A more meaningful use for particles is to attach properties to them, which may be set at the beginning of the model run, or updated during the model runtime. These properties can then be used for many applications, e.g. tracking an initial property (like the position), evaluating a property at a defined particle path (like the pressure-temperature evolution of a certain piece of rock), or by integrating a quantity along a particle parth (like the integrated strain a certain domain has experienced).  We illustrate these properties in the cookbook \url{cookbooks/composition-passive-tracers-properties.prm}, in which we added the following lines to the \texttt{Tracers} subsection.
+
+\paragraph{Using tracer properties.}
+
+The particles in the above example only fulfill the purpose of
+visualizing the convection pattern. A more meaningful use for
+particles is to attach ``properties'' to them. A property consists of
+one or more numbers (or vectors or tensors) that may either be set at
+the beginning of the model run and stay constant, or are updated
+during the model runtime. These properties can then be used for many
+applications, e.g., storing an initial property (like the position, or
+initial composition), evaluating a property at a defined particle path (like the
+pressure-temperature evolution of a certain piece of rock), or by integrating a
+quantity along a particle parth (like the integrated strain a certain domain has
+experienced).  We illustrate these properties in the cookbook
+\url{cookbooks/composition-passive-tracers-properties.prm}, in which we add the
+following lines to the \texttt{Tracers} subsection (we also increase the number
+of particles compared to the previous section to make the visualizations below
+more obvious):
 
 \lstinputlisting[language=prmfile]{cookbooks/composition-passive-tracers/tracer-properties.part.prm.out}
 
-These commands add the tracer properties \texttt{function}, \texttt{pT path}, \texttt{initial position} and \texttt{initial composition}, which can be used for various purposes. A full list of particle properties can be found in Section~\ref{parameters:Postprocess/Tracers}. New tracer properties can be added as plugins as described in Section~\ref{sec:write-plugin}. The here selected properties allow us in this example:
+These commands make sure that every tracer will carry four different
+properties (\texttt{function}, \texttt{pT path}, \texttt{initial
+  position} and \texttt{initial composition}), some of which may be
+scalars and others can have multiple components. (A full list of
+particle properties that can currently be selected can be found in
+Section~\ref{parameters:Postprocess/Tracers}, and new tracer
+properties can be added as plugins as described in
+Section~\ref{sec:write-plugin}.) The properties selected above do the following:
 
 \begin{itemize}
-\item To compare the final position of a particle with its initial position and therefore determine, how far certain domains travelled during the model runtime.
-\item To compare the final composition of a particle with its initial composition and therefore determine, which regions underwent the reaction described in Section~\ref{sec:cookbooks-composition}, and where the material that underwent this reaction got transported to.
-\item Note that the \texttt{function} property of the particles follows the same function as the compositional initial composition of field number one. Therefore, this property should behave identical to the compositional field, except for the reaction term of the compositional field. This allows to compare the error in tracer position to the numerical diffusion of the compositional field.
-\item If one selects a tracer of a particular id, an output of the pressure and temperature at its current position generated by the \texttt{pT path} property over time allows for the creation of a pressure-temperature curve of a certain piece of rock. This property is interesting in many lithosphere to crustal scale models, because it is determining the metamorphic reactions that happen during deformation processes (e.g. in a subduction zone).
+\item \texttt{initial position:} This particle property simply stores
+  the initial coordinates of the particle and then never changes them. This
+  can be useful to compare the final position of a particle with its 
+  initial position and therefore determine how far certain domains traveled 
+  during the model runtime. Alternatively, one may want to simply visualize
+  the norm of this vector property (i.e., the norm of the initial position,
+  which is of course equal to the distance from the origin at which a particle
+  started): in mantle simulations in spherical coordinates, the radius is
+  indicative of which part of the mantle a particle comes from, and can
+  therefore be used to visualize where material gets transported over the course
+  of a simulation.
+\item \texttt{initial composition:} This property uses the same
+  method to initialize particle properties as is used to initialize
+  the corresponding compositional fields. Using this, it stores the
+  compositional field initialization values at the location where the particle
+  started, and again never changes them. This is useful in the same
+  context as shown for the field-based example in
+  Section~\ref{sec:cookbooks-composition} where we would like to
+  figure where materials ends up. In this case, one would set the
+  initial composition to an indicator function for certain parts of
+  the domain, and then set the initial composition property for the
+  particles to match this composition. Letting the particles advect
+  and at a later time visualizing this particle property will then
+  show where particles came from. In cases where compositional
+  variables undergo changes, e.g., by describing phase changes or
+  chemical reactions, the ``initial composition'' property can also be
+  useful to compare the final composition of a particle with its
+  initial composition and therefore determine which regions underwent
+  reactions such as those described in Section~\ref{sec:cookbooks-composition},
+  and where the material that underwent this reaction got transported
+  to. 
+\item \texttt{function:} This particle property can be used to assign
+  to each particle values that are described based on a function of
+  space. It provides an alternative way to set initial values if you
+  don't want to first set a compositional field's initial values based
+  on a function, and then copy these values via the ``initial
+  composition'' property to particles. In the example above, we use
+  the same function as for the compositional initial composition of
+  field number one in
+  Section~\ref{sec:cookbooks-composition}. Therefore, this property
+  should behave identical to the compositional field (except that the
+  compositional field may have a reaction term that this particle
+  property does not), although the two are of course advected using
+  very different methods. This allows to compare the error in tracer
+  position to the numerical diffusion of the compositional field.
+\item \texttt{pT path:} This property is interesting in that the
+  particle property's values always exactly mirror the pressure and
+  temperature at the particle's current location. This does not seem
+  to be very useful since the information is already
+  avaiable. However, because each particle has a unique id, one can
+  select a particular tracer particle and output its properties
+  (including pressure and temperature based on the \texttt{pT path}
+  property) at all time steps. This allows for the creation of a pressure-temperature curve of a certain piece of rock. This property is interesting in many lithosphere and crustal scale models, because it is determining the metamorphic reactions that happen during deformation processes (e.g., in a subduction zone).
 \end{itemize}
 
-\note{\aspect{}'s tracer implementation is in a preliminary state. While the accuracy and scalability of the implementation is benchmarked, other limitations remain. This in particular means that it is not optimized for performance, and more than a few thousand tracers per process can slow down a model significantly. Moreover, models with an highly adaptive mesh and many tracers do encounter a significant slowdown, because \aspect{} only considers the number of degrees of freedom for load balancing across processes and not the number of tracers. Therefore processes that compute the solution for coarse-grid regions have to process many more tracers than other processes. Additionally, the checkpoint/restart functionality for tracers is only implemented in models with a constant number of processes before and after the checkpoint and when the selected tracer properties do not change. These limitations might be removed over time, but for current models the user should be aware of them.}
+\begin{figure}
+  \centering
+  \phantom{.}
+  \hfill
+  \includegraphics[width=0.45\textwidth]{cookbooks/composition-passive-tracers-properties/composition-C1.png}
+  \hfill
+  \includegraphics[width=0.45\textwidth]{cookbooks/composition-passive-tracers-properties/particles-C1.png}
+  \phantom{.}
+  \\
+  \phantom{.}
+  \hfill
+  \includegraphics[width=0.45\textwidth]{cookbooks/composition-passive-tracers-properties/initial-position-00000.png}
+  \hfill
+  \includegraphics[width=0.45\textwidth]{cookbooks/composition-passive-tracers-properties/initial-position-00199.png}
+  \phantom{.}
+  \caption{\it Passively advected particle properties visualized. Top row:
+  Composition $C_1$ and particle property ``initial $C_1$''. The blue line in both
+  figures is the 0.5-isocontour for the $C_1$ field. Bottom row: Norm of the
+  ``initial position'' of particles at $t=0$ and $t=20$.}
+  \label{fig:composition-passive-tracers-properties}
+\end{figure}
+
+The results of all of these properties can of course be visualized.
+Fig.~\ref{fig:composition-passive-tracers-properties} shows some of the pictures
+one can create with particles.
+The top row shows both the composition field $C_1$ (along with the mesh on
+which it is defined) and the corresponding ``initial $C_1$'' particle property,
+at $t=7.2$. Because the compositional field does not undergo any reactions, it should of
+course simply be the initial composition advected along with the flow field,
+and therefore equal the values of the corresponding particle property. However,
+field-based compositions suffer from diffusion. On the other hand, the amount
+of diffusion can easily be decreased by mesh refinement.  
+
+The bottom of the figure shows the norm of the ``initial position'' property at
+the initial time and at time $t=20$. These images therefore show how far from
+the origin each of the particles shown was at the initial time.
+
+
+\paragraph{Using active tracers.}
+In the examples above, tracer properties passively track distinct
+model properties.  These tracer properties, however, may also be used
+to actively influence the model as it runs.  For instance, a
+composition-dependent material model may use particles' initial
+composition rather than an advected compositional field. To make this
+work -- i.e., to get information from particles that are located at
+unpredictable locations, to the quadrature
+points at which material models and other parts of the code need to
+evaluate these properties -- we need to somehow get the values from
+particles back to fields that can then be evaluated at any point where
+this is necessary.
+A slightly modified version of the active-composition cookbook (\url{cookbooks/composition-active.prm}) illustrates how to use `active tracers' in this manner.
+
+This cookbook, \url{cookbooks/composition-active-tracers.prm}, modifies two sections of the input file.  First, tracers are added under the \texttt{Postprocess} section: 
+
+\lstinputlisting[language=prmfile]{cookbooks/composition-active-tracers/tracers.part.prm.out}
+Here, each particle will carry the \texttt{velocity} and
+\texttt{initial composition} properties.  In order to use the tracer initial composition value to modify the flow through the material model, we now modify the \texttt{Composition} section:
+
+\lstinputlisting[language=prmfile]{cookbooks/composition-active-tracers/composition.part.prm.out}
+ 
+What this does is the following: It says that there will be two
+compositional fields, called \texttt{lower} and \texttt{upper}
+(because we will use them to indicate material that comes from either
+the lower or upper part of the domain). Next, the
+\texttt{Compositional field methods} states that each of these fields
+will be computed by interpolation from the particles (if we had left
+this parameter at its default value, \texttt{field}, for each field,
+then it would have solved an advection PDE in each time step, as we
+have done in all previous examples).
+
+In this case, we specify that both of the compositional fields are in
+fact interpolated from particle properties in each time step. How this
+is done is described in the fourth line. To understand it, it is
+important to realize that particles and fields have matching names: We
+have named the fields \texttt{lower} and \texttt{upper}, whereas the
+properties that result from the \texttt{initial composition} entry in
+the particles section are called \texttt{initial lower} and
+\texttt{initial upper}, since they inherit the names of the fields.
+
+The syntax for interpolation from particles to fields then
+states that the \texttt{lower} field will be set to the interpolated
+value of the \texttt{initial lower} particle property at the end of
+each time step, and similarly
+for the \texttt{upper} field. In turn, the
+\texttt{initial composition} particle property was using the same
+method that one would have used for the compositional field
+initialization if these fields were actually advected along in each
+time step.
+ 
+In this model the given global refinement level (5), associated number of cells (1024) and 100,000 total particles produces an average particle-per-cell count slightly below 100.  While on the high end compared to most geodynamic studies using active particles, increasing the number of particles per cell further may alter the solution.  As with the numerical resolution, any study using active particles should systematically vary the number of particles per cell in order to determine this parameter's influence on the simulation.
+
+\note{\aspect{}'s tracer implementation is in a preliminary state. While the accuracy and scalability of the implementation is benchmarked, other limitations remain. This in particular means that it is not optimized for performance, and more than a few thousand tracers per process can slow down a model significantly. Moreover, models with a highly adaptive mesh and many tracers do encounter a significant slowdown, because \aspect{} only considers the number of degrees of freedom for load balancing across processes and not the number of tracers. Therefore processes that compute the solution for coarse-grid regions have to process many more tracers than other processes. Additionally, the checkpoint/restart functionality for tracers is only implemented in models with a constant number of processes before and after the checkpoint and when the selected tracer properties do not change. These limitations might be removed over time, but for current models the user should be aware of them.}
 
 
 \subsubsection{Using a free surface}
@@ -4685,7 +5571,7 @@ global computations.
 Having large viscosity variations in models poses a variety of problems to
 numerical computations. First, you will find that they lead to very long compute
 times because our solvers and preconditioners break down. This may be
-acceptable if it would at least lead to accurate solution, but large viscosity
+acceptable if it would at least lead to accurate solutions, but large viscosity
 gradients lead also to large pressure gradients, and this in turn leads to over-
 and undershots in the numerical approximation of the gradient. We will 
 demonstrate both of these issues experimentally below.
@@ -5003,13 +5889,13 @@ constraints are set, but before they are ``distributed.''
 
 As an example of this functionality, below is a plugin which allows the user to prescribe
 internal velocities with functions in a parameter file:
-\lstinputlisting[language=c++]{../../cookbooks/prescribed_velocity/prescribed_velocity.cc}
+\lstinputlisting[language=C++]{../../cookbooks/prescribed_velocity/prescribed_velocity.cc}
 
 The above plugin can be compiled with \texttt{cmake . \&\& make} in the
 \url{cookbooks/prescribed_velocity} directory. It can be loaded in a parameter file
 as an ``Additional shared library.'' By setting parameters like those shown below,
 it is possible to produce many interesting flow fields such as the ones visualized in
-(Figure \ref{fig:prescribed-velocity}).
+(Figure~\ref{fig:prescribed-velocity}).
 \lstinputlisting[language=prmfile]{cookbooks/prescribed_velocity/minimal.prm.out}
 
 \begin{figure}
@@ -5042,7 +5928,7 @@ To show how this can be used in practice, let us consider the simple convection 
 By applying the following changes shown below to the parameters of the already existing file \begin{verbatim}cookbooks/shell_simple_2d.prm, \end{verbatim} 
 \lstinputlisting[language=prmfile]{cookbooks/shell_simple_2d_smoothing/shell_simple_2d_smoothing.part.prm.out}
 it is possible to produce pictures of the simple convection in a quarter of a 2d annulus such as the ones visualized in
-Figure \ref{fig:smoothing}.
+Figure~\ref{fig:smoothing}.
 
 \begin{figure}
     \centering
@@ -5056,6 +5942,153 @@ Figure \ref{fig:smoothing}.
 \end{figure}
 
 
+
+\subsubsection{Tracking finite strain}
+\label{sec:finite-strain}
+\textit{This section was contributed by Juliane Dannberg}
+
+\note{In this section, we denote the strain rate tensor as $\varepsilon (\mathbf u)$, where 
+$\varepsilon(\mathbf u)_{ij} = \frac{1}{2}\left(\frac{\partial u_i}{\partial x_j} + \frac{\partial u_j}{\partial x_i}\right)$ 
+and $\mathbf u$ the velocity. We denote the strain tensor by $e$, where 
+$e_{ij} = \frac{1}{2}\left(\frac{\partial d_i}{\partial x_j} + \frac{\partial d_j}{\partial x_i}\right)$ 
+with the displacement $\mathbf d$ the difference between a point's
+position at time $t$ and at time zero.}
+
+In many geophysical settings, material properties, and in particular the rheology, do not only depend
+on the current temperature, pressure and strain rate, but also on the history of the system. 
+This can be incorporated in \aspect{} models by tracking history variables through compositional fields. 
+In this cookbook, we will show how to do this by tracking the strain that accumulates over time at every 
+(Lagrangian) point in the model.
+
+Here, we use a material model plugin that defines the compositional fields as the components of the strain 
+tensor $e_{ij}$, and modifies the right-hand side of 
+the corresponding advection equations to accumulate strain over time. This is done by adjusting the 
+\verb!out.reaction_terms! variable:
+\lstinputlisting[language=C++]{cookbooks/finite_strain/finite_strain.cc}
+
+Let us denote the accumulated strain at time step $n$ as $e^n$. We can express it 
+as the sum of the strain $e^{n-1}$ at the previous time step, rotated by the rotational 
+component of the velocity field, plus the strain increment $\varepsilon(\mathbf u^n) \Delta t^n$ 
+accumulated over the current time step.
+Hence, the right-hand side term of the advection equation for the accumulated strain consists of two parts:
+The first one, $R e^{n-1} R^T$, rotates $e^{n-1}$, the accumulated strain from all the previous time steps;
+and the second part adds the strain of the current time step. 
+
+The full plugin can be found in \url{cookbooks/finite_strain/finite_strain.cc} and can be compiled 
+with \texttt{cmake . \&\& make} in the \url{cookbooks/finite_strain} directory. 
+It can be loaded in a parameter file as an ``Additional shared library'', and selected as material
+model. As it is derived from the ``simple'' material model, all input parameters for the material
+properties are read in from the subsection \texttt{Simple model}. 
+\lstinputlisting[language=prmfile]{cookbooks/finite_strain/finite_strain_part.prm.out}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\textwidth]{cookbooks/finite_strain/finite_strain.pdf}
+    \caption{Accumulated finite strain in an example convection model, as described in Section 
+             \ref{sec:finite-strain}.}
+    \label{fig:finite_strain}
+\end{figure}
+
+We will demonstrate its use at the example of a 2D Cartesian convection model (Figure~\ref{fig:finite_strain}):
+Heating from the bottom leads to the the ascent of plumes from the bottom boundary layer, and the
+associated deformation is visible in the components of the accumulated finite strain. 
+Material moves to the sides at the top of the plume head, so that it is shortened in vertical 
+direction (blue areas in the $yy$ component) and stretched in horizontal direction (red areas in 
+the $xx$ component). The sides of the plume head show the opposite effect. Shear occurs mostly at the 
+edges of the plume head and in the plume tail (blue and red areas in the $xy$ component). 
+
+The example used here shows how history variables can be integrated up over the model evolution. 
+While we do not use these variables actively in the computation so far (in our example, there is no 
+influence of the accumulated strain on the rheology or any other material property), it would be trivial 
+to extend this material model in a way that material properties depend on the integrated strain: 
+Because the values of the compositional fields are part of what the material model gets as inputs, 
+they can easily be used for computing material model outputs such as the viscosity.  
+
+
+\subsubsection{Reading in compositional initial composition files generated with geomIO}
+\label{sec:geomio}
+\textit{This section was contributed by Juliane Dannberg}
+
+Many geophysical setups require initial conditions with several different materials and complex geometries. 
+Hence, sometimes it would be easier to generate the initial geometries of the materials as a drawing instead 
+of by writing code. The MATLAB-based library geomIO (\url{http://geomio.bitbucket.org/}) provides a convenient tool
+to convert a drawing generated with the vector graphics editor Inkscape (\url{https://inkscape.org/en/}) to a data 
+file that can be read into \aspect{}. Here, we will demonstrate how this can be done for a 2D setup for a model
+with one compositional field, but geomIO also has the capability to create 3D volumes based on a series of 2D vector 
+drawings using any number of different materials. Similarly, initial conditions defined in this way can also be used with particles 
+instead of compositional fields. 
+
+To obtain the developer version of geomIO, you can clone the bitbucket repository by executing the command
+\begin{verbatim}
+ git clone https://bitbucket.org/geomio/geomio.git
+\end{verbatim}
+or you can download geomIO \href{https://bitbucket.org/geomio/geomio/downloads}{here}. 
+You will then need to add the geomIO source folders to your MATLAB path by running the file located in
+\texttt{/path/to/geomio/installation/InstallGeomIO.m}.
+An extensive documentation for how to use geomIO can be found \href{http://geomio-doc.bitbucket.org/}{here}.
+Among other things, it explains \href{http://geomio-doc.bitbucket.org/tuto2D.html#drawing}{how to generate drawings in Inkscape}
+that can be read in by geomIO, which involves assigning new attributes to paths in Inkscape's XML editor. 
+In particular, a new property `phase' has to be added to each path, and set to a value corresponding to the 
+index of the material that should be present in this region in the initial condition of the geodynamic model.   
+
+\note{geomIO currently only supports the latest stable version of Inkscape (0.91), and other versions might not
+  work with geomIO or cause errors. Moreover, geomIO currently does not support grouping paths (paths can still 
+  be combined using \texttt{Path$\rightarrow$Union}, \texttt{Path$\rightarrow$Difference} or similar commands), 
+  and only the outermost closed contour of a path will be considered. This means that, for example, for modeling a spherical 
+  annulus, you would have to draw two circles, and assign the inner one the same phase as the background of your drawing.}
+
+We will here use a drawing of a jellyfish located in \url{cookbooks/geomio/jellyfish.svg}, where different phases 
+have already been assigned to each path (Figure~\ref{fig:jelly-picture}). 
+\begin{figure}[tb]
+    \centering
+    \includegraphics[width=0.2\textwidth]{cookbooks/geomio/jellyfish.pdf}
+    \caption{Vector drawing of a jellyfish.}
+    \label{fig:jelly-picture}
+\end{figure}
+\note{The page of your drawing in Inkscape should already have the extents (in px) that you later want to use in your model (in m).}
+
+After geomIO is initialized in MATLAB, we \href{http://geomio-doc.bitbucket.org/tuto2D.html#assigning-phase-to-markers}
+{run geomIO as desribed in the documentation}, loading the default options and then specifying all the option we want to 
+change, such as the path to the input file, or the resolution: 
+\lstinputlisting[language=matlab]{cookbooks/geomio/run_geomio.part1.m}
+You can view all of the options available by typing \texttt{opt} in MATLAB. 
+
+In the next step we create the grid that is used for the coordinates in the ascii data initial conditions file 
+and assign a phase to each grid point: 
+\lstinputlisting[language=matlab]{cookbooks/geomio/run_geomio.part2.m}
+You can plot the \texttt{Phase} variable in MATLAB to see if the drawing was read in and all phases are assigned correctly 
+(Figure~\ref{fig:jelly-plot}). 
+\begin{figure}[tb]
+    \centering
+    \includegraphics[width=0.45\textwidth]{cookbooks/geomio/jelly.png}
+    \caption{Plot of the \texttt{Phase} variable in MATLAB.}
+    \label{fig:jelly-plot}
+\end{figure}
+Finally, we want to write output in a format that can be read in by \aspect{}'s \texttt{ascii data} compositional
+initial conditions plugin. We write the data into the file \texttt{jelly.txt}:
+\lstinputlisting[language=matlab]{cookbooks/geomio/save_file_as_txt.m}
+
+To read in the file we just created (a copy is located in \aspect{}'s data directory), 
+we set up a model with a box geometry with the same extents we specified for the drawing in px 
+and one compositional field. We choose the ascii data compositional initial conditions and specify that we 
+want to read in our jellyfish. The relevant parts of the input file are listed below:
+\lstinputlisting[language=prmfile]{cookbooks/geomio/geomIO.prm}
+
+If we look at the output in \texttt{paraview}, we can see our jellyfish, with the mesh refined at the 
+boundaries between the different phases (Figure~\ref{fig:jelly-paraview}). 
+\begin{figure}[tb]
+    \centering
+    \includegraphics[width=0.55\textwidth]{cookbooks/geomio/jelly-paraview.pdf}
+    \caption{\aspect{} model output of the jellyfish and corresponding mesh in paraview.}
+    \label{fig:jelly-paraview}
+\end{figure}
+
+For a geophysical setup, the MATLAB code could be extended to write out the phases into several different columns 
+of the ascii data file (corresponding to different compositional fields). This initial conditions file could then be 
+used in \aspect{} with a material model such as the \texttt{multicomponent} model, assigning each phase different 
+material properties. 
+
+An animation of a model using the jellyfish as initial condition and assigning it a higher viscosity can be found here: \url{https://www.youtube.com/watch?v=YzNTubNG83Q}. 
 
 \subsection{Geophysical setups}
 \label{sec:cookbooks-geophysical}
@@ -5197,8 +6230,8 @@ In the following, let us pick apart this input file:
   the simplest material model \aspect{} has to offer where the viscosity is
   constant (here, we set it to $\eta=10^{22} \text{Pa}\;\text{s}$) and so are
   all other parameters except for the density which we choose to be
-  $\rho(T)=\rho_0(1-\beta (T-T_\text{ref}))$ with $\rho_0=3300
-  \text{kg}\;\text{m}^{-3}$, $\beta=4\cdot 10^{-5} \text{K}^{-1}$ and
+  $\rho(T)=\rho_0(1-\alpha (T-T_\text{ref}))$ with $\rho_0=3300
+  \text{kg}\;\text{m}^{-3}$, $\alpha=4\cdot 10^{-5} \text{K}^{-1}$ and
   $T_\text{ref}=293 \text{K}$. The remaining material parameters remain at their
   default values and you can find their values described in the documentation of
   the \texttt{simple} material model in
@@ -5211,13 +6244,7 @@ In the following, let us pick apart this input file:
   spherical approximation of Earth.
 
   \item The second part of the model description and boundary values follows in
-  lines 28--45. There, we describe that we want a model where equation
-  \eqref{eq:temperature} contains the shear heating term $2\eta
-  \varepsilon(\mathbf u):\varepsilon(\mathbf u)$ (noting that the default is to
-  use an incompressible model for which the term $\frac{1}{3}(\nabla \cdot
-  \mathbf u)\mathbf 1$ in the shear heating contribution is zero).
-
-  The boundary conditions require us to look up how the geometry model
+  lines 28--42. The boundary conditions require us to look up how the geometry model
   we chose (the \texttt{spherical shell} model) assigns boundary indicators to
   the four sides of the domain. This is described in
   Section~\ref{parameters:Geometry_20model} where the model announces that
@@ -5235,6 +6262,15 @@ In the following, let us pick apart this input file:
   700 and 4000 degrees Celsius -- roughly realistic for the bottom of the crust
   and the core-mantle boundary.
 
+  \item Lines 45--47 describe that we want a model where equation
+  \eqref{eq:temperature} contains the shear heating term $2\eta
+  \varepsilon(\mathbf u):\varepsilon(\mathbf u)$ (noting that the default is to
+  use an incompressible model for which the term $\frac{1}{3}(\nabla \cdot
+  \mathbf u)\mathbf 1$ in the shear heating contribution is zero). Considering a
+  reasonable choice of heating terms is not the focus of this simple cookbook,
+  therefore we will leave a discussion of possible and reasonable heating terms
+  to another cookbook.
+
   \item The description of what we want to model is complete by specifying
   that the initial temperature is a perturbation with hexagonal symmetry from a
   linear interpolation between inner and outer temperatures (see
@@ -5243,8 +6279,8 @@ In the following, let us pick apart this input file:
   Section~\ref{parameters:Gravity_20model}).
 
   \item The remainder of the input file consists of a description of how to
-  choose the initial mesh and how to adapt it (lines 58--63) and what to do at
-  the end of each time step with the solution that \aspect{} computes for us (lines 66--79).
+  choose the initial mesh and how to adapt it (lines 60--65) and what to do at
+  the end of each time step with the solution that \aspect{} computes for us (lines 68--81).
   Here, we ask for a variety of statistical quantities and for graphical output
   in VTU format every million years.
 \end{enumerate}
@@ -5284,9 +6320,9 @@ temperature field was a perturbation of a linear temperature profile.
 
 There are multiple implications of this. First, the temperature difference
 between outer and inner boundary of 3300 K we have chosen in the input file is
-much too large. The temperature difference is what drives the convection, but
-what really counts is of course the difference \textit{in addition} to the
-temperature increase a volume of material would experience if it were to be
+much too large. The temperature difference that drives the convection, 
+is the difference \textit{in addition} to the temperature increase a volume of 
+material would experience if it were to be
 transported adiabatically from the surface to the core-mantle boundary. This
 difference is much smaller than 3300 K in reality, and we can expect convection
 to be significantly less vigorous than in the simulation here. Indeed, using
@@ -5296,11 +6332,11 @@ the current case to be%
 \begin{equation*}
   \textrm{Ra}
   =
-  \frac{g\; \beta \; \Delta T \; \rho \; L^3}{\alpha\eta}
-  \approx
-  \frac{10 \text{m}\,\text{s}^{-2} \; 4\cdot 10^{-5}\text{K}^{-1} \; 3300
-  \text{K} \; 3300 \text{kg}\,\text{m}^{-2} \; (2.86 \cdot 10^6
-  \text{m})^3}{10^{22}
+  \frac{g\, \alpha  \Delta T  \rho  L^3}{\kappa\eta}
+=
+  \frac{10\, \text{m}\,\text{s}^{-2} \times 4\cdot 10^{-5}\, \text{K}^{-1} \times 3300\,
+  \text{K} \times 3300\, \text{kg}\,\text{m}^{-3} \times (2.86 \cdot 10^6
+  \, \text{m})^3}{10^{-6}\, \text{m}^2\,\text{s}^{-1}\times 10^{22}\,
   \text{kg}\,\text{m}^{-1}\,\text{s}^{-1}}.
 \end{equation*}
 
@@ -5384,9 +6420,9 @@ computed quantity.}
 There are two issues one should notice here.
 The more obvious one is that the flux from the mantle to the air is consistently
 higher than the heat flux from core to mantle. Since we have no radiogenic
-heating model selected (see the \texttt{Model name}
-\index[prmindex]{Model name}
-\index[prmindexfull]{Heating model!Model name}
+heating model selected (see the \texttt{List of model names}
+\index[prmindex]{List of model names}
+\index[prmindexfull]{Heating model!List of model names}
 parameter in the \texttt{Heating model} section of the input file; see also
 Section~\ref{parameters:Heating_20model}), in the long run the heat output
 of the mantle must equal the input, unless is cools. Our misconception was that
@@ -5699,7 +6735,7 @@ The next input parameters describe the scaling from the shear wave velocity
 perturbation to the final temperature field. The shear wave velocity perturbation 
 $\delta v_s / v_s$ (that is provided by S20RTS) is scaled into a density perturbation $\delta \rho / \rho$ with a 
 constant that is specified in the initial condition section of the input parameter 
-file as `vs to density scaling'. Here we choose a constant scaling of 0.2. This 
+file as `Vs to density scaling'. Here we choose a constant scaling of 0.15. This 
 perturbation is further translated into a temperature difference $\Delta T$ by 
 multiplying it by the negative inverse of thermal expansion, which is also 
 specified in this section of the parameter file as `Thermal expansion coefficient 
@@ -5709,31 +6745,36 @@ model or the reference temperature (as specified in this section of the paramete
 incompressible model. Features in the upper mantle such as cratons might 
 be chemically buoyant and therefore isostatically compensated, in which case 
 their shear wave perturbation would not contribute buoyancy variations. We therefore included an 
-additional option to zero out temperature perturbations within a certain depth. 
-In this example we set this parameter `Remove temperature heterogeneity down to specified 
-depth' to 200km. The chemical variation within the mantle 
-might require a more sophisticated `vs to density' scaling that varies for 
+additional option to zero out temperature perturbations within a certain depth, however, in this example we don't make use of this functionality. The chemical variation within the mantle 
+might require a more sophisticated `Vs to density' scaling that varies for 
 example with depth or as a function of the perturbation itself, which is not captured
 in this model. The described procedure 
 provides an absolute temperature for every point, which will only be adjusted 
-at the boundaries if indicated in the Boundary temperature model. 
+at the boundaries if indicated in the Boundary temperature model. In this example
+we chose a surface and core mantle boundary temperature that differ from the
+reference mantle temperature in order to approximate thermal boundary layers.
 
 \paragraph{Visualizing 3D models.}
 
 In this cookbook we calculate the instantaneous solution to examine the flow 
-field. Figure \ref{fig:ic-1} shows the density field for a resolution of 2 global refinement 
-steps (bottom right) as used in the cookbook, as well as 4 global refinement 
+field. Figure~\ref{fig:ic-1} shows some of the output for a resolution of 2 global refinement 
+steps (c and e) as used in the cookbook, as well as 4 global refinement 
 steps (other panels in this figure). The top panels show the density variation 
-that has been obtained from scaling S20RTS and removing perturbations in 
-the upper 200km. One can see the two large low shear wave velocity perturbations 
+that has been obtained from scaling S20RTS in the way described above.
+One can see the two large low shear wave velocity perturbations 
 underneath Africa and the Pacific that lead to upwelling if they are assumed to 
 be buoyant (as is done in this case). One can also see the subducting slabs 
 underneath South America and the Philippine region that lead to local downwelling. 
 This flow produces dynamic topography on the surface, which is shown 
-in the bottom row (4 refinement steps on the left, 2 refinement steps on the right). 
+in the middle row for 2 refinement steps (c) and 4 refinement steps (d). 
 One can see that subduction zones are visible as depressed topography 
 due to the downward flow, while regions such as Iceland, Hawaii, or mid ocean 
-ridges are elevated due to (deep and) shallow upward flow. 
+ridges are elevated due to (deep and) shallow upward flow. The bottom row
+shows the heat flux density at the surface for 2 refinement steps (e, colorbar
+ranges from 13 to 19 mW/$m^2$) and for 4 refinement steps (f, colorbar ranges
+from 35 to 95 mW/$m^2$). Similar to the dynamic topography, a first order correlation
+with upper mantle features such as high heat flow at mid ocean ridges and low
+heat flow at cratons is correctly initialized by the tomography model. 
 This model uses a highly simplified material model that is incompressible and 
 isoviscous and does therefore not represent real mantle flow. More realistic 
 material properties, density scaling as well as boundary conditions will affect the magnitude 
@@ -5742,13 +6783,14 @@ and pattern shown here.
 \begin{figure}
   \includegraphics[width=\textwidth]{cookbooks/initial-condition-S20RTS/full_mantle.png}
   \hfill
-  \caption{\it The top panels show the density distribution as prescribed from the shear
+  \caption{\it Panels a and b show the density distribution as prescribed from the shear
   wave velocity model S20RTS and the resulting flow for a global refinement of 4. This
-  model assumes a constant scaling between shear wave and density perturbations 
-  and zeros out perturbations in the upper 200km.
-  The bottom figures show the great circle (blue line) along which the top slices
-  are evaluated. They also show the resulting dynamic topography for a global refinement of 4 (left)
-  and 2 (right, cookbook). }
+  model assumes a constant scaling between shear wave and density perturbations.
+  Panel c shows the great circle (dashed blue line) along which the top slices
+  are evaluated. Panels c and d show the resulting dynamic topography for a global refinement of 2 (c, cookbook)
+  and 4 (d). Panels e and f show the resulting heat flux density for a global refinement of
+  2 (e, cookbook) and 4 (f). The colorbar ranges from 13 to 19 mW/$m^2$ for panel e and
+  from 35 to 95 mW/$m^2$ for panel f.}
   \label{fig:ic-1}
 \end{figure}
 
@@ -5873,7 +6915,7 @@ In the model settings subsection the user prescribes the boundary that is suppos
 use the GPlates plugin. Although currently nothing forbids the user to use GPlates plugin for other
 boundaries than the surface, its current usage and the provided sample data only make sense
 for the surface of a spherical shell (boundary number 1 in the above provided parameter file). 
-In case you are familiar with this kind of modelling and the plugin you could however also use it to prescribe mantle
+In case you are familiar with this kind of modeling and the plugin you could however also use it to prescribe mantle
 movements \textit{below} a lithosphere model. All plugin specific options may be set in 
 section~\ref{parameters:Boundary_20velocity_20model}. Possible options include the data directory
 and file name of the velocity file/files, the time step (in model units, mostly seconds or years depending on the 
@@ -6006,7 +7048,7 @@ can be reproduced with the following parameters.
 
 \note{The viscosity profile in Figure 1 of \cite{MD04} appears to be wrong. The published
     parameters do not reproduce those viscosities; it is unclear why. The values used here
-    get very close. See Figure \ref{fig:md-1} for an approximate reproduction of the
+    get very close. See Figure~\ref{fig:md-1} for an approximate reproduction of the
     original figure.}
 
 \lstinputlisting[language=prmfile]{cookbooks/morency_doin/morency_doin.prm.out}
@@ -6020,6 +7062,7 @@ can be reproduced with the following parameters.
 \end{figure}
 
 \subsubsection{Crustal deformation}
+\label{sec:cookbooks-crustal-deformation}
 
 \textit{This section was contributed by Cedric Thieulot, and makes use of the Drucker-Prager 
 material model written by Anne Glerum and the free surface plugin by Ian Rose.}
@@ -6112,7 +7155,7 @@ $35^\circ$ in compression, both of which correspond to the reported Arthur angle
 
 
 
-\paragraph{Extension to 3D} We can easily modify the previous 
+\paragraph{Extension to 3D.} We can easily modify the previous 
 input file to produce {\tt crustal\_model\_3D.prm}
 which implements a similar setup, with the additional constraint that the position 
 of the velocity discontinuity varies with the $y$-coordinate, 
@@ -6149,15 +7192,140 @@ the end of the first time step after one level of strain rate-based adaptive mes
 \end{figure}
 
 
+\subsubsection{Inner core convection}
+\label{sec:cookbooks-inner-core-convection}
+
+\textit{This section was contributed by Juliane Dannberg, and the model setup was inspired 
+by discussions with John Rudge.}
+
+This is an example of convection in the inner core of the Earth. It uses a spherical geometry 
+and is characterized by a single material with temperature dependent density that makes it
+unstably stratified as temperature increases towards the center of the core. 
+The boundary conditions combine normal stress and normal velocity, and take into account the
+rate of phase change (melting/freezing) at the inner-outer core boundary. Gravity decreases 
+linearly from the boundary to zero at the center of the inner core. 
+The setup is analogous to the models described in \cite{Deguen2013}, and all material properties 
+are chosen in a way so that the equations are non-dimensional.
+
+The required heating model and changes to the material model are implemented in a shared library
+(\url{cookbooks/inner_core_convection/inner_core_convection.cc}). 
+
+In their non-dimensional form, the equations are
+
+\begin{align}
+  \label{eq:inner-core-1}
+  \nabla \cdot \sigma &=
+  -Ra T \mathbf g,
+  \\
+  \label{eq:inner-core-2}
+  \nabla \cdot \mathbf u &= 0,
+  \\
+  \label{eq:inner-core-3}
+  \left(\frac{\partial T}{\partial t} + \mathbf u\cdot\nabla T\right)
+  - \nabla^2 T
+  &=
+  H,
+\end{align}
+
+where $Ra$ is the Rayleigh number. 
+
+The mechanical boundary conditions for the inner core are
+tangential stress-free and continuity of the normal stress at the
+inner-outer core boundary. For the non-dimensional equations, that
+means that we can define a ``phase change number'' $\mathcal{P}$ so that the
+normal stress at the boundary is $-\mathcal{P} u_r$ with the radial velocity
+$u_r$. This number characterizes the resistance to phase change at
+the boundary, with $\mathcal{P}\rightarrow\infty$ corresponding to infinitely slow
+melting/freezing (or a free slip boundary), and $\mathcal{P}\rightarrow0$ corresponding to
+instantaneous melting/freezing (or a zero normal stress, corresponding to an open boundary).
+
+In the weak form, this results in boundary conditions of the form
+of a surface integral:
+\begin{equation*}
+\int_S \mathcal{P} (\mathbf u \cdot \mathbf n) (\mathbf v \cdot \mathbf n) dS,
+\end{equation*}
+with the normal vector $\mathbf n$.
+
+This phase change term is added to the matrix in the 
+\url{cookbooks/inner_core_convection/inner_core_assembly.cc} plugin by using a signal 
+(as described in Section~\ref{sec:extending-signals}). The signal 
+connects the function \verb!set_assemblers_phase_boundary!, which is only called once at the beginning of 
+the model run. It creates the new assembler \texttt{PhaseBoundaryAssembler} for the boundary faces of the Stokes 
+system and adds it to the list of assemblers executed in every time step. 
+The assembler contains the function \verb!phase_change_boundary_conditions! that loops over all faces at the model 
+boundary, queries the value of $\mathcal{P}$ from the material model, and adds the surface integral given above
+to the matrix:
+\lstinputlisting[language=C++,,basicstyle=\footnotesize\ttfamily,]{../../cookbooks/inner_core_convection/inner_core_assembly.cc}
+Instructions for how to compile and run models with a shared library are given in Section~\ref{sec:benchmark-run}.
+
+Analyzing Equations~\eqref{eq:inner-core-1}--\eqref{eq:inner-core-3} reveals that two parameters determine 
+the dynamics of convection in the inner core: the Rayleigh number $Ra$ and the phase change number $\mathcal{P}$. 
+For low Rayleigh numbers below a critical value $Ra_c$ that is approximately $1000$ for high $\mathcal{P}$ ($\gg 29$), and 
+that depends linearly on $\mathcal{P}$ for smaller $\mathcal{P}$ (see \cite{Deguen2013}), there is no convection 
+and thermal diffusion dominates the heat transport. 
+For higher values of $Ra > Ra_c$, the style of convection in the inner core depends on $\mathcal{P}$: 
+For high $\mathcal{P}$ ($\gg 29$, see \cite{Deguen2013}), convection is dominated by thermal plumes with the number 
+of plumes scaling with the Rayleigh number; whereas for low values of $\mathcal{P}$, the inner core is in a 
+translation regime, where material freezes at one side and melts at the other side, so that the velocity field 
+is uniform, pointing from the freezing to the melting side. 
+
+\begin{figure}
+    \centering
+    \begin{tabular}{lcl}
+    \includegraphics[height=0.25\textwidth]{cookbooks/inner_core_convection/convection.png}
+    & \hspace{1cm} &
+    \includegraphics[height=0.25\textwidth]{cookbooks/inner_core_convection/convection_contours.png}
+    \\
+    \includegraphics[height=0.25\textwidth]{cookbooks/inner_core_convection/translation.png}
+    & \hspace{1cm} &
+    \includegraphics[height=0.25\textwidth]{cookbooks/inner_core_convection/translation_contours.png}
+    \\
+    \includegraphics[height=0.25\textwidth]{cookbooks/inner_core_convection/no_convection.png}
+    & \hspace{1cm} &
+    \includegraphics[height=0.25\textwidth]{cookbooks/inner_core_convection/no_convection_contours.png}
+    \end{tabular}
+    \caption{Convection regimes in the inner core for different values of $Ra$ and $\mathcal{P}$.
+             From top to bottom: plume convection, translation, no convection; full 3d models
+             on the left and 2d slices on the right. Temperature is shown as contours, 
+             velocity is shown as arrows.}
+    \label{fig:inner-core-regimes}
+\end{figure}
+
+Changing the values of $Ra$ and $\mathcal{P}$ in the input file allows switching between the different regimes.
+The Rayleigh number can be changed by adjusting the magnitude of the gravity:
+\lstinputlisting[language=prmfile]{cookbooks/inner_core_convection/inner_core_traction.part.2.prm}
+The phase change number is implemented as part of the material model, and as a function that can depend on the 
+spatial coordinates and/or on time: 
+\lstinputlisting[language=prmfile]{cookbooks/inner_core_convection/inner_core_traction.part.1.prm}
+
+Figure~\ref{fig:inner-core-regimes} shows examples of the three regimes with $Ra=3000, \mathcal{P}=1000$ (plume convection), 
+$Ra=10^5, \mathcal{P}=0.01$ (translation), $Ra=10, \mathcal{P}=30$ (no convection).
 
 
-
-
-
-
-
-
-
+In addition, \cite{Deguen2013} give scaling laws for the velocities in each regime derived from linear stability 
+analysis, and show how numerical results compare to them. In the regimes of low $\mathcal{P}$, translation will start 
+at a critical ratio of Rayleigh number and phase change number $\frac{Ra}{\mathcal{P}}=\frac{175}{2}$ with steady-state 
+translation velocities being zero below this threshold and tending to $v_0=\frac{175}{2}\sqrt{\frac{6}{5}\frac{Ra}{\mathcal{P}}}$ 
+going towards higher values of $\frac{Ra}{\mathcal{P}}$.
+In the same way, translation velocities will decrease from $v_0$ with increasing $\mathcal{P}$, with translation transitioning
+to plume convection at $\mathcal{P}\sim29$. 
+Both trends are shown in Figure~\ref{fig:inner-core-trends} and can be compared to Figure~8 and 9 in \cite{Deguen2013}.
+ 
+\begin{figure}
+    \centering
+    \includegraphics[width=0.49\textwidth]{cookbooks/inner_core_convection/translation_over_Ra_P.pdf}
+    \hfill
+    \includegraphics[width=0.49\textwidth]{cookbooks/inner_core_convection/translation_over_P.pdf}
+    \caption{Translation rate (approximated by the average of the velocity component in the direction of translation), 
+    normalized to the low $\mathcal{P}$ 
+    limit estimate given in \cite{Deguen2013}, as a function of $\frac{Ra}{\mathcal{P}}$ for $\mathcal{P}=10^{-2}$ 
+    (left) and as a function of $\mathcal{P}$ for $Ra=10^5$ (right).
+    The dashed gray line gives the translation velocity predicted in the limit of low $\mathcal{P}$. Disagreement 
+    for larger values of $\mathcal{P}$ indicates that higher order terms (not included in the low $\mathcal{P}$
+    approximation) become important. Additionally, differences between the analytical and numerical model might 
+    be the result of limited resolution (only 12 elements in radial direction).}
+    \label{fig:inner-core-trends}
+\end{figure}
 
 \subsection{Benchmarks}
 \label{sec:cookbooks-benchmarks}
@@ -6216,7 +7384,7 @@ amounts to the following:
  information in a number of directories relative to the current one.
  If it is unable to pick up where \aspect{} was built and installed, you can
  specify this directory explicitly this using \texttt{-D
-   ASPECT\_DIR=$<$...$>$} as an additional flag to \texttt{cmake}, where
+   Aspect\_DIR=$<$...$>$} as an additional flag to \texttt{cmake}, where
  \texttt{$<$...$>$} is the path to the build directory.
  \item Build the library:
 \begin{verbatim}
@@ -6239,7 +7407,7 @@ the current directory.
 \label{sec:benchmark-van-keken}
 
 \textit{This section is a co-production of Cedric Thieulot, Juliane Dannberg,
-Timo Heister and Wolfgang Bangerth with an extension to this benchmark provided by the Virginia Tech Dept. of Geosciences class Geodynamics and ASPECT co-taught by Scott King and D.~Sarah Stamps.}
+Timo Heister and Wolfgang Bangerth with an extension to this benchmark provided by the Virginia Tech Department of Geosciences class ``Geodynamics and ASPECT'' co-taught by Scott King and D.~Sarah Stamps.}
 
 One of the most widely used benchmarks for mantle convection codes is the
 isoviscous Rayleigh-Taylor case (``case 1a'') published by van Keken \textit{et
@@ -6598,7 +7766,7 @@ Number of degrees of freedom: 3,556 (2,178+289+1,089)
 
    Postprocessing:
      Errors u_L1, p_L1, u_L2, p_L2: 1.125997e-06, 2.994143e-03, 1.670009e-06, 9.778441e-03
-     Writing graphical output:      output/solution-00000
+     Writing graphical output:      output/solution/solution-00000
 
 
 
@@ -6850,7 +8018,7 @@ $|\mathbf{u}|$ & $0$ &  $14.177$ \\
 
 The convergence of the numerical error of this benchmark has been analysed by
 playing with the mesh refinement level in the input file, and
-results can be found in Figure \ref{errors}. The velocity shows cubic error
+results can be found in Figure~\ref{errors}. The velocity shows cubic error
 convergence, while the pressure shows quadratic convergence in the $L_1$ and
 $L_2$ norms, as one would hope for using $Q_2$ elements for the velocity and
 $Q_1$ elements for the pressure.
@@ -7061,7 +8229,7 @@ T_2, & y<y_{tr}
 \end{align*}
 While it is not entirely obvious while this equation for $T(y)$ should be
 correct (in particular why it should be asymmetric), it is not difficult to
-verify that it indeed satisfies the equatoin stated above for both $y<y_{tr}$
+verify that it indeed satisfies the equation stated above for both $y<y_{tr}$
 and $y>y_{tr}$. Furthermore, it indeed satisfies the jump condition we get by
 evaluating the equation at $y=y_{tr}$.
 Indeed, the jump condition can be reinterpreted as a balance of heat conduction:
@@ -7070,13 +8238,13 @@ we consider only steady-state, the same amount of heat is conducted upwards from
 the transition:
 
 \begin{gather*}
-\underbrace{\rho v_y T \Delta S}_{\text{latent heat release}} = \underbrace{\frac{\kappa}{\rho_0 c_p} \frac{\partial T}{\partial y} \vert_{y=y_{tr^-}} = \frac{v_y}{\rho_0 c_p} (T_2-T_1)}_{\text{heat conduction}}
+\underbrace{\rho v_y T \Delta S}_{\text{latent heat release}} = \underbrace{\frac{\kappa}{\rho_0 C_p} \frac{\partial T}{\partial y} \vert_{y=y_{tr^-}} = \frac{v_y}{\rho_0 C_p} (T_2-T_1)}_{\text{heat conduction}}
 \end{gather*}
 
 In contrast to \cite{STO01}, we also consider the density change $\Delta\rho$ across the phase transition: While the heat conduction takes place above the transition and the density can be assumed as $\rho=\rho_0=$ const., the latent heat is released directly at the phase transition. Thus, we assume an average density $\rho=\rho_0 + 0.5\Delta\rho$ for the left side of the equation. Rearranging this equation gives
 
 \begin{gather*}
-T_2 = \frac{T_1}{1 - (1+\frac{\Delta \rho}{2 \rho_0}) \frac{\Delta S}{c_p}}
+T_2 = \frac{T_1}{1 - (1+\frac{\Delta \rho}{2 \rho_0}) \frac{\Delta S}{C_p}}
 \end{gather*}
 
 In addition, we have tested the approach exactly as it is described in \cite{STO01} by setting the entropy change to a specific value and in spite of that using a constant density. However, this is physically inconsistent, as the entropy change is proportional to the density change across the phase transition. With this method, we could reproduce the analytic results from \cite{STO01}.
@@ -7223,7 +8391,7 @@ exact equations chosen to model the fluid. We will discuss these in the
 following.
 
 
-\paragraph{Case 1.1: BA\_Ra104\_Iso\_ZS}
+\paragraph{Case 1.1: BA\_Ra104\_Iso\_ZS.}
 \label{sec:davies-case11_BA}
 
 This case is run with the following settings:
@@ -7256,7 +8424,7 @@ gravity.
 Results for this and the other cases are shown below.
 
 
-\paragraph{Case 2.1: BA\_Ra104\_Iso\_FS}
+\paragraph{Case 2.1: BA\_Ra104\_Iso\_FS.}
 \label{sec:davies-case21_BA}
 
 Case 2.1 uses the following setup, differing only in the boundary conditions:
@@ -7284,7 +8452,7 @@ that is relevant is then as follows (the full input file resides at
 Again, results are shown below.
 
 
-\paragraph{Case 2.2: BA\_Ra105\_Iso\_FS}
+\paragraph{Case 2.2: BA\_Ra105\_Iso\_FS.}
 \label{sec:davies-case22_BA}
 
 Case 2.2 is described as follows:
@@ -7310,7 +8478,7 @@ gravity in the input file.  The full script for case 2.2 is located in
 \url{benchmark/davies_et_al/case-2.2.prm}
 
 
-\paragraph{Case 2.3: BA\_Ra103\_vv\_FS}
+\paragraph{Case 2.3: BA\_Ra103\_vv\_FS.}
 \label{sec:davies-case23_BA}
 
 Case 2.3 is a variation on the previous one:
@@ -7363,7 +8531,7 @@ following parts:
 \lstinputlisting[language=prmfile]{cookbooks/benchmarks/davies_et_al/case-2.3.prm.out}
 
 
-\paragraph{Results}
+\paragraph{Results.}
 
 In the following, let us discuss some of the results of the benchmark setups
 discussed above. First, the final steady state temperature fields are shown in
@@ -7452,7 +8620,7 @@ of results are listed in Table~\ref{tab:davies-et-al-results}.%
 
 This section follows the two free surface benchmarks described by Crameri et al. \cite{CSG12}.  
 
-\paragraph{ Case 1: Relaxation of topography }
+\paragraph{Case 1: Relaxation of topography.}
 \label{sec:benchmark-crameri-case-1}
 
 The first benchmark involves a high viscosity lid sitting on top of a lower viscosity 
@@ -7502,7 +8670,7 @@ codes which are included in this comparison are basically indistinguishable.
   \label{fig:crameri-benchmark-relaxation-topography}
 \end{figure}
 
-\paragraph{ Case 2: Dynamic topography }
+\paragraph{Case 2: Dynamic topography.}
 \label{sec:benchmark-crameri-case-2}
 
 Case two is more complicated. Unlike the case one, it occurs over mantle convection 
@@ -7585,6 +8753,62 @@ could improve the convergence. The primary challenge in accuracy is limiting num
 of the rising blob. If the blob becomes too diffuse, its ability to lift topography is diminished.
 It would be instructive to compare the results of this benchmark using tracer particles with the 
 results using compositional fields.
+
+\subsubsection{The solitary wave benchmark}
+\label{sec:benchmark-solitary_wave}
+
+\textit{This section was contributed by Juliane Dannberg and is based on a section in \cite{DH2015} by Juliane Dannberg and Timo Heister.}
+
+One of the most widely used benchmarks for codes that model the migration of melt through a compacting and dilating matrix is the propagation of solitary waves (e.g. \cite{SS11, KMK2013, Schm00}). 
+The benchmark is intended to test the accuracy of the solution of the two-phase flow equations as described in Section \ref{sec:melt_transport} and makes use of the fact that there is an analytical solution for the shape of solitary waves that travel through a partially molten rock with a constant background porosity without changing their shape and with a constant wave speed. 
+Here, we follow the setup of the benchmark as it is described in \cite{BR86}, which considers one-dimensional solitary waves.
+
+The model features a perturbation of higher porosity with the amplitude $A \phi_0$ in a uniform low-porosity ($\phi=\phi_0$) background.  Due to its lower density, melt migrates upwards, dilating the solid matrix at its front and compacting it at its end. 
+
+Assuming constant shear and compaction viscosities and using a permeability law of the form
+%
+\begin{align*}
+k_\phi &= k_0 \phi^3, && \text{ implying a Darcy coefficient }
+K_D(\phi) = \frac{k_0}{\eta_f} \phi^3 , \\
+\intertext{and the non-dimensionalization }
+x &= \delta x' 
+  && \text{ with the compaction length } \delta = \sqrt{K_D(\phi_0)(\xi + \frac{4}{3}\eta)} , \\
+\phi &= \phi_0 \phi ' 
+  && \text{ with the background porosity } \phi_0 , \\
+(\mathbf u_s, \mathbf u_f) &= u_0 (\mathbf u_s, \mathbf u_f)' 
+  && \text{ with the separation flux } \phi_0 u_0 = K_D(\phi_0) \Delta\rho g ,
+\end{align*}
+%
+the analytical solution for the shape of the solitary wave can be written in implicit form as:
+\begin{align*}
+x(\phi) &= \pm (A + 0.5) 
+\left[ -2 \sqrt{A-\phi} + \frac{1}{\sqrt{A-1}} 
+\ln \frac{\sqrt{A-1} - \sqrt{A-\phi}}{\sqrt{A-1} + \sqrt{A-\phi}} \right]
+\end{align*}
+and the phase speed $c$, scaled back to physical units, is $c = u_0 (2A+1)$. 
+This is only valid in the limit of small porosity $\phi_0 \ll 1$. Figure~\ref{fig:setup-solitary-wave} illustrates the model setup. 
+
+\begin{figure}
+  \begin{center}
+    \includegraphics[width=0.65\textwidth]{cookbooks/benchmarks/solitary_wave/setup.pdf}
+  \end{center}
+  \caption{\it Setup of the solitary wave benchmark. The domain is $400$ m high and includes a low porosity
+  ($\phi = 0.001$) background with an initial perturbation ($\phi = 0.1$). The solid density is $3300\,kg/m^3$
+  and the melt density is $2500\,kg/m^3$. We apply the negative phase speed 
+  of the solitary wave $\mathbf u_s = -c \, \mathbf e_z$ as velocity boundary condition, so that the wave will 
+  stay at its original position while the background is moving.}
+  \label{fig:setup-solitary-wave}
+\end{figure}
+
+The parameter file and material model for this setup can be found in \url{benchmark/solitary_wave/solitary_wave.prm} and \url{benchmark/solitary_wave/solitary_wave.cc}. The most relevant sections are shown in the following paragraph. 
+
+\lstinputlisting[language=prmfile]{cookbooks/benchmarks/solitary_wave/solitary_wave.prm}
+
+The benchmark uses a custom model to generate the initial condition for the porosity field as specified by the analytical solution, and its own material model, which includes the additional material properties needed by models with melt migration, such as the permeability, melt density and compaction viscosity. The solitary wave postprocessor compares the porosity and pressure in the model to the analytical solution, and computes the errors for the shape of the porosity, shape of the compaction pressure and the phase speed. 
+We apply the negative phase speed of the solitary wave as a boundary condition for the solid velocity. This changes the reference frame, so that the solitary wave stays in the center of the domain, while the solid moves downwards. The temperature evolution does not play a role in this benchmark, so all temperature and heating-related parameters are disabled or set to zero. 
+
+And extensive discussion of the results and convergence behavior can be found in \cite{DH2015}.
+
 
 \section{Extending \aspect}
 \label{sec:extending}
@@ -8033,7 +9257,7 @@ do:
   \end{itemize}
   You can then just run the commands
     \begin{verbatim}
- cmake -DASPECT_DIR=/path/to/aspect .
+ cmake -DAspect_DIR=/path/to/aspect .
  make
     \end{verbatim}
     and it should compile your plugin files into a shared library
@@ -8046,8 +9270,8 @@ do:
     installation (i.e., the directory where you configured and compiled it,
     which may be the same directory as where you keep your sources, or a
     different one, as discussed in Section~\ref{sec:installation}) in either the
-    directory explicitly specified in the \texttt{ASPECT\_DIR} variable passed
-    to \texttt{cmake}, the shell environment, or just one directory up. It then
+    directory explicitly specified in the \texttt{Aspect\_DIR} variable passed
+    to \texttt{cmake}, the shell environment variable \texttt{ASPECT\_DIR}, or just one directory up. It then
     sets up compiler paths and similar, and the following lines simply define
     the name of a plugin, list the source files for it, and define everything
     that's necessary to compile them into a shared library. Calling
@@ -9243,7 +10467,7 @@ respective signals.
 
 In the first case, code that registers slots with global signals would look like
 this:
-\begin{lstlisting}[frame=single,language=c++]
+\begin{lstlisting}[frame=single,language=C++]
 // A function that will be called at the time when parameters are declared.
 // It receives the dimension in which ASPECT will be run as the first argument,
 // and the ParameterHandler object that holds the runtime parameter
@@ -9295,7 +10519,7 @@ ASPECT_REGISTER_SIGNALS_PARAMETER_CONNECTOR(parameter_connector)
 The second kind of signal can be connected to once a simulator object has been
 created. As above, one needs to define the slots, define a connector function,
 and register the connector function. The following gives an example:
-\begin{lstlisting}[frame=single,language=c++]
+\begin{lstlisting}[frame=single,language=C++]
 // A function that is called at the end of creating the current constraints
 // on degrees of freedom (i.e., the constraints that describe, for example,
 // hanging nodes, boundary conditions, etc).
@@ -9332,7 +10556,7 @@ functions in your program) to the same signal.
 So what could one do in a place like this? One option would be to just monitor
 what is going on, e.g., in code like this that simply outputs into the
 statistics file (see Section~\ref{sec:viz-stat}):
-\begin{lstlisting}[frame=single,language=c++]
+\begin{lstlisting}[frame=single,language=C++]
 template <int dim>
 void post_constraints_creation (const SimulatorAccess<dim> &simulator_access,
                                 ConstraintMatrix &current_constraints)
@@ -9461,15 +10685,18 @@ resources listed at the beginning of this section as well as references
 We have a number of near-term plans for \aspect{} that we hope to implement
 soon:
 \begin{itemize}
-\item \textit{Iterating out the nonlinearity:} In the current version of
-  \aspect{}, we use the velocity, pressure and temperature of the previous
-  time step to evaluate the coefficients that appear in the flow equations
-  \eqref{eq:stokes-1}--\eqref{eq:stokes-2}; and the velocity and pressure of
-  the current time step as well as the previous time step's temperature to
-  evaluate the coefficients in the temperature equation
-  \eqref{eq:temperature}. This is an appropriate strategy if the model is not
-  too nonlinear; however, it introduces inaccuracies and limits the size of
-  the time step if coefficients strongly depend on the solution variables.
+\item \textit{Better ways to deal with the nonlinearity:} The simplest algorithm
+to deal with the nonlinearity of the equations is to use the velocity, pressure and temperature of the
+previous time step to evaluate the coefficients that appear in the flow
+equations \eqref{eq:stokes-1}--\eqref{eq:stokes-2}; and the velocity and
+pressure of the current time step as well as the previous time step's
+temperature to evaluate the coefficients in the temperature equation
+\eqref{eq:temperature}. A slight improvement of this scheme -- and the one that
+is the default in \aspect{} -- is to use velocities, pressures, and temperatures
+that are extrapolated from previous time steps to the current time.
+This is an appropriate strategy if the model is not too
+nonlinear; however, it introduces inaccuracies and limits the size of the
+time step if coefficients strongly depend on the solution variables.
 
   To avoid this, one can iterate out the equations using either a fixed point
   or Newton scheme. Both approaches ensure that at the end of a time step, the
@@ -9477,9 +10704,10 @@ soon:
   hand, one may have to solve the linear systems that describe a time step
   more than once, increasing the computational effort.
 
-  We have started implementing such methods using a testbase code, based on
-  earlier experiments by Jennifer Worthen \cite{Wor12}. We hope to implement
-  this feature in \aspect{} early in 2012.
+  \aspect{} currently already implements methods that iterate out the
+  nonlinearity based on various fixed point strategies. These are based on some
+  earlier experiments by Jennifer Worthen \cite{Wor12}. What is missing, though,
+  is a proper Newton method.
 
 \item \textit{Faster 3d computations:} Whichever way you look at it, 3d
   computations are expensive. In parallel computations, the Stokes solve
@@ -9488,27 +10716,13 @@ soon:
   profiling the code to find hot spots. In particular, playing with better
   solver and/or preconditioner options would seem to be a useful goal.
 
-\item \textit{Particle-based methods:} It is often useful to employ particle
-  tracers to visualize where material is being transported. While conceptually
-  simple, their implementation is made difficult in parallel computations
-  if particles cross the boundary between parts of the regions owned by
-  individual processors, as well as during re-partitioning the mesh between
-  processors following mesh refinement. Eric Heien is
-  working on an implementation of such passive tracers.
-
-\item \textit{More realistic material models:} The number of
-  material models available in \aspect{} is currently relatively
-  small. Obviously, how realistic a simulation is depends on how realistic a
-  material model is. We hope to obtain descriptions of more realistic material
-  descriptions over time, either given analytically or based on table-lookup
-  of material properties.
-
-\item \textit{Melting:} An important part of mantle behavior is
-  melting. Melting not only affects the properties of the material such as
-  density or viscosity, but it also leads to chemical segregation and, in
-  fact, to the flow of two different fluids (the melt and the rock matrix)
-  relative to each other. Modeling this additional process would yield
-  significant insight.
+\item \textit{More, and more realistic material models:} The number of
+  material models available in \aspect{} is sizable, but it does not include
+  all models that have in the past been used in the literature. On the other
+  hand, how realistic a simulation is depends on how realistic the used
+  material model is. We hope to obtain more descriptions of realistic
+  material descriptions over time, either given analytically or based on
+  table-lookup of material properties.
 
 \item \textit{Converting output into seismic velocities:} The predictions of
   mantle convection codes are often difficult to verify experimentally. On the
@@ -9565,6 +10779,15 @@ resources:
     Heister: \url{heister@clemson.edu}.
   \end{itemize}
 \end{itemize}
+
+
+\appendix
+
+\section{Run-time input parameters}
+\label{sec:parameters}
+
+% now include a file that describes all currently available run-time parameters
+\input{parameters}
 
 
 \pagebreak

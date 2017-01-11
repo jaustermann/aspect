@@ -1,0 +1,61 @@
+
+Number of active cells: 64 (on 3 levels)
+Number of degrees of freedom: 4,769 (2,187+125+729+1,728)
+
+*** Timestep 0:  t=0 years
+   Skipping temperature solve because RHS is zero.
+   Solving C_1 system ... 0 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 27+0 iterations.
+
+Number of active cells: 85 (on 4 levels)
+Number of degrees of freedom: 6,599 (3,099+172+1,033+2,295)
+
+*** Timestep 0:  t=0 years
+   Skipping temperature solve because RHS is zero.
+   Solving C_1 system ... 0 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 28+0 iterations.
+
+   Postprocessing:
+     RMS, max velocity:         0.0257 m/year, 0.0888 m/year
+     Compositions min/max/mass: 0/1/1.219e+16
+
+*** Timestep 1:  t=176473 years
+   Skipping temperature solve because RHS is zero.
+   Solving C_1 system ... 4 iterations.
+   Solving Stokes system... 24+0 iterations.
+
+   Postprocessing:
+     RMS, max velocity:         0.0253 m/year, 0.0876 m/year
+     Compositions min/max/mass: -0.001931/1/1.219e+16
+
+*** Timestep 2:  t=355845 years
+   Skipping temperature solve because RHS is zero.
+   Solving C_1 system ... 4 iterations.
+   Solving Stokes system... 21+0 iterations.
+
+   Postprocessing:
+     RMS, max velocity:         0.0249 m/year, 0.0859 m/year
+     Compositions min/max/mass: -0.01153/1/1.219e+16
+
+Number of active cells: 148 (on 4 levels)
+Number of degrees of freedom: 11,267 (5,247+275+1,749+3,996)
+
+*** Timestep 3:  t=500000 years
+   Skipping temperature solve because RHS is zero.
+   Solving C_1 system ... 4 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 24+0 iterations.
+
+   Postprocessing:
+     RMS, max velocity:         0.0246 m/year, 0.0843 m/year
+     Compositions min/max/mass: -0.07777/1.033/1.219e+16
+
+Termination requested by criterion: end time
+
+
++---------------------------------------------+------------+------------+
++---------------------------------+-----------+------------+------------+
++---------------------------------+-----------+------------+------------+
+

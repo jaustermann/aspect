@@ -29,12 +29,10 @@ namespace aspect
       template <int dim>
       void
       Velocity<dim>::initialize_one_particle_property(const Point<dim> &,
-                                                      const Vector<double> &solution,
-                                                      const std::vector<Tensor<1,dim> > &,
                                                       std::vector<double> &data) const
       {
         for (unsigned int i = 0; i < dim; ++i)
-          data.push_back(solution[this->introspection().component_indices.velocities[i]]);
+          data.push_back(0.0);
       }
 
       template <int dim>
@@ -43,7 +41,7 @@ namespace aspect
                                                   const Point<dim> &,
                                                   const Vector<double> &solution,
                                                   const std::vector<Tensor<1,dim> > &,
-                                                  std::vector<double> &data) const
+                                                  const ArrayView<double> &data) const
       {
         for (unsigned int i = 0; i < dim; ++i)
           data[data_position+i] = solution[this->introspection().component_indices.velocities[i]];
@@ -54,6 +52,13 @@ namespace aspect
       Velocity<dim>::need_update() const
       {
         return update_output_step;
+      }
+
+      template <int dim>
+      UpdateFlags
+      Velocity<dim>::get_needed_update_flags () const
+      {
+        return update_values;
       }
 
       template <int dim>
@@ -78,8 +83,7 @@ namespace aspect
                                         "velocity",
                                         "Implementation of a plugin in which the tracer "
                                         "property is defined as the recent velocity at "
-                                        "this position."
-                                        "\n\n")
+                                        "this position.")
     }
   }
 }

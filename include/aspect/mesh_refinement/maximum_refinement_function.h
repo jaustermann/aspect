@@ -20,8 +20,8 @@
 
 
 
-#ifndef __aspect__mesh_refinement_maximum_refinement_function_h
-#define __aspect__mesh_refinement_maximum_refinement_function_h
+#ifndef _aspect_mesh_refinement_maximum_refinement_function_h
+#define _aspect_mesh_refinement_maximum_refinement_function_h
 
 #include <aspect/mesh_refinement/interface.h>
 #include <aspect/simulator_access.h>
@@ -44,6 +44,14 @@ namespace aspect
       public SimulatorAccess<dim>
     {
       public:
+        /*
+         * At the beginning of each time step, update the time for the
+         * ParsedFunction.
+         */
+        virtual
+        void
+        update ();
+
         /**
          * After cells have been marked for coarsening/refinement, apply
          * additional criteria independent of the error estimate.

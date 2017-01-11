@@ -20,7 +20,6 @@
 
 
 #include <aspect/postprocess/visualization/melt_fraction.h>
-#include <aspect/simulator_access.h>
 
 #include <deal.II/base/parameter_handler.h>
 
@@ -44,26 +43,26 @@ namespace aspect
       template <int dim>
       void
       MeltFraction<dim>::
-      compute_derived_quantities_vector (const std::vector<Vector<double> >              &uh,
+      compute_derived_quantities_vector (const std::vector<Vector<double> >              &solution_values,
                                          const std::vector<std::vector<Tensor<1,dim> > > &,
                                          const std::vector<std::vector<Tensor<2,dim> > > &,
                                          const std::vector<Point<dim> > &,
                                          const std::vector<Point<dim> > &,
                                          std::vector<Vector<double> >                    &computed_quantities) const
       {
-        const unsigned int n_quadrature_points = uh.size();
+        const unsigned int n_quadrature_points = solution_values.size();
         Assert (computed_quantities.size() == n_quadrature_points,    ExcInternalError());
         Assert (computed_quantities[0].size() == 1,                   ExcInternalError());
-        Assert (uh[0].size() == this->introspection().n_components,           ExcInternalError());
+        Assert (solution_values[0].size() == this->introspection().n_components,           ExcInternalError());
 
         for (unsigned int q=0; q<n_quadrature_points; ++q)
           {
-            const double pressure    = uh[q][this->introspection().component_indices.pressure];
-            const double temperature = uh[q][this->introspection().component_indices.temperature];
+            const double pressure    = solution_values[q][this->introspection().component_indices.pressure];
+            const double temperature = solution_values[q][this->introspection().component_indices.temperature];
             std::vector<double> composition(this->n_compositional_fields());
 
             for (unsigned int c=0; c<this->n_compositional_fields(); ++c)
-              composition[c] = uh[q][this->introspection().component_indices.compositional_fields[c]];
+              composition[c] = solution_values[q][this->introspection().component_indices.compositional_fields[c]];
 
             // anhydrous melting of peridotite after Katz, 2003
             const double T_solidus  = A1 + 273.15
@@ -86,7 +85,7 @@ namespace aspect
               peridotite_melt_fraction = std::pow((temperature - T_solidus) / (T_lherz_liquidus - T_solidus),beta);
 
             // melt fraction after melting of all clinopyroxene
-            const double R_cpx = r1 + r2 * pressure;
+            const double R_cpx = r1 + r2 * std::max(0.0, pressure);
             const double F_max = M_cpx / R_cpx;
 
             if (peridotite_melt_fraction > F_max && temperature < T_liquidus)
@@ -111,9 +110,12 @@ namespace aspect
               pyroxenite_melt_fraction = -E1/(2*E2) - std::sqrt(discriminant);
 
             double melt_fraction;
-            if (this->n_compositional_fields()>0)
-              melt_fraction = composition[0] * pyroxenite_melt_fraction +
-                              (1-composition[0]) * peridotite_melt_fraction;
+            if (this->introspection().compositional_name_exists("pyroxenite"))
+              {
+                const unsigned int pyroxenite_index = this->introspection().compositional_index_for_name("pyroxenite");
+                melt_fraction = composition[pyroxenite_index] * pyroxenite_melt_fraction +
+                                (1-composition[pyroxenite_index]) * peridotite_melt_fraction;
+              }
             else
               melt_fraction = peridotite_melt_fraction;
 

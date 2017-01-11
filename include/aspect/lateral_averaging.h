@@ -19,8 +19,8 @@
 */
 
 
-#ifndef __aspect__lateral_averaging_h
-#define __aspect__lateral_averaging_h
+#ifndef _aspect_lateral_averaging_h
+#define _aspect_lateral_averaging_h
 
 #include <aspect/simulator_access.h>
 
@@ -77,9 +77,6 @@ namespace aspect
 
       /**
        * Compute a lateral average of the current viscosity.
-       *
-       * @param composition_index The index of the compositional field
-       * to laterally average.
        *
        * @param values The output vector of laterally averaged values. The
        * function takes the pre-existing size of this vector as the number of

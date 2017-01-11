@@ -44,8 +44,8 @@ namespace aspect
           out.thermal_expansion_coefficients[i] = thermal_alpha;
 
           double rho = reference_rho * std::exp(reference_compressibility * (pressure - this->get_surface_pressure()));
-          if (this->get_adiabatic_conditions().is_initialized())
-            rho *= (1 - thermal_alpha * (temperature - this->get_adiabatic_conditions().temperature(position)));
+          rho *= (1 - thermal_alpha * (temperature - this->get_adiabatic_conditions().temperature(position)));
+
           out.densities[i] = rho;
           out.compressibilities[i] = reference_compressibility; // 1/rho drho/dp
           out.entropy_derivative_pressure[i] = 0.0;
@@ -128,7 +128,7 @@ namespace aspect
                              "Units: $W/m/K$.");
           prm.declare_entry ("Reference specific heat", "1250",
                              Patterns::Double (0),
-                             "The value of the specific heat $cp$. "
+                             "The value of the specific heat $C_p$. "
                              "Units: $J/kg/K$.");
           prm.declare_entry ("Thermal expansion coefficient", "2e-5",
                              Patterns::Double (0),
