@@ -138,10 +138,18 @@ namespace aspect
                   const Tensor<1,dim> gravity = this->get_gravity_model().gravity_vector(location);
                   const Tensor<1,dim> gravity_direction = gravity/gravity.norm();
 
-                  // Subtract the dynamic pressure
+                  // check which way gravity points
+                  Tensor <1,dim> g = this->get_gravity_model().gravity_vector(this->get_geometry_model().representative_point(0));
+                  const Point<dim> point_surf = this->get_geometry_model().representative_point(0);
+		  const Point<dim> point_bot = this->get_geometry_model().representative_point(this->get_geometry_model().maximal_depth());
+                  const int gravity_direction_binary =  (g * (point_bot - point_surf) >= 0) ?
+		  				1 :
+						-1; 
+
+		  // Subtract the dynamic pressure
                   const double dynamic_pressure   = in.pressure[q] - this->get_adiabatic_conditions().pressure(location);
                   const double sigma_rr           = gravity_direction * (shear_stress * gravity_direction) - dynamic_pressure;
-                  const double dynamic_topography = - sigma_rr / gravity.norm() / (density - density_above);
+                  const double dynamic_topography = - sigma_rr / (gravity_direction_binary * gravity.norm()) / (density - density_above);
 
                   // JxW provides the volume quadrature weights. This is a general formulation
                   // necessary for when a quadrature formula is used that has more than one point.

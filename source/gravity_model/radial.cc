@@ -218,12 +218,5 @@ namespace aspect
                                   "A gravity model which follows the model shown in figure 1 of "
                                   "Glisovic and Forte, Geoscience Frontiers, 2014. The only "
                                   "difference is that the negative of the plotted values is taken.")
-                                  "A gravity model which is radial (pointing inward if the gravity "
-                                  "is positive) and the magnitude decreases linearly with depth down "
-                                  "to zero at the maximal depth the geometry returns, as you would "
-                                  "get with a constant density spherical domain. (Note that this "
-                                  "would be for a full sphere, not a spherical shell.) The "
-                                  "magnitude of gravity at the surface is read from the input "
-                                  "file in a section ``Gravity model/Radial linear''.")
   }
 }

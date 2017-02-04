@@ -320,7 +320,7 @@ namespace aspect
         depth_values[i] = rcmb+(rmoho-rcmb)*0.5*(r[i]+1);
 
       // convert coordinates from [x,y,z] to [r, phi, theta]
-      std_cxx11::array<double,dim> scoord = aspect::Utilities::spherical_coordinates(position);
+      std_cxx11::array<double,dim> scoord = aspect::Utilities::Coordinates::cartesian_to_spherical_coordinates(position);
 
       // iterate over all degrees and orders at each depth and sum them all up.
       std::vector<double> spline_values(num_spline_knots,0);
@@ -332,22 +332,23 @@ namespace aspect
           for (int degree_l = 0; degree_l < maxdegree+1; degree_l++)
             {
               for (int order_m = 0; order_m < degree_l+1; order_m++)
-                {
-                  const double cos_component = boost::math::spherical_harmonic_r(degree_l,order_m,scoord[2],scoord[1]); //real / cos part
-                  const double sin_component = boost::math::spherical_harmonic_i(degree_l,order_m,scoord[2],scoord[1]); //imaginary / sine part
+                {                  //Evaluate the spherical harmonics at this position.
+                  //NOTE: there is apparently a factor of sqrt(2) difference
+                  //between the standard orthonormalized spherical harmonics
+                  //and those used for S40RTS (see PR # 966)
+                  const std::pair<double,double> sph_harm_vals = Utilities::real_spherical_harmonic( degree_l, order_m, scoord[2], scoord[1] );
+                  const double cos_component = sph_harm_vals.first;
+                  const double sin_component = sph_harm_vals.second;
 
-                  // normalization after Dahlen and Tromp, 1986, Appendix B.6
                   if (degree_l == 0)
                     prefact = (zero_out_degree_0
                                ?
                                0.
                                :
                                1.);
-          //        else if (order_m == 0)
-            //        prefact = 1.;
-                  else
-             //       prefact = sqrt(2.);
-                    prefact = 1.;
+                  else if (order_m != 0)
+                    prefact = 1./sqrt(2.);
+                  else prefact = 1.0;
 
                   spline_values[depth_interp] += prefact * (a_lm[ind]*cos_component + b_lm[ind]*sin_component);
 

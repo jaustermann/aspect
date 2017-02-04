@@ -73,19 +73,6 @@ namespace aspect
                                      -1;
 
 
-      // Check whether gravity is pointing up / out or down / in. In the normal case it should
-      // point down / in and therefore gravity should be positive, leading to increasing
-      // adiabatic pressures and temperatures with depth. In some cases it will point up / out
-      // (e.g. for backward advection), in which case the pressures and temperatures should
-      // decrease with depth and therefore gravity has to be negative in the following equations.
-      Tensor <1,dim> g = this->get_gravity_model().gravity_vector(this->get_geometry_model().representative_point(0));
-      const Point<dim> point_surf = this->get_geometry_model().representative_point(0);
-      const Point<dim> point_bot = this->get_geometry_model().representative_point(this->get_geometry_model().maximal_depth());
-      const int gravity_direction =  (g * (point_bot - point_surf) >= 0) ?
-                                     1 :
-                                     -1;
-
-
       // now integrate downward using the explicit Euler method for simplicity
       //
       // note: p'(z) = rho(p,T) * |g|
