@@ -99,184 +99,60 @@ namespace aspect
     }
 
 
-
-    template <int dim>
-    struct DynTopoData
-    {
-      DynTopoData(MPI_Comm mpi_communicator)
-      {
-
-        std::string temp;
-        // Read data from disk and distribute among processes
-        std::string filename = "/Users/jackyaustermann/Desktop/Aspect_code/aspect/data/adjoint-observations/dynamic_topography_observations.txt";
-        std::istringstream in(Utilities::read_and_distribute_file_content(filename, mpi_communicator));
-
-        getline(in,temp);  // throw away the rest of the line
-        getline(in,temp);  // throw away the rest of the line
-
-        int number_of_observations;
-        in >> number_of_observations;
-
-        for (int i=0; i<number_of_observations; i++)
-          {
-            double x_val, y_val, tempval;
-            in >> x_val;
-            in >> y_val;
-            Point<dim> point(x_val,y_val);
-            measurement_locations.push_back(point);
-
-            in >> tempval;
-            dynamic_topographies.push_back(tempval);
-
-            in >> tempval;
-            dynamic_topographies_sigma.push_back(tempval);
-          }
-      };
-
-      std::vector<double> dynamic_topographies;
-      std::vector<double>  dynamic_topographies_sigma;
-      std::vector <Point<dim>> measurement_locations;
-    };
-
-
     template <int dim>
     void
     StokesAssembler<dim>::
     adjoint_rhs (const typename DoFHandler<dim>::active_cell_iterator &cell,
                  const unsigned int                                    face_no,
-                 const double                                     pressure_scaling,
                  internal::Assembly::Scratch::StokesSystem<dim>       &scratch,
                  internal::Assembly::CopyData::StokesSystem<dim>      &data) const
     {
-      //only do this if we want the adjoint RHS
+     //only do this if we want the adjoint RHS
 
-      if (this->get_adjoint_problem() == true)
+     if (this->get_adjoint_problem() == true)
+     {
+     // read data in somewhere before this once, this will be the number of observations
+     // N, and then N locations (lon lat -> x,y,z), N magnitudes, and N uncertainties
+     // start with example here
+     // TODO: read in values
+   
+      const int num_DT_points = 1;
+      const double DT_mag ={10};
+      const double DT_sig = {1};
+      const Point<dim> DT_loc = {4450000, 4550000};
+
+      // find the surface face
+      unsigned int top_face_idx = numbers::invalid_unsigned_int;
+      for (unsigned int f=0; f<GeometryInfo<dim>::faces_per_cell; ++f)
+            if (this->get_geometry_model().depth (cell->face(f)->center()) < cell->face(f)->minimum_vertex_distance()/3)
+               {
+    
+      top_face_idx = f;
+
+      // get the midpoint at the surface face
+      const QMidpoint<dim> quadrature_formula;
+      const Point<dim> midpoint_at_surface = cell->face(top_face_idx)->center();
+
+      // loop over all DT observations to find whether the current cell has any observations in them
+      // if so add contribution to adjoint RHS
+      // TODO: current scheme doesn't fully extend to 3D
+
+      const unsigned int stokes_dofs_per_cell = data.local_dof_indices.size();
+
+        for (unsigned int j=0; j<num_DT_points; ++j)
         {
-
-          const Introspection<dim> &introspection = this->introspection();
-          const FiniteElement<dim> &fe = this->get_fe();
-          const unsigned int stokes_dofs_per_cell = data.local_dof_indices.size();
-
-          // read in data
-          static DynTopoData<dim> observations(this->get_mpi_communicator());
-
-          // find the top face
-          if (cell->face(face_no)->at_boundary()
-              &&
-              this->get_geometry_model().depth (cell->face(face_no)->center()) < cell->face(face_no)->minimum_vertex_distance()/3)
-            {
-              scratch.face_finite_element_values.reinit (cell, face_no);
-
-              this->compute_material_model_input_values (this->get_current_linearization_point(),
-                                                         scratch.face_finite_element_values,
-                                                         cell,
-                                                         true,
-                                                         scratch.face_material_model_inputs);
-
-              this->get_material_model().evaluate(scratch.face_material_model_inputs,
-                                                  scratch.face_material_model_outputs);
-
-
-              // ----------  Check whether there's an observation in the current cell  ---------------
-
-              // get the midpoint at the surface face
-              const QMidpoint<dim> quadrature_formula;
-              const Point<dim> midpoint_at_surface = cell->face(face_no)->center();
-
-              // loop over all DT observations to find whether the current cell has any observations in them
-              // if so add contribution to adjoint RHS
-              // TODO: current scheme doesn't fully extend to 3D
-
-
-              for (unsigned int j=0; j<observations.measurement_locations.size(); ++j)
-                {
-                  const Point<dim> next_measurement_location = observations.measurement_locations[j];
-                  if (next_measurement_location.distance(midpoint_at_surface) < cell->face(face_no)->minimum_vertex_distance()/2) //* sqrt(2))
-                    {
-
-
-                      // ----------  Calculate DT from forward solution ---------------
-
-                      // TODO - test changing to volume integral
-
-                      double dynamic_topography_x_surface = 0;
-                      double surface = 0;
-                      const double density_above = 0;
-
-                      // Compute the integral of the dynamic topography function
-                      // over the entire cell, by looping over all quadrature points
-                      for (unsigned int q=0; q<scratch.face_finite_element_values.n_quadrature_points; ++q)
-                        {
-                          const Point<dim> location = scratch.face_finite_element_values.quadrature_point(q);
-                          const double viscosity = scratch.face_material_model_outputs.viscosities[q];
-                          const double density   = scratch.face_material_model_outputs.densities[q];
-
-                          const SymmetricTensor<2,dim> strain_rate_in = scratch.face_material_model_inputs.strain_rate[q];
-                          const SymmetricTensor<2,dim> strain_rate = strain_rate_in - 1./3 * trace(strain_rate_in) * unit_symmetric_tensor<dim>();
-                          const SymmetricTensor<2,dim> shear_stress = 2 * viscosity * strain_rate;
-
-                          const Tensor<1,dim> gravity = this->get_gravity_model().gravity_vector (scratch.face_finite_element_values.quadrature_point(q));;
-                          const Tensor<1,dim> gravity_direction = gravity/gravity.norm();
-
-                          // Subtract the dynamic pressure
-                          const double dynamic_pressure   = scratch.face_material_model_inputs.pressure[q] - this->get_adiabatic_conditions().pressure(location);
-                          const double sigma_rr           = gravity_direction * (shear_stress * gravity_direction) - dynamic_pressure;
-                          const double dynamic_topography = - sigma_rr / gravity.norm() / (density - density_above);
-
-
-                          // JxW provides the volume quadrature weights. This is a general formulation
-                          // necessary for when a quadrature formula is used that has more than one point.
-                          dynamic_topography_x_surface += dynamic_topography * scratch.face_finite_element_values.JxW(q);
-                          surface += scratch.face_finite_element_values.JxW(q);
-                        }
-
-                      // NEED TO ACTUALLY CALCULATE THE AVERAGE
-                      const double average_dynamic_topography = 0;
-                      const double dynamic_topography_cell_average = dynamic_topography_x_surface / surface - average_dynamic_topography;
-
-                      std::cout << "*** DT at point 4450000, 4510254 is " << dynamic_topography_cell_average << std::endl;
-                      //std::cout << "*** Found face " << cell->face(face_no)->center() << std::endl;
-
-
-                      // ----------  Assemble RHS  ---------------
-
-                      for (unsigned int q=0; q<scratch.face_finite_element_values.n_quadrature_points; ++q)
-                        {
-
-
-                          for (unsigned int i=0, i_stokes=0; i_stokes<stokes_dofs_per_cell; /*increment at end of loop*/)
-                            {
-                              if (introspection.is_stokes_component(fe.system_to_component_index(i).first))
-                                {
-                                  scratch.phi_p[i_stokes] = scratch.finite_element_values[introspection.extractors.pressure].value (i, q);
-                                  scratch.grads_phi_u[i_stokes] = scratch.finite_element_values[introspection.extractors.velocities].symmetric_gradient(i,q);
-                                  ++i_stokes;
-                                }
-                              ++i;
-                            }
-
-
-                          const Tensor<1,dim> n_hat = scratch.face_finite_element_values.normal_vector(q);
-                          const Tensor<1,dim> gravity = this->get_gravity_model().gravity_vector (scratch.finite_element_values.quadrature_point(q));
-                          const double dens_surf = 3300;
-                          const double eta = scratch.material_model_outputs.viscosities[q];
-                          const double JxW = scratch.face_finite_element_values.JxW(q);
-
-                          for (unsigned int i=0; i<stokes_dofs_per_cell; ++i)
-                            {
-                              data.local_rhs(i) += (dynamic_topography_cell_average - observations.dynamic_topographies[j])/observations.dynamic_topographies_sigma[j]
-                                                   * (2.0*eta *(n_hat * (scratch.grads_phi_u[i] * n_hat))
-                                                      -  pressure_scaling *scratch.phi_p[i]) / (dens_surf* gravity*n_hat)
-                                                   *JxW / surface;
-                            }
-                        }
-                      //std::cout << "*** " << data.local_rhs.l2_norm() << std::endl;
-                    }
-                }
-
+          if (DT_loc.distance(midpoint_at_surface) < cell->face(top_face_idx)->minimum_vertex_distance()/2); // * sqrt(2))
+          {
+            for (unsigned int i=0; i<stokes_dofs_per_cell; ++i)
+              {
+    //           data.local_rhs(i) += -5;
+              }
             }
+         }
+       break;
+               }
 
-        }
+      }
     }
 
 
@@ -333,9 +209,9 @@ namespace aspect
 
           for (unsigned int i=0; i<stokes_dofs_per_cell; ++i)
             {
-              data.local_rhs(i) += (this->get_adjoint_problem() ? 0 :
+               data.local_rhs(i) += (this->get_adjoint_problem() ? 0 :
                                     (density * gravity * scratch.phi_u[i])
-                                    * JxW);
+                                   * JxW);
 
               if (rebuild_stokes_matrix)
                 for (unsigned int j=0; j<stokes_dofs_per_cell; ++j)

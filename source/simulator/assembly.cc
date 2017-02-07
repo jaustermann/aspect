@@ -706,6 +706,20 @@ namespace aspect
     assembler_objects.push_back (std_cxx11::shared_ptr<internal::Assembly::Assemblers::AssemblerBase<dim> >
                                  (adv_assembler));
 
+    // set this to zero within stokes if adjoint problem is zero
+    assemblers->stokes_system_assembler_on_boundary_face_properties.needed_update_flags = (update_values  | update_quadrature_points |
+        update_normal_vectors | update_gradients |
+        update_JxW_values);
+
+    assemblers->local_assemble_stokes_system_on_boundary_face
+    .connect (std_cxx11::bind(&aspect::Assemblers::StokesAssembler<dim>::adjoint_rhs,
+                              std_cxx11::cref (*stokes_assembler),
+                              std_cxx11::_1,
+                              std_cxx11::_2,
+                              std_cxx11::_3,
+                              // discard rebuild_stokes_matrix,
+                              std_cxx11::_5,
+                              std_cxx11::_6));
 
     if (parameters.include_melt_transport)
       assembler_objects.push_back (std_cxx11::shared_ptr<internal::Assembly::Assemblers::AssemblerBase<dim> >
@@ -1167,6 +1181,7 @@ namespace aspect
 
 
 
+
   template <int dim>
   void Simulator<dim>::assemble_stokes_system ()
   {
@@ -1266,7 +1281,6 @@ namespace aspect
         make_pressure_rhs_compatible(system_rhs);
       }
 
-
     // record that we have just rebuilt the matrix
     rebuild_stokes_matrix = false;
 
@@ -1300,6 +1314,18 @@ namespace aspect
     preconditioner.reset (new LinearAlgebra::PreconditionILU());
     preconditioner->initialize (system_matrix.block(block_idx, block_idx));
     computing_timer.exit_section();
+  }
+
+
+
+  template <int dim>
+  void
+  Simulator<dim>::
+  calculate_kernels ()
+  {
+
+
+
   }
 
 
@@ -1669,8 +1695,8 @@ namespace aspect
                                                                       const bool                                             compute_strainrate, \
                                                                       MaterialModel::MaterialModelInputs<dim>               &material_model_inputs) const; \
   template void Simulator<dim>::create_additional_material_model_outputs(MaterialModel::MaterialModelOutputs<dim> &outputs) const; \
+  template void Simulator<dim>::calculate_kernels (); \
    
-
 
   ASPECT_INSTANTIATE(INSTANTIATE)
 }

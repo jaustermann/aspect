@@ -184,6 +184,11 @@ namespace aspect
       get_pcout () const;
 
       /**
+       * Return the current problem (forward or adjoint).
+       */
+      bool get_adjoint_problem () const;
+
+      /**
        * Return the current simulation time in seconds.
        */
       double get_time () const;
@@ -339,6 +344,10 @@ namespace aspect
        */
       const LinearAlgebra::BlockVector &
       get_current_linearization_point () const;
+
+
+      const LinearAlgebra::BlockVector &
+      get_current_adjoint_solution () const;
 
       /**
        * Return a reference to the vector that has the current solution of the

@@ -736,6 +736,9 @@ namespace aspect
                                        internal::Assembly::Scratch::AdvectionSystem<dim>  &scratch,
                                        internal::Assembly::CopyData::AdvectionSystem<dim> &data);
 
+      void
+      calculate_kernels ();
+
       /**
        * Copy the contribution to the advection system from a single cell into
        * the global matrix that stores these elements.
@@ -750,7 +753,6 @@ namespace aspect
       /**
        * @}
        */
-
       /**
        * @name Helper functions
        * @{
@@ -1274,6 +1276,7 @@ namespace aspect
       double                                                    old_time_step;
       unsigned int                                              timestep_number;
       unsigned int                                              pre_refinement_step;
+      bool              adjoint_problem;
       /**
        * @}
        */
@@ -1374,6 +1377,7 @@ namespace aspect
       LinearAlgebra::BlockVector                                system_rhs;
 
       LinearAlgebra::BlockVector                                current_linearization_point;
+      LinearAlgebra::BlockVector                                current_adjoint_solution;
 
       // only used if is_compressible()
       LinearAlgebra::BlockVector                                pressure_shape_function_integrals;

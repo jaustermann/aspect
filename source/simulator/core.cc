@@ -614,7 +614,9 @@ namespace aspect
     // there is no open boundary to balance the pressure.
     do_pressure_rhs_compatibility_modification = ((material_model->is_compressible() && !parameters.include_melt_transport)
                                                   ||
-                                                  (parameters.include_melt_transport && !material_model->is_compressible()))
+                                                  (parameters.include_melt_transport && !material_model->is_compressible())
+                                                  ||
+                                                  parameters.nonlinear_solver == NonlinearSolver::Stokes_adjoint)
                                                  &&
                                                  (open_velocity_boundary_indicators.size() == 0);
 
@@ -1470,6 +1472,7 @@ namespace aspect
     old_solution.reinit(introspection.index_sets.system_partitioning, introspection.index_sets.system_relevant_partitioning, mpi_communicator);
     old_old_solution.reinit(introspection.index_sets.system_partitioning, introspection.index_sets.system_relevant_partitioning, mpi_communicator);
     current_linearization_point.reinit (introspection.index_sets.system_partitioning, introspection.index_sets.system_relevant_partitioning, mpi_communicator);
+    current_adjoint_solution.reinit (introspection.index_sets.system_partitioning, introspection.index_sets.system_relevant_partitioning, mpi_communicator);
 
     if (do_pressure_rhs_compatibility_modification)
       pressure_shape_function_integrals.reinit (introspection.index_sets.system_partitioning, mpi_communicator);
@@ -2012,6 +2015,79 @@ namespace aspect
 
           break;
         }
+
+
+        case NonlinearSolver::Stokes_adjoint:
+        {
+          // residual vector (only for the velocity)
+          LinearAlgebra::Vector residual (introspection.index_sets.system_partitioning[0], mpi_communicator);
+          // LinearAlgebra::Vector tmp (introspection.index_sets.system_partitioning[0], mpi_communicator);
+
+          // ...and then iterate the solution of the Stokes system
+          double initial_stokes_residual = 0;
+          for (unsigned int i=0; i<1; ++i)
+            {
+              // -------------------------------------------------------------
+              // forward problem
+              adjoint_problem = false;
+              rebuild_stokes_matrix = rebuild_stokes_preconditioner = true;
+
+              assemble_stokes_system();
+              build_stokes_preconditioner();
+
+              solve_stokes(); // solves Ax=b, puts x into 'solution'
+
+              // put 'solution' into 'current_linearization_point' (=u/p)
+              current_linearization_point.block(introspection.block_indices.velocities)
+                = solution.block(introspection.block_indices.velocities);
+              if (introspection.block_indices.velocities != introspection.block_indices.pressure)
+                current_linearization_point.block(introspection.block_indices.pressure)
+                  = solution.block(introspection.block_indices.pressure);
+
+              // -------------------------------------------------------------
+              // adjoint problem
+              adjoint_problem = true;
+              rebuild_stokes_matrix = rebuild_stokes_preconditioner = false;
+
+              assemble_stokes_system(); // need to adjust this function
+
+              solve_stokes();  // solve Ax=b_adj
+
+              // put 'solution' into 'current_adjoint_solution' (=lambda_u/lambda_p)
+              current_adjoint_solution.block(introspection.block_indices.velocities)
+                = solution.block(introspection.block_indices.velocities);
+              if (introspection.block_indices.velocities != introspection.block_indices.pressure)
+                current_adjoint_solution.block(introspection.block_indices.pressure)
+                  = solution.block(introspection.block_indices.pressure);
+
+
+              solution.block(introspection.block_indices.velocities) =
+                current_linearization_point.block(introspection.block_indices.velocities);
+              if (introspection.block_indices.velocities != introspection.block_indices.pressure)
+                solution.block(introspection.block_indices.pressure)
+                  = current_linearization_point.block(introspection.block_indices.pressure);
+
+              // -------------------------------------------------------------
+              // compute updates for eta,rho
+              //...
+
+
+              // TODO save misfit as function of iteration number
+
+
+              // calculate kernels for viscosity and density
+              // calculate_kernels();
+
+              // update initial guess for density and viscosity with kernels, e.g. gradient descent.
+
+
+
+              pcout << std::endl;
+            }
+
+          break;
+        }
+
 
         case NonlinearSolver::Stokes_only:
         {

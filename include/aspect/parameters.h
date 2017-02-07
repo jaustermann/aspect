@@ -68,6 +68,7 @@ namespace aspect
         iterated_IMPES,
         iterated_Stokes,
         Stokes_only,
+        Stokes_adjoint,
         Advection_only
       };
     };

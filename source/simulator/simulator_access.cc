@@ -107,6 +107,12 @@ namespace aspect
   }
 
   template <int dim>
+  bool SimulatorAccess<dim>::get_adjoint_problem () const
+  {
+    return simulator->adjoint_problem;
+  }
+
+  template <int dim>
   double SimulatorAccess<dim>::get_time () const
   {
     return simulator->time;
@@ -267,6 +273,13 @@ namespace aspect
   SimulatorAccess<dim>::get_current_linearization_point () const
   {
     return simulator->current_linearization_point;
+  }
+
+  template <int dim>
+  const LinearAlgebra::BlockVector &
+  SimulatorAccess<dim>::get_current_adjoint_solution () const
+  {
+    return simulator->current_adjoint_solution;
   }
 
   template <int dim>
