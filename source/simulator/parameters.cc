@@ -151,7 +151,7 @@ namespace aspect
                        "heat conduction in determining the length of each time step.");
 
     prm.declare_entry ("Nonlinear solver scheme", "IMPES",
-                       Patterns::Selection ("IMPES|iterated IMPES|iterated Stokes|Stokes only|Advection only"),
+                       Patterns::Selection ("IMPES|iterated IMPES|iterated Stokes|Stokes adjoint|Stokes only|Advection only"),
                        "The kind of scheme used to resolve the nonlinearity in the system. "
                        "'IMPES' is the classical IMplicit Pressure Explicit Saturation scheme "
                        "in which ones solves the temperatures and Stokes equations exactly "
@@ -694,7 +694,7 @@ namespace aspect
                          "discontinuous field. "
                          "Units: None.");
       prm.declare_entry ("Composition polynomial degree", "2",
-                         Patterns::Integer (1),
+                         Patterns::Integer (0),
                          "The polynomial degree to use for the composition variable(s). "
                          "As an example, a value of 2 for this parameter will yield "
                          "either the element $Q_2$ or $DGQ_2$ for the compositional "
@@ -967,6 +967,8 @@ namespace aspect
       nonlinear_solver = NonlinearSolver::iterated_Stokes;
     else if (prm.get ("Nonlinear solver scheme") == "Stokes only")
       nonlinear_solver = NonlinearSolver::Stokes_only;
+    else if (prm.get ("Nonlinear solver scheme") == "Stokes adjoint")
+      nonlinear_solver = NonlinearSolver::Stokes_adjoint;
     else if (prm.get ("Nonlinear solver scheme") == "Advection only")
       nonlinear_solver = NonlinearSolver::Advection_only;
     else

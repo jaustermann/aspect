@@ -734,6 +734,12 @@ namespace aspect
                         internal::Assembly::Scratch::StokesPreconditioner<dim>  &scratch,
                         internal::Assembly::CopyData::StokesPreconditioner<dim> &data) const;
 
+        void
+        adjoint_rhs (const typename DoFHandler<dim>::active_cell_iterator &cell,
+                     const unsigned int                                    face_no,
+                     const double                                             pressure_scaling,
+                     internal::Assembly::Scratch::StokesSystem<dim>       &scratch,
+                     internal::Assembly::CopyData::StokesSystem<dim>      &data) const;
         /**
          * This function assembles the terms for the matrix and right-hand-side of the incompressible
          * Stokes equation for the current cell.
