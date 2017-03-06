@@ -208,12 +208,13 @@ namespace aspect
               // if so add contribution to adjoint RHS
               // TODO: current scheme doesn't fully extend to 3D
 
-
-              for (unsigned int j=0; j<observations.measurement_locations.size(); ++j)
-                {
-                  const Point<dim> next_measurement_location = observations.measurement_locations[j];
-                  if (next_measurement_location.distance(midpoint_at_surface) < cell->face(face_no)->minimum_vertex_distance()/2) //* sqrt(2))
-                    {
+ 
+              //COMMENT BACK IN
+            //  for (unsigned int j=0; j<observations.measurement_locations.size(); ++j)
+            //    {
+            //      const Point<dim> next_measurement_location = observations.measurement_locations[j];
+            //      if (next_measurement_location.distance(midpoint_at_surface) < cell->face(face_no)->minimum_vertex_distance()/2) //* sqrt(2))
+            //        {
 
 
                       // ----------  Calculate DT from forward solution ---------------
@@ -255,7 +256,7 @@ namespace aspect
                       const double average_dynamic_topography = 0;
                       const double dynamic_topography_cell_average = dynamic_topography_x_surface / surface - average_dynamic_topography;
 
-                      std::cout << "*** DT at point 4450000, 4510254 is " << dynamic_topography_cell_average << std::endl;
+//                      std::cout << "*** DT at point 4450000, 4510254 is " << dynamic_topography_cell_average << std::endl;
                       //std::cout << "*** Found face " << cell->face(face_no)->center() << std::endl;
 
 
@@ -285,15 +286,18 @@ namespace aspect
 
                           for (unsigned int i=0; i<stokes_dofs_per_cell; ++i)
                             {
-                              data.local_rhs(i) += (dynamic_topography_cell_average - observations.dynamic_topographies[j])/observations.dynamic_topographies_sigma[j]
+                              data.local_rhs(i) += dynamic_topography_cell_average  //100.0 //dynamic_topography_cell_average 
+//COMMENT BACK IN
+//(dynamic_topography_cell_average - observations.dynamic_topographies[j])/observations.dynamic_topographies_sigma[j]
                                                    * (2.0*eta *(n_hat * (scratch.grads_phi_u[i] * n_hat))
                                                       -  pressure_scaling *scratch.phi_p[i]) / (dens_surf* gravity*n_hat)
                                                    *JxW / surface;
                             }
                         }
                       //std::cout << "*** " << data.local_rhs.l2_norm() << std::endl;
-                    }
-                }
+//COMMENT BACK IN
+              //      }
+              //  }
 
             }
 
