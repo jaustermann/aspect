@@ -123,7 +123,7 @@ namespace aspect
 
       std::vector <double> kernel_density;
       std::vector <double> kernel_viscosity;
-      std::vector< Point<dim>> location;
+      std::vector<Point<dim> > location;
 
 //      double viscosity_kernel_term = 0;
 //      double density_kernel_term = 0;
