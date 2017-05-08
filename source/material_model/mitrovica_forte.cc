@@ -29,8 +29,8 @@ using namespace dealii;
 namespace aspect
 {
   namespace MaterialModel
-  { 
-    
+  {
+
     namespace internal
     {
       class RadialViscosityLookup
@@ -55,7 +55,7 @@ namespace aspect
                 if (in.eof())
                   break;
                 in >> depth;
-		//depth *= 6371000; //don't hard code it?
+                //depth *= 6371000; //don't hard code it?
                 depth *=1000.0;
                 getline(in, temp);
 
@@ -65,10 +65,10 @@ namespace aspect
                 values.push_back(visc);
                 depthvalues.push_back(depth);
               }
-           // delta_depth = (max_depth-min_depth)/(values.size()-1);
+            // delta_depth = (max_depth-min_depth)/(values.size()-1);
           }
 
-       double radial_viscosity(double depth)
+          double radial_viscosity(double depth)
           {
 
             std::vector<double> depth_diff (values.size(), 0);
@@ -78,25 +78,25 @@ namespace aspect
             Assert(depth>=min_depth, ExcMessage("not in range"));
             Assert(depth<=max_depth, ExcMessage("not in range"));
             //const unsigned int idx = static_cast<unsigned int>((depth-min_depth)/delta_depth);
-            
+
             for (int i = 0; i < values.size(); i++)
-               depth_diff[i] = std::abs(depthvalues[i] - depth);
-            
+              depth_diff[i] = std::abs(depthvalues[i] - depth);
+
             double depth_val = 1e7;
             for (int i = 0; i < values.size(); i++)
-               depth_val = std::min(depth_diff[i],depth_val);
-	    
-	    unsigned int idx = values.size();
+              depth_val = std::min(depth_diff[i],depth_val);
+
+            unsigned int idx = values.size();
             for (int i = 0; i < values.size(); i++)
-               if (depth_val == std::abs(depthvalues[i] - depth))
-                  idx = i;
-	    
+              if (depth_val == std::abs(depthvalues[i] - depth))
+                idx = i;
+
             Assert(idx<values.size(), ExcMessage("not in range"));
             return values[idx];
           }
 
         private:
-	  std::vector<double> depthvalues;
+          std::vector<double> depthvalues;
           std::vector<double> values;
           double min_depth;
           //double delta_depth;
@@ -136,7 +136,7 @@ namespace aspect
     {
       const double depth = this->get_geometry_model().depth(position);
 
-      // For now limit viscosity model to only vary with depth. 
+      // For now limit viscosity model to only vary with depth.
 
       //const unsigned int idx = static_cast<unsigned int>((avg_temp.size()-1) * depth / this->get_geometry_model().maximal_depth());
       //const double delta_temperature = temperature-avg_temp[idx];
@@ -147,7 +147,7 @@ namespace aspect
 
       // Scaling from temperature to viscosity
       //const double vis_lateral_exp = - temp_to_visc * delta_temperature;
-     
+
       // Limit the lateral viscosity variation to a reasonable interval
       //const double vis_lateral = std::max(std::min(std::exp(vis_lateral_exp),max_lateral_eta_variation),1/max_lateral_eta_variation);
 
@@ -158,7 +158,7 @@ namespace aspect
       return eta;
     }
 
-    
+
     // Reference viscosity is needed for some pressure scaling
     template <int dim>
     double
@@ -227,26 +227,29 @@ namespace aspect
       depth_val[3] = 2890000;
 
       if (depth < depth_val[1])
-       {B_val = (cond_val[0] - cond_val[1])/(depth_val[0] - depth_val[1]);
-        A_val = cond_val[0] - B_val * depth_val[0];
-        thermal_cond_val = A_val + B_val * depth;
+        {
+          B_val = (cond_val[0] - cond_val[1])/(depth_val[0] - depth_val[1]);
+          A_val = cond_val[0] - B_val * depth_val[0];
+          thermal_cond_val = A_val + B_val * depth;
         }
 
       if (depth >= depth_val[1])
-       if (depth < depth_val[2])
-       {B_val = (cond_val[1] - cond_val[2])/(depth_val[1] - depth_val[2]);
-        A_val = cond_val[1] - B_val * depth_val[1];
-        thermal_cond_val = A_val + B_val * depth;
-        }   
+        if (depth < depth_val[2])
+          {
+            B_val = (cond_val[1] - cond_val[2])/(depth_val[1] - depth_val[2]);
+            A_val = cond_val[1] - B_val * depth_val[1];
+            thermal_cond_val = A_val + B_val * depth;
+          }
 
       if (depth >= depth_val[2])
-       {B_val = (cond_val[2] - cond_val[3])/(depth_val[2] - depth_val[3]);
-        A_val = cond_val[2] - B_val * depth_val[2];
-        thermal_cond_val = A_val + B_val * depth;
+        {
+          B_val = (cond_val[2] - cond_val[3])/(depth_val[2] - depth_val[3]);
+          A_val = cond_val[2] - B_val * depth_val[2];
+          thermal_cond_val = A_val + B_val * depth;
         }
 
-      if(thermal_cond_constant == true)
-       thermal_cond_val = k_value;
+      if (thermal_cond_constant == true)
+        thermal_cond_val = k_value;
 
       return thermal_cond_val;
     }
@@ -272,43 +275,43 @@ namespace aspect
       const double norm_rad = (6371000 - depth)/6371000;
 
       // Lower Mantle below 670km
-      if(depth > (6371000 - 5701000))
+      if (depth > (6371000 - 5701000))
         reference_rho_PREM = 7.9565 - 6.4761 *norm_rad + 5.5283 *norm_rad *norm_rad - 3.0807 *norm_rad *norm_rad *norm_rad;
 
       // Transition zone 670 - 600km
-      if(depth > (6371000 - 5771000))
+      if (depth > (6371000 - 5771000))
         if (depth <= (6371000 - 5701000))
-        reference_rho_PREM = 5.3197 - 1.4836 *norm_rad;
+          reference_rho_PREM = 5.3197 - 1.4836 *norm_rad;
 
       // Transition zone 600 - 400km
-      if(depth > (6371000 - 5971000))
+      if (depth > (6371000 - 5971000))
         if (depth <= (6371000 - 5771000))
-        reference_rho_PREM = 11.2494 - 8.0298 *norm_rad;
+          reference_rho_PREM = 11.2494 - 8.0298 *norm_rad;
 
       // Upper mantle 400 - 220km
-      if(depth > (6371000 - 6151000))
+      if (depth > (6371000 - 6151000))
         if (depth <= (6371000 - 5971000))
-        reference_rho_PREM = 7.1089 - 3.8045 *norm_rad;
- 
+          reference_rho_PREM = 7.1089 - 3.8045 *norm_rad;
+
 // model after Tromp
       // 220km to 24.4km
-    //  if(depth > (6371000 - 6346600))
-    //    if (depth <= (6371000 - 6151000))
-    //    reference_rho_PREM = 7.285 - 4.0 *norm_rad;
+      //  if(depth > (6371000 - 6346600))
+      //    if (depth <= (6371000 - 6151000))
+      //    reference_rho_PREM = 7.285 - 4.0 *norm_rad;
 
       // LVZ & LID
 //      if(depth > (6371000 - 6346600))
-      if(depth > (6371000 - 6271000))
+      if (depth > (6371000 - 6271000))
         if (depth <= (6371000 - 6151000))
-        reference_rho_PREM = 2.6910 + 0.6924 *norm_rad;
+          reference_rho_PREM = 2.6910 + 0.6924 *norm_rad;
 
-     //this is not PREM since its transversely isotropic in that region ... just interpolated between 3.4 and 2.9
-   //   if(depth <= (6371000 - 6151000))
-   //     reference_rho_PREM = 17.18 - 14.29 *norm_rad;
+      //this is not PREM since its transversely isotropic in that region ... just interpolated between 3.4 and 2.9
+      //   if(depth <= (6371000 - 6151000))
+      //     reference_rho_PREM = 17.18 - 14.29 *norm_rad;
 
       // Crust down to 24.4km
-     // if(depth <= (6371000 - 6346600))
-      if(depth <= (6371000 - 6271000))
+      // if(depth <= (6371000 - 6346600))
+      if (depth <= (6371000 - 6271000))
         reference_rho_PREM = 3.2; //2.6;
 
       reference_rho_PREM *= 1000;
@@ -328,37 +331,39 @@ namespace aspect
       depth_val[2] = 2890000;
 
       if (depth < 670000)
-       {B_val = (alpha_val[0] - alpha_val[1])/(depth_val[0] - depth_val[1]);
-        A_val = alpha_val[0] - B_val * depth_val[0];
-        thermal_alpha_val = A_val + B_val * depth;
+        {
+          B_val = (alpha_val[0] - alpha_val[1])/(depth_val[0] - depth_val[1]);
+          A_val = alpha_val[0] - B_val * depth_val[0];
+          thermal_alpha_val = A_val + B_val * depth;
         }
 
       if (depth >= 670000)
-       {B_val = (alpha_val[1] - alpha_val[2])/(depth_val[1] - depth_val[2]);
-        A_val = alpha_val[1] - B_val * depth_val[1];
-        thermal_alpha_val = A_val + B_val * depth;
+        {
+          B_val = (alpha_val[1] - alpha_val[2])/(depth_val[1] - depth_val[2]);
+          A_val = alpha_val[1] - B_val * depth_val[1];
+          thermal_alpha_val = A_val + B_val * depth;
         }
 
-      if(thermal_alpha_constant == true)
+      if (thermal_alpha_constant == true)
         thermal_alpha_val = thermal_alpha;
 
       // don't need to account for compressibility, that's already in PREM
       //double rho = reference_rho_PREM * std::exp(reference_compressibility * (pressure - this->get_surface_pressure()));
-      double rho = 
-      (reference_rho_constant
-       ?
-       reference_rho * std::exp(reference_compressibility * (pressure - this
-->get_surface_pressure()))
-       :
-       reference_rho_PREM); 
-     // if (this->get_adiabatic_conditions().is_initialized())
-     //   {       
-         // temperature in reference to the depth average, not the adiabatic value -> not good in boundary layers
-         //const unsigned int idx = static_cast<unsigned int>((avg_temp.size()-1) * depth / this->get_geometry_model().maximal_depth());
-         //rho *= (1 - thermal_alpha_val * (temperature - avg_temp[idx]));
-         rho *= (1 - thermal_alpha * (temperature - this->get_adiabatic_conditions().temperature(position)));
-     //    }
-     //    MAKE SURE DEPTH AVERAGE IS ACTUAL PREM??!
+      double rho =
+        (reference_rho_constant
+         ?
+         reference_rho * std::exp(reference_compressibility * (pressure - this
+                                                               ->get_surface_pressure()))
+         :
+         reference_rho_PREM);
+      // if (this->get_adiabatic_conditions().is_initialized())
+      //   {
+      // temperature in reference to the depth average, not the adiabatic value -> not good in boundary layers
+      //const unsigned int idx = static_cast<unsigned int>((avg_temp.size()-1) * depth / this->get_geometry_model().maximal_depth());
+      //rho *= (1 - thermal_alpha_val * (temperature - avg_temp[idx]));
+      rho *= (1 - thermal_alpha * (temperature - this->get_adiabatic_conditions().temperature(position)));
+      //    }
+      //    MAKE SURE DEPTH AVERAGE IS ACTUAL PREM??!
       return rho;
     }
 
@@ -385,18 +390,20 @@ namespace aspect
       depth_val[2] = 2890000;
 
       if (depth < 670000)
-       {B_val = (alpha_val[0] - alpha_val[1])/(depth_val[0] - depth_val[1]);
-        A_val = alpha_val[0] - B_val * depth_val[0];
-        thermal_alpha_val = A_val + B_val * depth; 
+        {
+          B_val = (alpha_val[0] - alpha_val[1])/(depth_val[0] - depth_val[1]);
+          A_val = alpha_val[0] - B_val * depth_val[0];
+          thermal_alpha_val = A_val + B_val * depth;
         }
 
       if (depth >= 670000)
-       {B_val = (alpha_val[1] - alpha_val[2])/(depth_val[1] - depth_val[2]);
-        A_val = alpha_val[1] - B_val * depth_val[1];
-        thermal_alpha_val = A_val + B_val * depth;
-       }        
+        {
+          B_val = (alpha_val[1] - alpha_val[2])/(depth_val[1] - depth_val[2]);
+          A_val = alpha_val[1] - B_val * depth_val[1];
+          thermal_alpha_val = A_val + B_val * depth;
+        }
 
-      if(thermal_alpha_constant == true)
+      if (thermal_alpha_constant == true)
         thermal_alpha_val = thermal_alpha;
 
       return thermal_alpha_val;
@@ -487,7 +494,7 @@ namespace aspect
                              "Reference density $\\rho_0$. Units: $kg/m^3$.");
           prm.declare_entry ("Reference viscosity", "1e21",
                              Patterns::Double (0),
-                            "The value of the constant viscosity $\\eta_0$. Units: $kg/m/s$.");
+                             "The value of the constant viscosity $\\eta_0$. Units: $kg/m/s$.");
           prm.declare_entry ("Thermal conductivity", "4.7",
                              Patterns::Double (0),
                              "The value of the thermal conductivity $k$. "
@@ -512,9 +519,9 @@ namespace aspect
                              "compiled. This interpretation allows, for example, to reference "
                              "files located in the 'data/' subdirectory of ASPECT. ");
           prm.declare_entry("Radial viscosity file name", "Gurnis_Z50.txt",
-          //prm.declare_entry ("Radial viscosity file name", "rad_viscosity-source-data.txt",
-                             Patterns::Anything (),
-                             "The file name of the radial viscosity data. ");  
+                            //prm.declare_entry ("Radial viscosity file name", "rad_viscosity-source-data.txt",
+                            Patterns::Anything (),
+                            "The file name of the radial viscosity data. ");
           prm.declare_entry ("Minimum viscosity", "1e19",
                              Patterns::Double(0),
                              "The minimum viscosity that is allowed in the viscosity "

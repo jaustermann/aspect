@@ -59,40 +59,40 @@ namespace aspect
       endc = this->get_dof_handler().end();
       unsigned int i=0;
 
-/*      // Find volume of surface cell
-      double vol_surface_cell;
+      /*      // Find volume of surface cell
+            double vol_surface_cell;
+            for (; cell!=endc; ++cell, ++i)
+              if (cell->is_locally_owned())
+                if (cell->at_boundary())
+                {
+                  for (unsigned int f=0; f<GeometryInfo<dim>::faces_per_cell; ++f)
+                     if (cell->at_boundary(f) && this->get_geometry_model().depth (cell->face(f)->center()) < cell->face(f)->minimum_vertex_distance()/3)
+                        {
+                          vol_surface_cell = fe_values.JxW(0);
+                          break;
+                        }
+                   break;
+                 }
+
+            const double ref_depth = std::pow(vol_surface_cell, 1/3.) * 4.0;
+      */
+      const double ref_depth = 1000000;
+
       for (; cell!=endc; ++cell, ++i)
         if (cell->is_locally_owned())
-          if (cell->at_boundary())
-          { 
-            for (unsigned int f=0; f<GeometryInfo<dim>::faces_per_cell; ++f)
-               if (cell->at_boundary(f) && this->get_geometry_model().depth (cell->face(f)->center()) < cell->face(f)->minimum_vertex_distance()/3) 
-                  {
-                    vol_surface_cell = fe_values.JxW(0);
-                    break;
-                  }
-             break;
-           }
-
-      const double ref_depth = std::pow(vol_surface_cell, 1/3.) * 4.0;
-*/
-      const double ref_depth = 1000000;     
-
-      for (; cell!=endc; ++cell, ++i)
-        if (cell->is_locally_owned())
-          { 
+          {
             fe_values.reinit (cell);
             const double depth = this->get_geometry_model().depth(fe_values.quadrature_point(0));
             if (depth <= ref_depth)//1000000)
               indicators(i) = 1.0;
-         //   else
-         //     indicators(i) = 0.1;
+            //   else
+            //     indicators(i) = 0.1;
 
-         //   if (depth <= 1125000 && depth > 655)
-         //     indicators(i) = 0.5;
+            //   if (depth <= 1125000 && depth > 655)
+            //     indicators(i) = 0.5;
 
-         //   if (cell->at_boundary() && depth < cell->diameter())
-         //     indicators(i) = 1.0;
+            //   if (cell->at_boundary() && depth < cell->diameter())
+            //     indicators(i) = 1.0;
           }
     }
   }
