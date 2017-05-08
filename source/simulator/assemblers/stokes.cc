@@ -188,7 +188,7 @@ namespace aspect
               // TODO: current scheme doesn't fully extend to 3D
 
  
-              //COMMENT BACK IN
+              //COMMENT BACK IN FOR POINT KERNELS
             //  for (unsigned int j=0; j<observations.measurement_locations.size(); ++j)
             //    {
             //      const Point<dim> next_measurement_location = observations.measurement_locations[j];
