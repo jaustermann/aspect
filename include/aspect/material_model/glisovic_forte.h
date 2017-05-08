@@ -50,7 +50,7 @@ namespace aspect
     template <int dim>
     class GlisovicForte : public MaterialModel::InterfaceCompatibility<dim>, public ::aspect::SimulatorAccess<dim>
     {
-     public:
+      public:
         /**
         * Initialization function. Loads the material data and sets up
         * pointers.
@@ -166,13 +166,13 @@ namespace aspect
          * @name Reference quantities
          * @{
          */
-        virtual double reference_density () const;
+//        virtual double reference_density () const;
 
         virtual double reference_viscosity () const;
 
-        virtual double reference_thermal_expansion_coefficient () const;
+//        virtual double reference_thermal_expansion_coefficient () const;
 
-        double reference_thermal_diffusivity () const;
+//        double reference_thermal_diffusivity () const;
 
         double reference_cp () const;
         /**
@@ -201,6 +201,9 @@ namespace aspect
          */
 
       private:
+
+        double reference_temperature;
+
         /**
          * The reference surface temperature
          */
@@ -249,16 +252,16 @@ namespace aspect
         /**
          * Scaling of temperature into viscosity.
          */
-        double temp_to_visc;  
+        double temp_to_visc;
 
         /**
          * Average temperature at given depth.
          */
-        std::vector<double> avg_temp;     
+        std::vector<double> avg_temp;
 
         /**
          * Directory and file for viscosity model.
-         */ 
+         */
         std::string datadirectory;
         std::string radial_viscosity_file_name;
 
@@ -267,11 +270,11 @@ namespace aspect
          * viscosity profile.
          */
         std_cxx1x::shared_ptr<internal::RadialViscosityLookup> radial_viscosity_lookup;
-           
+
         bool thermal_cond_constant;
         bool reference_rho_constant;
         bool thermal_alpha_constant;
-        bool thermal_diff_off;
+//        bool thermal_diff_off;
         bool adiabat_temp;
         double vis_lat_cutoff;
     };

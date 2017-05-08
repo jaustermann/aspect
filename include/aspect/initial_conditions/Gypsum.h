@@ -33,14 +33,14 @@ namespace aspect
 
     namespace internal
     {
-       class GypsumLookup;
-       class VsToDensityLookup;
-       class GeothermLookup;
+      class GypsumLookup;
+      class VsToDensityLookup;
+      class GeothermLookup;
     }
 
     /**
      * A class that describes a perturbed initial temperature field for a spherical
-     * shell geometry model. The perturbation is based on the S20RTS / S40RTS 
+     * shell geometry model. The perturbation is based on the S20RTS / S40RTS
      * global shear wave velocity model by Ritsema et al.
      * http://www.earth.lsa.umich.edu/~jritsema/research.html
      *
@@ -63,9 +63,9 @@ namespace aspect
          */
         //GeothermValues<dim>();
 
-         /**
-         * Return the initial temperature as a function of position.
-         */
+        /**
+        * Return the initial temperature as a function of position.
+        */
         virtual
         double initial_temperature (const Point<dim> &position) const;
 
@@ -91,17 +91,17 @@ namespace aspect
          */
         static std_cxx1x::array<double,dim>
         spherical_surface_coordinates(const dealii::Point<dim,double> &position);
-        
+
         /**
          * File directory and names
          */
         std::string datadirectory;
-        
+
         /**
          * This parameter allows setting the input file for the shear-wave perturbation. Options so far
          * are S20RTS.sph and S40RTS.sph. For S40RTS there are different versions available that differ
          * by the degree of damping in the seismic inversion. These models could be downloaded and used
-         * as well. 
+         * as well.
          */
         std::string gypsum_file_name;
 
@@ -112,7 +112,7 @@ namespace aspect
          * The first parameter is constant so far but could be made depth dependent as constraint
          * by e.g. Forte, A.M. & Woodward, R.L., 1997. Seismic-geodynamic constraints on three-
          * dimensional structure, vertical flow, and heat transfer in the mantle, J. Geophys. Res.
-         * 102 (B8), 17,981-17,994. 
+         * 102 (B8), 17,981-17,994.
          */
 
         std::string vs_to_density_file_name;
@@ -120,7 +120,7 @@ namespace aspect
         double thermal_alpha;
 
         /**
-         * This parameter allows to set the degree 0 component of the shear wave velocity perturbation to 
+         * This parameter allows to set the degree 0 component of the shear wave velocity perturbation to
          * zero, which guarantees that average temperature at a certain depth is the background temperature.
          */
 
@@ -136,10 +136,10 @@ namespace aspect
          * coefficients
          */
         std_cxx1x::shared_ptr<internal::GypsumLookup> gypsum_lookup;
-        
+
         /**
          * Pointer to an object that reads and processes the depths for the spline
-         * knot points. 
+         * knot points.
          */
         std_cxx1x::shared_ptr<internal::VsToDensityLookup> vs_to_density_lookup;
 
