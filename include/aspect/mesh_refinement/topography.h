@@ -54,6 +54,17 @@ namespace aspect
         void
         execute (Vector<float> &error_indicators) const;
     };
+
+    template <int dim>
+    class UpperMantle : public Interface<dim>,
+      public SimulatorAccess<dim>
+    {
+      public:
+        virtual
+        void
+        execute (Vector<float> &error_indicators) const;
+    };
+
   }
 }
 
