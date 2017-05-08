@@ -25,7 +25,7 @@
 #include <iostream>
 #include <deal.II/base/std_cxx11/array.h>
 
-#include <boost/math/special_functions/spherical_harmonic.hpp>
+#include <boost/lexical_cast.hpp>
 
 namespace aspect
 {
@@ -150,108 +150,108 @@ namespace aspect
           private:
             std::vector<double> depths;
         };
-      class VsToDensityLookup
-      {
-        public:
-          VsToDensityLookup(const std::string &filename,
-                                     const MPI_Comm &comm)
-          {
-            std::string temp;
-            std::istringstream in(Utilities::read_and_distribute_file_content(filename, comm));
-            AssertThrow (in,
-                         ExcMessage (std::string("Couldn't open file <") + filename));
 
-            min_depth=1e20;
-            max_depth=-1;
 
-            getline(in,temp);  //eat first line
+        class VsToDensityLookup
+        {
+          public:
+            VsToDensityLookup(const std::string &filename,
+                              const MPI_Comm &comm)
+            {
+              std::string temp;
+              std::istringstream in(Utilities::read_and_distribute_file_content(filename, comm));
+              AssertThrow (in,
+                           ExcMessage (std::string("Couldn't open file <") + filename));
 
-            while (!in.eof())
-              {
-                double scaling, depth;
-                in >> scaling;
-                if (in.eof())
-                  break;
-                in >> depth;
-                depth *=1000.0;
-                getline(in, temp);
+              min_depth=1e20;
+              max_depth=-1;
 
-                min_depth = std::min(depth, min_depth);
-                max_depth = std::max(depth, max_depth);
+              getline(in,temp);  //eat first line
 
-                values.push_back(scaling);
-                depthvalues.push_back(depth);
-              }
-          }
-        double vstodensity_scaling(double depth)
-          {
+              while (!in.eof())
+                {
+                  double scaling, depth;
+                  in >> scaling;
+                  if (in.eof())
+                    break;
+                  in >> depth;
+                  depth *=1000.0;
+                  getline(in, temp);
 
-            std::vector<double> depth_diff (values.size(), 0);
+                  min_depth = std::min(depth, min_depth);
+                  max_depth = std::max(depth, max_depth);
 
-            Assert(depth>=min_depth, ExcMessage("not in range"));
-            Assert(depth<=max_depth, ExcMessage("not in range"));
+                  values.push_back(scaling);
+                  depthvalues.push_back(depth);
+                }
+            }
+            double vstodensity_scaling(double depth)
+            {
 
-            for (int i = 0; i < values.size(); i++)
-               depth_diff[i] = std::abs(depthvalues[i] - depth);
+              std::vector<double> depth_diff (values.size(), 0);
 
-            double depth_val = 1e6;
-            for (int i = 0; i < values.size(); i++)
-               depth_val = std::min(depth_diff[i],depth_val);
+              Assert(depth>=min_depth, ExcMessage("not in range"));
+              Assert(depth<=max_depth, ExcMessage("not in range"));
 
-            unsigned int idx = values.size();
-            for (int i = 0; i < values.size(); i++)
-               if (depth_val == std::abs(depthvalues[i] - depth))
+              for (int i = 0; i < values.size(); i++)
+                depth_diff[i] = std::abs(depthvalues[i] - depth);
+
+              double depth_val = 1e6;
+              for (int i = 0; i < values.size(); i++)
+                depth_val = std::min(depth_diff[i],depth_val);
+
+              unsigned int idx = values.size();
+              for (int i = 0; i < values.size(); i++)
+                if (depth_val == std::abs(depthvalues[i] - depth))
                   idx = i;
 
-            Assert(idx<values.size(), ExcMessage("not in range"));
-            return values[idx];
-          }
+              Assert(idx<values.size(), ExcMessage("not in range"));
+              return values[idx];
+            }
 
-        private:
-          std::vector<double> depthvalues;
-          std::vector<double> values;
-          double min_depth;
-          double max_depth;
+          private:
+            std::vector<double> depthvalues;
+            std::vector<double> values;
+            double min_depth;
+            double max_depth;
 
         };
 
-       class ContinentLookup
-       {
-         public:
-         ContinentLookup(const std::string &filename,
-                                     const MPI_Comm &comm)
-         {
-           std::string temp;
-           std::istringstream in(Utilities::read_and_distribute_file_content(filename, comm));
-           AssertThrow (in,
-                        ExcMessage (std::string("Couldn't open file <") + filename));
+        class ContinentLookup
+        {
+          public:
+            ContinentLookup(const std::string &filename,
+                            const MPI_Comm &comm)
+            {
+              std::string temp;
+              std::istringstream in(Utilities::read_and_distribute_file_content(filename, comm));
+              AssertThrow (in,
+                           ExcMessage (std::string("Couldn't open file <") + filename));
 
-          // in >> order;
-          // getline(in,temp);  // throw away the rest of the line    
+              // in >> order;
+              // getline(in,temp);  // throw away the rest of the line
 
-          // const int maxnumber = num_splines * (order+1)*(order+1);
-           const int maxnumber = 65341;
-           // read in all coefficients as a single data vector
-           for (int i=0; i<maxnumber; i++)
-           {
-              double new_val;
-              in >> new_val;
-              on_continent.push_back(new_val);
-           }
+              // const int maxnumber = num_splines * (order+1)*(order+1);
+              const int maxnumber = 65341;
+              // read in all coefficients as a single data vector
+              for (int i=0; i<maxnumber; i++)
+                {
+                  double new_val;
+                  in >> new_val;
+                  on_continent.push_back(new_val);
+                }
 
-         }
+            }
 
-         // Declare a function that returns the cosine coefficients
-         const std::vector<double> & continent_function() const
-         {
-           return on_continent;
-         }
+            // Declare a function that returns the cosine coefficients
+            const std::vector<double> &continent_function() const
+            {
+              return on_continent;
+            }
 
-         private:
-           std::vector<double> on_continent;
-       };
-
-
+          private:
+            std::vector<double> on_continent;
+        };
       }
     }
 
@@ -320,7 +320,7 @@ namespace aspect
         depth_values[i] = rcmb+(rmoho-rcmb)*0.5*(r[i]+1);
 
       // convert coordinates from [x,y,z] to [r, phi, theta]
-      std_cxx11::array<double,dim> scoord = aspect::Utilities::spherical_coordinates(position);
+      std_cxx11::array<double,dim> scoord = aspect::Utilities::Coordinates::cartesian_to_spherical_coordinates(position);
 
       // iterate over all degrees and orders at each depth and sum them all up.
       std::vector<double> spline_values(num_spline_knots,0);
@@ -333,21 +333,23 @@ namespace aspect
             {
               for (int order_m = 0; order_m < degree_l+1; order_m++)
                 {
-                  const double cos_component = boost::math::spherical_harmonic_r(degree_l,order_m,scoord[2],scoord[1]); //real / cos part
-                  const double sin_component = boost::math::spherical_harmonic_i(degree_l,order_m,scoord[2],scoord[1]); //imaginary / sine part
+                  //Evaluate the spherical harmonics at this position.
+                  //NOTE: there is apparently a factor of sqrt(2) difference
+                  //between the standard orthonormalized spherical harmonics
+                  //and those used for S40RTS (see PR # 966)
+                  const std::pair<double,double> sph_harm_vals = Utilities::real_spherical_harmonic( degree_l, order_m, scoord[2], scoord[1] );
+                  const double cos_component = sph_harm_vals.first;
+                  const double sin_component = sph_harm_vals.second;
 
-                  // normalization after Dahlen and Tromp, 1986, Appendix B.6
                   if (degree_l == 0)
                     prefact = (zero_out_degree_0
                                ?
                                0.
                                :
                                1.);
-          //        else if (order_m == 0)
-            //        prefact = 1.;
-                  else
-             //       prefact = sqrt(2.);
-                    prefact = 1.;
+                  else if (order_m != 0)
+                    prefact = 1./sqrt(2.);
+                  else prefact = 1.0;
 
                   spline_values[depth_interp] += prefact * (a_lm[ind]*cos_component + b_lm[ind]*sin_component);
 
@@ -389,63 +391,63 @@ namespace aspect
 
       // check whether continental lithosphere should be scaled differently
       if (include_continents == true)
-      { 
-        // only scale if within 400km of the surface
-        if (depth < 400000)
         {
-         //calculate whether in continent
-         double phi = scoord[1] * 180/numbers::PI;
-         if (phi > 180)
-           phi -= 360;
+          // only scale if within 400km of the surface
+          if (depth < 400000)
+            {
+              //calculate whether in continent
+              double phi = scoord[1] * 180/numbers::PI;
+              if (phi > 180)
+                phi -= 360;
 
-         double theta = scoord[2] * 180/numbers::PI;
-         theta -= 90.;
-         theta *= -1.;
+              double theta = scoord[2] * 180/numbers::PI;
+              theta -= 90.;
+              theta *= -1.;
 
-         // Make sure floor and ceil produces two different coordinates
-         phi += 0.000001;
-         theta += 0.000001;
+              // Make sure floor and ceil produces two different coordinates
+              phi += 0.000001;
+              theta += 0.000001;
 
-         int x1 = floor(phi);
-         int x2 = ceil(phi);
-         int y1 = floor(theta);
-         int y2 = ceil(theta);
+              int x1 = floor(phi);
+              int x2 = ceil(phi);
+              int y1 = floor(theta);
+              int y2 = ceil(theta);
 
-         std::vector<int> index_lonlat (4,0);
-         index_lonlat[0] = (x1+180) + 361*(y1 + 90);
-         index_lonlat[1] = (x2+180) + 361*(y1 + 90);
-         index_lonlat[2] = (x1+180) + 361*(y2 + 90);
-         index_lonlat[3] = (x2+180) + 361*(y2 + 90);
+              std::vector<int> index_lonlat (4,0);
+              index_lonlat[0] = (x1+180) + 361*(y1 + 90);
+              index_lonlat[1] = (x2+180) + 361*(y1 + 90);
+              index_lonlat[2] = (x1+180) + 361*(y2 + 90);
+              index_lonlat[3] = (x2+180) + 361*(y2 + 90);
 
-         const std::vector<double>  coeffs = Continent_lookup->continent_function();
+              const std::vector<double>  coeffs = Continent_lookup->continent_function();
 
-         // bilinear interpolation from http://en.wikipedia.org/wiki/Bilinear_interpolation
-         const double Q11 = coeffs[index_lonlat[0]];
-         const double Q21 = coeffs[index_lonlat[1]];
-         const double Q12 = coeffs[index_lonlat[2]];
-         const double Q22 = coeffs[index_lonlat[3]];
+              // bilinear interpolation from http://en.wikipedia.org/wiki/Bilinear_interpolation
+              const double Q11 = coeffs[index_lonlat[0]];
+              const double Q21 = coeffs[index_lonlat[1]];
+              const double Q12 = coeffs[index_lonlat[2]];
+              const double Q22 = coeffs[index_lonlat[3]];
 
-         // The last term (0.01) is necessary to convert percent perturbations to absolute values
-         const double cont_averaging = 1/((x2-x1) * (y2-y1)) *
-                                 (Q11 *(x2 - phi)*(y2 - theta) +
-                                  Q21 *(phi - x1)*(y2 - theta) +
-                                  Q12 *(x2 - phi)*(theta - y1) +
-                                  Q22 *(phi - x1)*(theta - y1));
+              // The last term (0.01) is necessary to convert percent perturbations to absolute values
+              const double cont_averaging = 1/((x2-x1) * (y2-y1)) *
+                                            (Q11 *(x2 - phi)*(y2 - theta) +
+                                             Q21 *(phi - x1)*(y2 - theta) +
+                                             Q12 *(x2 - phi)*(theta - y1) +
+                                             Q22 *(phi - x1)*(theta - y1));
 
-         if (cont_averaging > 0.5) // you're in the ocean, don't do anything to the vs scaling
-         // you're on the continent, check whether you'r in or below the craton
-         {
-           const double F_tot = 0.08;
-           const double z_0 = 140000;
-           const double cont_dens_pert = 0.001;
+              if (cont_averaging > 0.5) // you're in the ocean, don't do anything to the vs scaling
+                // you're on the continent, check whether you'r in or below the craton
+                {
+                  const double F_tot = 0.08;
+                  const double z_0 = 140000;
+                  const double cont_dens_pert = 0.001;
 
-           const double RHS = 0.031 - F_tot * (1- erf(depth/z_0));
+                  const double RHS = 0.031 - F_tot * (1- erf(depth/z_0));
 
-           if (perturbation > RHS)
-             density_perturbation = cont_dens_pert;
-         }
+                  if (perturbation > RHS)
+                    density_perturbation = cont_dens_pert;
+                }
+            }
         }
-      }
 
       //get thermal alpha
       double B_val, A_val;
@@ -460,22 +462,24 @@ namespace aspect
       depth_val[2] = 2890000;
 
       if (depth < 670000)
-        {B_val = (alpha_val[0] - alpha_val[1])/(depth_val[0] - depth_val[1]);
-         A_val = alpha_val[0] - B_val * depth_val[0];
-         thermal_alpha_gliso = A_val + B_val * depth;
-         }
+        {
+          B_val = (alpha_val[0] - alpha_val[1])/(depth_val[0] - depth_val[1]);
+          A_val = alpha_val[0] - B_val * depth_val[0];
+          thermal_alpha_gliso = A_val + B_val * depth;
+        }
 
       if (depth >= 670000)
-        {B_val = (alpha_val[1] - alpha_val[2])/(depth_val[1] - depth_val[2]);
-         A_val = alpha_val[1] - B_val * depth_val[1];
-         thermal_alpha_gliso = A_val + B_val * depth;
-         }
+        {
+          B_val = (alpha_val[1] - alpha_val[2])/(depth_val[1] - depth_val[2]);
+          A_val = alpha_val[1] - B_val * depth_val[1];
+          thermal_alpha_gliso = A_val + B_val * depth;
+        }
 
       double thermal_alpha_used;
       if (thermal_alpha_constant == true)
-         thermal_alpha_used = thermal_alpha;
+        thermal_alpha_used = thermal_alpha;
       else
-         thermal_alpha_used = thermal_alpha_gliso;
+        thermal_alpha_used = thermal_alpha_gliso;
 
 
       double temperature_perturbation;
@@ -540,9 +544,9 @@ namespace aspect
                              Patterns::Bool(),
                              "Switch to set the vs to density scalind to a constant value.");
           prm.declare_entry ("Vs to density scaling file", "R_scaling.txt",
-                            Patterns::Anything(),
-                            "The file name of the scaling between vs and density. "
-                            "Default values are from Simmons et al., 2009.");
+                             Patterns::Anything(),
+                             "The file name of the scaling between vs and density. "
+                             "Default values are from Simmons et al., 2009.");
           prm.declare_entry ("Thermal expansion constant","false",
                              Patterns::Bool(),
                              "");

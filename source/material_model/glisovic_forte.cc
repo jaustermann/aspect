@@ -137,7 +137,9 @@ namespace aspect
       // const double delta_temperature = temperature-avg_temp[idx];
 
       // If you want the adiabatic temperature as your reference temp use the following
-      const double background_temperature = this->get_adiabatic_conditions().temperature(position); 
+      const double background_temperature = this->get_material_model().is_compressible() ?
+                                            this->get_adiabatic_conditions().temperature(position) :
+                                            reference_temperature;
 
       double delta_temperature = temperature - background_temperature;
 
@@ -180,21 +182,13 @@ namespace aspect
       return reference_eta;
     }
 
-    template <int dim>
-    double
-    GlisovicForte<dim>::
-    reference_density () const
-    {
-      return reference_rho;
-    }
-
-    template <int dim>
-    double
-    GlisovicForte<dim>::
-    reference_thermal_expansion_coefficient () const
-    {
-      return thermal_alpha;
-    }
+ //   template <int dim>
+//    double
+//    GlisovicForte<dim>::
+//    reference_thermal_expansion_coefficient () const
+//    {
+//      return thermal_alpha;
+//    }
 
     template <int dim>
     double
@@ -265,16 +259,16 @@ namespace aspect
       return thermal_cond_val;
     }
 
-    template <int dim>
-    double
-    GlisovicForte<dim>::
-    reference_thermal_diffusivity () const
-    {
-      if(thermal_diff_off == true)
-        return k_value/(reference_rho*reference_specific_heat)/1000.;
-      else 
-        return k_value/(reference_rho*reference_specific_heat);
-    }
+//    template <int dim>
+//    double
+//    GlisovicForte<dim>::
+//    reference_thermal_diffusivity () const
+//    {
+//      if(thermal_diff_off == true)
+//        return k_value/(reference_rho*reference_specific_heat)/1000.;
+//      else 
+//        return k_value/(reference_rho*reference_specific_heat);
+//    }
 
     template <int dim>
     double
@@ -359,17 +353,25 @@ namespace aspect
 
       // don't need to account for compressibility, that's already in PREM
       //double rho = reference_rho_PREM * std::exp(reference_compressibility * (pressure - this->get_surface_pressure()));
+      const double compressible_density = this->get_material_model().is_compressible() ?
+                                        std::exp(reference_compressibility * (pressure - this->get_surface_pressure())) :
+                                        1;
+
+
       double rho = 
       (reference_rho_constant
        ?
-       reference_rho * std::exp(reference_compressibility * (pressure - this->get_surface_pressure()))
+       reference_rho * compressible_density 
        :
        reference_rho_PREM); 
  
+      const double background_temperature = this->get_material_model().is_compressible() ?
+                                            this->get_adiabatic_conditions().temperature(position) :
+                                            reference_temperature;
+          
+      rho *= (1 - thermal_alpha_val * (temperature - reference_temperature));
 
-      // if (adiabat_temp == true)
-       rho *= (1 - thermal_alpha_val * (temperature - this->get_adiabatic_conditions().temperature(position)));
-      // else
+      
       //   {
       //    unsigned int idx = static_cast<unsigned int>((avg_temp.size()-1) * depth / this->get_geometry_model().maximal_depth());
       //    rho *= (1 - thermal_alpha_val * (temperature - avg_temp[idx]));
@@ -547,6 +549,10 @@ namespace aspect
                              "The relative cutoff value for lateral viscosity variations "
                              "caused by temperature deviations. The viscosity may vary "
                              "laterally by this factor squared.");
+          prm.declare_entry ("Reference temperature", "1600.0",
+                             Patterns::Double (0),
+                             "The reference temperature that is perturbed by the spherical "
+                             "harmonic functions. Only used in incompressible models.");
           prm.declare_entry ("Temperature to viscosity scaling", "0",
                              Patterns::Double(0),
                              "Scales the lateral variations in temperature into lateral "
@@ -560,10 +566,10 @@ namespace aspect
           prm.declare_entry ("Thermal expansion constant", "false",
                              Patterns::Bool(),
                              "Switch to leave the thermal expansion constant.");
-          prm.declare_entry ("Thermal diffusivity zero", "false",
-                             Patterns::Bool(),
-                             "Switch to set the thermal diffusivity to zero for the "
-                             "purpose of simulating backward advection.");
+//          prm.declare_entry ("Thermal diffusivity zero", "false",
+//                             Patterns::Bool(),
+//                             "Switch to set the thermal diffusivity to zero for the "
+//                             "purpose of simulating backward advection.");
           prm.declare_entry ("Latitude cutoff for lateral variations in viscosity","-45.0",
                              Patterns::Double(),
                              "Latitude after which the lateral variations in viscosity are assumerd.");
@@ -598,6 +604,7 @@ namespace aspect
                                      datadirectory.begin()+position+subst_text.size(),
                                      ASPECT_SOURCE_DIR);
           }
+          reference_temperature   = prm.get_double ("Reference temperature");
           radial_viscosity_file_name   = prm.get ("Radial viscosity file name");
           min_eta                      = prm.get_double ("Minimum viscosity");
           max_eta                      = prm.get_double ("Maximum viscosity");
@@ -606,7 +613,7 @@ namespace aspect
           thermal_cond_constant        = prm.get_bool ("Thermal conductivity constant");
           reference_rho_constant       = prm.get_bool ("Reference density constant");
           thermal_alpha_constant       = prm.get_bool ("Thermal expansion constant");
-          thermal_diff_off             = prm.get_bool ("Thermal diffusivity zero");
+  //        thermal_diff_off             = prm.get_bool ("Thermal diffusivity zero");
           vis_lat_cutoff               = prm.get_double ("Latitude cutoff for lateral variations in viscosity");
         }
         prm.leave_subsection();
