@@ -69,7 +69,7 @@ namespace aspect
 
       std::vector<double> dynamic_topographies;
       std::vector<double>  dynamic_topographies_sigma;
-      std::vector <Point<dim>> measurement_locations;
+      std::vector <Point<dim> > measurement_locations;
     };
 
 
