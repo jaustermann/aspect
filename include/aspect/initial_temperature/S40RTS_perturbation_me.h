@@ -19,21 +19,21 @@
 */
 
 
-#ifndef __aspect__initial_conditions_SAVANI_perturbation_me_h
-#define __aspect__initial_conditions_SAVANI_perturbation_me_h
+#ifndef __aspect__initial_temperature_S40RTS_perturbation_h
+#define __aspect__initial_temperature_S40RTS_perturbation_h
 
 #include <aspect/simulator_access.h>
 #include <deal.II/base/std_cxx11/array.h>
 
 namespace aspect
 {
-  namespace InitialConditions
+  namespace InitialTemperature
   {
     using namespace dealii;
 
     namespace internal
     {
-      namespace SAVANI
+      namespace S40RTS
       {
         class ContinentLookup;
         class SphericalHarmonicsLookup;
@@ -48,11 +48,11 @@ namespace aspect
      * / S40RTS global shear wave velocity model by Ritsema et al.
      * http://www.earth.lsa.umich.edu/~jritsema/research.html
      *
-     * @ingroup InitialConditionsModels
+     * @ingroup InitialTemperatureModels
      */
 
     template <int dim>
-    class SAVANIPerturbation_me : public Interface<dim>, public ::aspect::SimulatorAccess<dim>
+    class S40RTSPerturbation_me : public Interface<dim>, public ::aspect::SimulatorAccess<dim>
     {
       public:
         /**
@@ -133,19 +133,19 @@ namespace aspect
          * Pointer to an object that reads and processes the spherical
          * harmonics coefficients
          */
-        std_cxx11::shared_ptr<internal::SAVANI::SphericalHarmonicsLookup> spherical_harmonics_lookup;
+        std_cxx11::shared_ptr<internal::S40RTS::SphericalHarmonicsLookup> spherical_harmonics_lookup;
 
         /**
          * Pointer to an object that reads and processes the depths for the
          * spline knot points.
          */
-        std_cxx11::shared_ptr<internal::SAVANI::SplineDepthsLookup> spline_depths_lookup;
+        std_cxx11::shared_ptr<internal::S40RTS::SplineDepthsLookup> spline_depths_lookup;
 
-        std_cxx1x::shared_ptr<internal::SAVANI::VsToDensityLookup> vs_to_density_lookup;
+        std_cxx1x::shared_ptr<internal::S40RTS::VsToDensityLookup> vs_to_density_lookup;
         bool vs_to_depth_constant;
         bool thermal_alpha_constant;
         std::string vs_to_density_file_name;
-        std_cxx11::shared_ptr<internal::SAVANI::ContinentLookup> Continent_lookup;
+        std_cxx11::shared_ptr<internal::S40RTS::ContinentLookup> Continent_lookup;
         bool include_continents;
 
     };

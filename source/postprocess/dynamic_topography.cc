@@ -30,6 +30,9 @@ namespace aspect
 {
   namespace Postprocess
   {
+    /**
+     * Evaluate the solution for the dynamic topography.
+     */
     template <int dim>
     std::pair<std::string,std::string>
     DynamicTopography<dim>::execute (TableHandler &)
@@ -267,7 +270,7 @@ namespace aspect
                                                   "the domain are bordered by the same cell. "
                                                   "Consider using a higher mesh resolution.") );
 
-                  // Check if the face is at the top boundary
+                  // Check if the face is at the top or bottom boundary
                   if (depth_face_center < upper_depth_cutoff)
                     {
                       at_upper_surface = true;
@@ -277,8 +280,8 @@ namespace aspect
                   // or at the bottom boundary
                   else if (depth_face_center > lower_depth_cutoff)
                     {
-                      face_idx = f;
                       at_upper_surface = false;
+                      face_idx = f;
                       break;
                     }
                 }
@@ -504,8 +507,7 @@ namespace aspect
      */
     template <int dim>
     void
-    DynamicTopography<dim>::
-    declare_parameters (ParameterHandler &prm)
+    DynamicTopography<dim>::declare_parameters (ParameterHandler &prm)
     {
       prm.enter_subsection("Postprocess");
       {

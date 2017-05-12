@@ -19,7 +19,7 @@
 */
 
 
-#include <aspect/initial_conditions/S40RTS_perturbation_me.h>
+#include <aspect/initial_temperature/SAVANI_perturbation_me.h>
 #include <aspect/utilities.h>
 #include <fstream>
 #include <iostream>
@@ -29,13 +29,13 @@
 
 namespace aspect
 {
-  namespace InitialConditions
+  namespace InitialTemperature
   {
     namespace internal
     {
-      namespace S40RTS
+      namespace SAVANI
       {
-        // Read in the spherical harmonics that are located in data/initial-conditions/S40RTS
+        // Read in the spherical harmonics that are located in data/initial-conditions/SAVANI
         // and were downloaded from http://www.earth.lsa.umich.edu/~jritsema/research.html
         // Ritsema et al. choose real sine and cosine coefficients that follow the normalization
         // by Dahlen & Tromp, Theoretical Global Seismology (equations B.58 and B.99).
@@ -53,15 +53,19 @@ namespace aspect
               in >> order;
               getline(in,temp);  // throw away the rest of the line
 
-              const int num_splines = 21;
-              const int maxnumber = num_splines * (order+1)*(order+1);
+              const int num_layers = 28;
+              //const int maxnumber = num_splines * (order+1)*(order+1);
 
               // read in all coefficients as a single data vector
-              for (int i=0; i<maxnumber; i++)
+              for (int i=0; i<num_layers; i++)
                 {
-                  double new_val;
-                  in >> new_val;
-                  coeffs.push_back(new_val);
+                  for (int j=0; j<(order+1)*(order+2); j++)
+                    {
+                      double new_val;
+                      in >> new_val;
+                      coeffs.push_back(0.01*new_val);
+                    }
+                  getline(in,temp);
                 }
 
               // reorder the coefficients into sin and cos coefficients. a_lm will be the cos coefficients
@@ -69,16 +73,16 @@ namespace aspect
               int ind = 0;
               int ind_degree;
 
-              for (int j=0; j<num_splines; j++)
+              for (int j=0; j<num_layers; j++)
 
                 for (int i=0; i<order+1; i++)
                   {
-                    a_lm.push_back(coeffs[ind]);
-                    b_lm.push_back(0.0);
-                    ind += 1;
+                    //a_lm.push_back(coeffs[ind]);
+                    //b_lm.push_back(0.0);
+                    //ind += 1;
 
                     ind_degree = 0;
-                    while (ind_degree < i)
+                    while (ind_degree <= i)
                       {
                         a_lm.push_back(coeffs[ind]);
                         ind += 1;
@@ -115,7 +119,7 @@ namespace aspect
         };
 
         // Read in the knot points for the spline interpolation. They are located in data/
-        // initial-conditions/S40RTS and were taken from the plotting script
+        // initial-conditions/SAVANI and were taken from the plotting script
         // lib/libS20/splhsetup.f which is part of the plotting package downloadable at
         // http://www.earth.lsa.umich.edu/~jritsema/research.html
         class SplineDepthsLookup
@@ -131,7 +135,7 @@ namespace aspect
               getline(in,temp);  // throw away the rest of the line
               getline(in,temp);  // throw away the rest of the line
 
-              int num_splines = 21;
+              int num_splines = 28;
 
               for (int i=0; i<num_splines; i++)
                 {
@@ -217,6 +221,7 @@ namespace aspect
 
         };
 
+
         class ContinentLookup
         {
           public:
@@ -252,21 +257,23 @@ namespace aspect
           private:
             std::vector<double> on_continent;
         };
+
+
       }
     }
 
 
     template <int dim>
     void
-    S40RTSPerturbation_me<dim>::initialize()
+    SAVANIPerturbation_me<dim>::initialize()
     {
-      spherical_harmonics_lookup.reset(new internal::S40RTS::SphericalHarmonicsLookup(datadirectory+harmonics_coeffs_file_name,this->get_mpi_communicator()));
-      spline_depths_lookup.reset(new internal::S40RTS::SplineDepthsLookup(datadirectory+spline_depth_file_name,this->get_mpi_communicator()));
+      spherical_harmonics_lookup.reset(new internal::SAVANI::SphericalHarmonicsLookup(datadirectory+harmonics_coeffs_file_name,this->get_mpi_communicator()));
+      spline_depths_lookup.reset(new internal::SAVANI::SplineDepthsLookup(datadirectory+spline_depth_file_name,this->get_mpi_communicator()));
 
       if (vs_to_depth_constant == false)
-        vs_to_density_lookup.reset(new internal::S40RTS::VsToDensityLookup(datadirectory+vs_to_density_file_name,this->get_mpi_communicator()));
+        vs_to_density_lookup.reset(new internal::SAVANI::VsToDensityLookup(datadirectory+vs_to_density_file_name,this->get_mpi_communicator()));
 
-      Continent_lookup.reset(new internal::S40RTS::ContinentLookup(datadirectory+ "Cont_func.txt",this->get_mpi_communicator()));
+      Continent_lookup.reset(new internal::SAVANI::ContinentLookup(datadirectory+ "Cont_depth_SAVANI.txt",this->get_mpi_communicator()));
     }
 
     // NOTE: this module uses the Boost spherical harmonics package which is not designed
@@ -277,7 +284,7 @@ namespace aspect
 
     template <>
     double
-    S40RTSPerturbation_me<2>::
+    SAVANIPerturbation_me<2>::
     initial_temperature (const Point<2> &) const
     {
       // we shouldn't get here but instead should already have been
@@ -290,7 +297,7 @@ namespace aspect
 
     template <>
     double
-    S40RTSPerturbation_me<3>::
+    SAVANIPerturbation_me<3>::
     initial_temperature (const Point<3> &position) const
     {
       const unsigned int dim = 3;
@@ -304,13 +311,12 @@ namespace aspect
       //get the degree from the input file (20 or 40)
       const int maxdegree = spherical_harmonics_lookup->maxdegree();
 
-      const int num_spline_knots = 21; // The tomography models are parameterized by 21 layers
+      const int num_spline_knots = 28; // The tomography models are parameterized by 21 layers
 
       // get the spherical harmonics coefficients
       const std::vector<double> a_lm = spherical_harmonics_lookup->cos_coeffs();
       const std::vector<double> b_lm = spherical_harmonics_lookup->sin_coeffs();
 
-      // get spline knots and rescale them from [-1 1] to [CMB moho]
       const std::vector<double> r = spline_depths_lookup->spline_depths();
       const double rmoho = 6346e3;
       const double rcmb = 3480e3;
@@ -333,22 +339,17 @@ namespace aspect
             {
               for (int order_m = 0; order_m < degree_l+1; order_m++)
                 {
-                  //Evaluate the spherical harmonics at this position.
-                  //NOTE: there is apparently a factor of sqrt(2) difference
-                  //between the standard orthonormalized spherical harmonics
-                  //and those used for S40RTS (see PR # 966)
                   const std::pair<double,double> sph_harm_vals = Utilities::real_spherical_harmonic( degree_l, order_m, scoord[2], scoord[1] );
                   const double cos_component = sph_harm_vals.first;
                   const double sin_component = sph_harm_vals.second;
 
+                  // normalization after Dahlen and Tromp, 1986, Appendix B.6
                   if (degree_l == 0)
                     prefact = (zero_out_degree_0
                                ?
                                0.
                                :
                                1.);
-                  else if (order_m != 0)
-                    prefact = 1./sqrt(2.);
                   else prefact = 1.0;
 
                   spline_values[depth_interp] += prefact * (a_lm[ind]*cos_component + b_lm[ind]*sin_component);
@@ -358,18 +359,11 @@ namespace aspect
             }
         }
 
-      // We need to reorder the spline_values because the coefficients are given from
-      // the surface down to the CMB and the interpolation knots range from the CMB up to
-      // the surface.
-      std::vector<double> spline_values_inv(num_spline_knots,0);
-      for (int i=0; i<num_spline_knots; i++)
-        spline_values_inv[i] = spline_values[num_spline_knots-1 - i];
-
       // The boundary condition for the cubic spline interpolation is that the function is linear
       // at the boundary (i.e. moho and CMB). Values outside the range are linearly
       // extrapolated.
       aspect::Utilities::tk::spline s;
-      s.set_points(depth_values,spline_values_inv);
+      s.set_points(depth_values,spline_values);
 
       // Get value at specific depth
       const double perturbation = s(scoord[0]);
@@ -434,18 +428,23 @@ namespace aspect
                                              Q12 *(x2 - phi)*(theta - y1) +
                                              Q22 *(phi - x1)*(theta - y1));
 
-              if (cont_averaging > 0.5) // you're in the ocean, don't do anything to the vs scaling
-                // you're on the continent, check whether you'r in or below the craton
-                {
-                  const double F_tot = 0.08;
-                  const double z_0 = 140000;
-                  const double cont_dens_pert = 0.001;
+              // THIS APPROACH DOES NOT WORK BECAUSE THERE IS A PREMATURE CROSS OVER
+              // READ IN LITHOSPHERIC DEPTH DIRECTLY
+              //   if (cont_averaging > 0.5) // you're in the ocean, don't do anything to the vs scaling
+              //   // you're on the continent, check whether you'r in or below the craton
+              //   {
+              //     const double F_tot = 0.07;
+              //     const double z_0 = 160000;
+              //     const double cont_dens_pert = 0.005;
 
-                  const double RHS = 0.031 - F_tot * (1- erf(depth/z_0));
+              //     const double RHS = 0.031 - F_tot * (1- erf(depth/z_0));
 
-                  if (perturbation > RHS)
-                    density_perturbation = cont_dens_pert;
-                }
+              //     if (perturbation > RHS)
+              //       density_perturbation = cont_dens_pert;
+              //   }
+              if (cont_averaging*1000.0 > depth)
+                density_perturbation = 0.005; // after Steinberger 2016
+
             }
         }
 
@@ -497,16 +496,16 @@ namespace aspect
 
     template <int dim>
     void
-    S40RTSPerturbation_me<dim>::declare_parameters (ParameterHandler &prm)
+    SAVANIPerturbation_me<dim>::declare_parameters (ParameterHandler &prm)
     {
-      prm.enter_subsection("Initial conditions");
+      prm.enter_subsection("Initial temperature model");
       {
-        prm.enter_subsection("S40RTS perturbation");
+        prm.enter_subsection("SAVANI perturbation");
         {
-          prm.declare_entry("Data directory", "$ASPECT_SOURCE_DIR/data/initial-conditions/S40RTS/",
+          prm.declare_entry("Data directory", "$ASPECT_SOURCE_DIR/data/initial-conditions/SAVANI/",
                             Patterns::DirectoryName (),
                             "The path to the model data. ");
-          prm.declare_entry ("Initial condition file name", "S40RTS.sph",
+          prm.declare_entry ("Initial condition file name", "savani.dlnvs.60.m.ab",
                              Patterns::Anything(),
                              "The file name of the spherical harmonics coefficients "
                              "from Ritsema et al.");
@@ -562,15 +561,15 @@ namespace aspect
 
     template <int dim>
     void
-    S40RTSPerturbation_me<dim>::parse_parameters (ParameterHandler &prm)
+    SAVANIPerturbation_me<dim>::parse_parameters (ParameterHandler &prm)
     {
       AssertThrow (dim == 3,
-                   ExcMessage ("The 'S40RTS perturbation' model for the initial "
+                   ExcMessage ("The 'SAVANI perturbation' model for the initial "
                                "temperature is only available for 3d computations."));
 
-      prm.enter_subsection("Initial conditions");
+      prm.enter_subsection("Initial temperature model");
       {
-        prm.enter_subsection("S40RTS perturbation");
+        prm.enter_subsection("SAVANI perturbation");
         {
           datadirectory           = prm.get ("Data directory");
           {
@@ -605,10 +604,10 @@ namespace aspect
 // explicit instantiations
 namespace aspect
 {
-  namespace InitialConditions
+  namespace InitialTemperature
   {
-    ASPECT_REGISTER_INITIAL_CONDITIONS(S40RTSPerturbation_me,
-                                       "S40RTS perturbation 2.0",
+    ASPECT_REGISTER_INITIAL_TEMPERATURE_MODEL(SAVANIPerturbation_me,
+                                       "SAVANI perturbation 2.0",
                                        "An initial temperature field in which the temperature "
                                        "is perturbed following the S20RTS or S40RTS shear wave "
                                        "velocity model by Ritsema and others, which can be downloaded "

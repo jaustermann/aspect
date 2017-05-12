@@ -27,6 +27,9 @@ namespace aspect
   {
     namespace VisualizationPostprocessors
     {
+      /**
+       * Execute the visualization postprocessor.
+       */
       template <int dim>
       std::pair<std::string, Vector<float> *>
       DynamicTopography<dim>::execute() const
