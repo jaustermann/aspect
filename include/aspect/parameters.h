@@ -511,6 +511,13 @@ namespace aspect
      * @}
      */
 
+    /**
+     * Adjoint problem
+     */
+    std::string                    adjoint_input_file;
+    bool         read_in_points;
+
+
   };
 
 }

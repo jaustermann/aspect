@@ -743,7 +743,8 @@ namespace aspect
                               std_cxx11::_3,
                               // discard rebuild_stokes_matrix,
                               std_cxx11::_5,
-                              std_cxx11::_6));
+                              std_cxx11::_6,
+                              std_cxx11::cref (this->parameters)));
 
     if (parameters.include_melt_transport)
       assembler_objects.push_back (std_cxx11::shared_ptr<internal::Assembly::Assemblers::AssemblerBase<dim> >

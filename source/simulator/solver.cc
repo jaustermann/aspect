@@ -867,12 +867,12 @@ namespace aspect
     if (parameters.include_melt_transport)
       melt_handler->compute_melt_variables(solution);
 
-    statistics.add_value((adjoint_problem ? "Iterations for adjoint Stokes solver" : "Iterations for Stokes solver"),
-                         solver_control_cheap.last_step() + solver_control_expensive.last_step());
-    statistics.add_value((adjoint_problem ? "Velocity iterations in adjoint Stokes preconditioner": "Velocity iterations in Stokes preconditioner"),
-                         its_A);
-    statistics.add_value((adjoint_problem ? "Schur complement iterations in adjoint Stokes preconditioner": "Schur complement iterations in Stokes preconditioner"),
-                         its_S);
+//   statistics.add_value((adjoint_problem ? "Iterations for adjoint Stokes solver" : "Iterations for Stokes solver"),
+//                        solver_control_cheap.last_step() + solver_control_expensive.last_step());
+//   statistics.add_value((adjoint_problem ? "Velocity iterations in adjoint Stokes preconditioner": "Velocity iterations in Stokes preconditioner"),
+//                        its_A);
+//   statistics.add_value((adjoint_problem ? "Schur complement iterations in adjoint Stokes preconditioner": "Schur complement iterations in Stokes preconditioner"),
+//                        its_S);
 
     computing_timer.exit_section();
 
