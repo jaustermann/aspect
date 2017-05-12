@@ -899,6 +899,17 @@ namespace aspect
     }
     prm.leave_subsection ();
 
+    prm.enter_subsection("Adjoint problem");
+    {
+      prm.declare_entry ("Input filename for ajoint points", "/Users/jackyaustermann/Desktop/Aspect_code/aspect/data/adjoint-observations/dynamic_topography_observations.txt",
+                         Patterns::Anything(),
+                         "");
+      prm.declare_entry ("Read points in from file", "false",
+                         Patterns::Bool (),
+                         "");
+    }
+    prm.leave_subsection();
+
     // also declare the parameters that the FreeSurfaceHandler needs
     FreeSurfaceHandler<dim>::declare_parameters (prm);
 
@@ -1416,6 +1427,12 @@ namespace aspect
     }
     prm.leave_subsection ();
 
+    prm.enter_subsection("Adjoint problem");
+    {
+      adjoint_input_file              = prm.get ("Input filename for ajoint points");
+      read_in_points                  = prm.get_bool ("Read points in from file");
+    }
+    prm.leave_subsection ();
 
     // then, finally, let user additions that do not go through the usual
     // plugin mechanism, declare their parameters if they have subscribed

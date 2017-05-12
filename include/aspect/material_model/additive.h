@@ -78,7 +78,7 @@ namespace aspect
          * dependent model deos not modify density, the reference density is equivalent to the
          * base model's reference density.
          */
-        virtual double reference_density () const;
+        //virtual double reference_density () const;
 
 
 

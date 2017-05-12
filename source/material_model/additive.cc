@@ -114,13 +114,13 @@ namespace aspect
       return base_model->reference_viscosity();
     }
 
-    template <int dim>
-    double
-    Additive<dim>::
-    reference_density() const
-    {
-      return base_model->reference_density();
-    }
+    // template <int dim>
+    // double
+    // Additive<dim>::
+    // reference_density() const
+    // {
+    //   return base_model->reference_density();
+    // }
   }
 }
 
