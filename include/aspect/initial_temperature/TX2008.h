@@ -19,22 +19,21 @@
 */
 
 
-#ifndef __aspect__initial_conditions_Gypsum_perturbation_h
-#define __aspect__initial_conditions_Gypsum_perturbation_h
+#ifndef __aspect__initial_temperature_TX2008_perturbation_h
+#define __aspect__initial_temperature_TX2008_perturbation_h
 
 #include <aspect/simulator_access.h>
 #include <deal.II/base/std_cxx1x/array.h>
 
 namespace aspect
 {
-  namespace InitialConditions
+  namespace InitialTemperature
   {
     using namespace dealii;
 
     namespace internal
     {
-      class GypsumLookup;
-      class VsToDensityLookup;
+      class TX2008Lookup;
       class GeothermLookup;
     }
 
@@ -44,11 +43,11 @@ namespace aspect
      * global shear wave velocity model by Ritsema et al.
      * http://www.earth.lsa.umich.edu/~jritsema/research.html
      *
-     * @ingroup InitialConditionsModels
+     * @ingroup InitialTemperatureModels
      */
 
     template <int dim>
-    class GypsumPerturbation : public Interface<dim>, public ::aspect::SimulatorAccess<dim>
+    class TX2008Perturbation : public Interface<dim>, public ::aspect::SimulatorAccess<dim>
     {
       public:
         /**
@@ -103,7 +102,7 @@ namespace aspect
          * by the degree of damping in the seismic inversion. These models could be downloaded and used
          * as well.
          */
-        std::string gypsum_file_name;
+        std::string TX2008_file_name;
 
 
         std::string geotherm_file_name;
@@ -115,7 +114,6 @@ namespace aspect
          * 102 (B8), 17,981-17,994.
          */
 
-        std::string vs_to_density_file_name;
         double vs_to_density;
         double thermal_alpha;
 
@@ -135,13 +133,12 @@ namespace aspect
          * Pointer to an object that reads and processes the spherical harmonics
          * coefficients
          */
-        std_cxx1x::shared_ptr<internal::GypsumLookup> gypsum_lookup;
+        std_cxx1x::shared_ptr<internal::TX2008Lookup> TX2008_lookup;
 
         /**
          * Pointer to an object that reads and processes the depths for the spline
          * knot points.
          */
-        std_cxx1x::shared_ptr<internal::VsToDensityLookup> vs_to_density_lookup;
 
         std_cxx1x::shared_ptr<internal::GeothermLookup> geotherm_lookup;
 
@@ -149,6 +146,7 @@ namespace aspect
         bool vs_to_depth_constant;
         bool constant_temp;
         bool take_upper_200km_out;
+        bool adiabat_temp;
     };
 
   }
