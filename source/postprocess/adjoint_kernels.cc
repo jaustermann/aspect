@@ -69,7 +69,7 @@ namespace aspect
 
       std::vector<double> dynamic_topographies;
       std::vector<double>  dynamic_topographies_sigma;
-      std::vector <Point<dim>> measurement_locations;
+      std::vector <Point<dim> > measurement_locations;
     };
 
 
@@ -123,7 +123,6 @@ namespace aspect
       cell = this->get_dof_handler().begin_active(),
       endc = this->get_dof_handler().end();
 
-      static DynTopoData<dim> observations(this->get_mpi_communicator(), this->get_parameters().adjoint_input_file);
       const double density_above = 0;
 
       std::vector <double> kernel_density;
