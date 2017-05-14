@@ -181,9 +181,16 @@ namespace aspect
           const Introspection<dim> &introspection = this->introspection();
           const FiniteElement<dim> &fe = this->get_fe();
           const unsigned int stokes_dofs_per_cell = data.local_dof_indices.size();
-          const unsigned int n_face_q_points           = scratch.face_finite_element_values.n_quadrature_points;
+          const unsigned int n_face_q_points      = scratch.face_finite_element_values.n_quadrature_points;
 
-          // find the top face
+           
+Postprocess::DynamicTopography<dim> *dynamic_topography =
+          this->template find_postprocessor<Postprocess::DynamicTopography<dim> >();
+        AssertThrow(dynamic_topography != NULL,
+                    ExcMessage("Could not find the DynamicTopography postprocessor."));
+        const LinearAlgebra::BlockVector &topography_vector = dynamic_topography->topography_vector();
+ 
+          // check that the cell is at the top
           if (cell->face(face_no)->at_boundary()
               &&
               this->get_geometry_model().depth (cell->face(face_no)->center()) < cell->face(face_no)->minimum_vertex_distance()/3)
