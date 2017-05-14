@@ -181,6 +181,7 @@ namespace aspect
           const Introspection<dim> &introspection = this->introspection();
           const FiniteElement<dim> &fe = this->get_fe();
           const unsigned int stokes_dofs_per_cell = data.local_dof_indices.size();
+          const unsigned int n_q_points           = scratch.face_finite_element_values.n_quadrature_points;
 
           // find the top face
           if (cell->face(face_no)->at_boundary()
@@ -237,7 +238,7 @@ namespace aspect
 
                   // Compute the integral of the dynamic topography function
                   // over the entire cell, by looping over all quadrature points
-                  for (unsigned int q=0; q<scratch.face_finite_element_values.n_quadrature_points; ++q)
+                  for (unsigned int q=0; q<n_q_points; ++q)
                     {
                       const Point<dim> location = scratch.face_finite_element_values.quadrature_point(q);
                       const double viscosity = scratch.face_material_model_outputs.viscosities[q];
@@ -269,7 +270,7 @@ namespace aspect
 
                   // ----------  Assemble RHS  ---------------
 
-                  for (unsigned int q=0; q<scratch.face_finite_element_values.n_quadrature_points; ++q)
+                  for (unsigned int q=0; q<n_q_points; ++q)
                     {
 
 
