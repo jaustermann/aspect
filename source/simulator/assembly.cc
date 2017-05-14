@@ -732,8 +732,10 @@ namespace aspect
 
     // set this to zero within stokes if adjoint problem is zero
     assemblers->stokes_system_assembler_on_boundary_face_properties.needed_update_flags = (update_values  | update_quadrature_points |
-        update_normal_vectors | update_gradients |
-        update_JxW_values);
+        update_normal_vectors | update_gradients | update_JxW_values);
+
+assemblers->stokes_system_assembler_on_boundary_face_properties.need_face_material_model_data = true;
+assemblers->stokes_system_assembler_on_boundary_face_properties.need_viscosity = true;
 
     assemblers->local_assemble_stokes_system_on_boundary_face
     .connect (std_cxx11::bind(&aspect::Assemblers::StokesAssembler<dim>::adjoint_rhs,

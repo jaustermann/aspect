@@ -181,7 +181,7 @@ namespace aspect
           const Introspection<dim> &introspection = this->introspection();
           const FiniteElement<dim> &fe = this->get_fe();
           const unsigned int stokes_dofs_per_cell = data.local_dof_indices.size();
-          const unsigned int n_q_points           = scratch.face_finite_element_values.n_quadrature_points;
+          const unsigned int n_face_q_points           = scratch.face_finite_element_values.n_quadrature_points;
 
           // find the top face
           if (cell->face(face_no)->at_boundary()
@@ -189,15 +189,6 @@ namespace aspect
               this->get_geometry_model().depth (cell->face(face_no)->center()) < cell->face(face_no)->minimum_vertex_distance()/3)
             {
               scratch.face_finite_element_values.reinit (cell, face_no);
-
-              this->compute_material_model_input_values (this->get_current_linearization_point(),
-                                                         scratch.face_finite_element_values,
-                                                         cell,
-                                                         true,
-                                                         scratch.face_material_model_inputs);
-
-              this->get_material_model().evaluate(scratch.face_material_model_inputs,
-                                                  scratch.face_material_model_outputs);
 
               // check whether observation is within this cell
               // TODO current scheme of finding whether there is an observation in the current cell isn't great /
@@ -238,7 +229,7 @@ namespace aspect
 
                   // Compute the integral of the dynamic topography function
                   // over the entire cell, by looping over all quadrature points
-                  for (unsigned int q=0; q<n_q_points; ++q)
+                  for (unsigned int q=0; q<n_face_q_points; ++q)
                     {
                       const Point<dim> location = scratch.face_finite_element_values.quadrature_point(q);
                       const double viscosity = scratch.face_material_model_outputs.viscosities[q];
@@ -270,7 +261,7 @@ namespace aspect
 
                   // ----------  Assemble RHS  ---------------
 
-                  for (unsigned int q=0; q<n_q_points; ++q)
+                  for (unsigned int q=0; q<n_face_q_points; ++q)
                     {
 
 
