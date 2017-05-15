@@ -1993,6 +1993,9 @@ namespace aspect
                 current_linearization_point.block(introspection.block_indices.pressure)
                   = solution.block(introspection.block_indices.pressure);
 
+              // TODO: ONLY CALCULATE DT
+              postprocess ();
+
               // -------------------------------------------------------------
               // adjoint problem
               adjoint_problem = true;

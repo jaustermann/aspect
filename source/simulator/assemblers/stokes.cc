@@ -24,6 +24,8 @@
 #include <aspect/simulator_access.h>
 #include <deal.II/base/signaling_nan.h>
 
+#include <aspect/postprocess/dynamic_topography.h>
+
 namespace aspect
 {
   namespace Assemblers
@@ -183,19 +185,24 @@ namespace aspect
           const unsigned int stokes_dofs_per_cell = data.local_dof_indices.size();
           const unsigned int n_face_q_points      = scratch.face_finite_element_values.n_quadrature_points;
 
-           
-Postprocess::DynamicTopography<dim> *dynamic_topography =
-          this->template find_postprocessor<Postprocess::DynamicTopography<dim> >();
-        AssertThrow(dynamic_topography != NULL,
-                    ExcMessage("Could not find the DynamicTopography postprocessor."));
-        const LinearAlgebra::BlockVector &topography_vector = dynamic_topography->topography_vector();
- 
+          const double density_above = 0.;
+
+          Postprocess::DynamicTopography<dim> *dynamic_topography =
+            this->template find_postprocessor<Postprocess::DynamicTopography<dim> >();
+          AssertThrow(dynamic_topography != NULL,
+                      ExcMessage("Could not find the DynamicTopography postprocessor."));
+          const LinearAlgebra::BlockVector &topography_vector = dynamic_topography->topography_vector();
+
+          std::vector<double> topo_values( n_face_q_points );
+
           // check that the cell is at the top
           if (cell->face(face_no)->at_boundary()
               &&
               this->get_geometry_model().depth (cell->face(face_no)->center()) < cell->face(face_no)->minimum_vertex_distance()/3)
             {
               scratch.face_finite_element_values.reinit (cell, face_no);
+              scratch.face_finite_element_values[introspection.extractors.temperature].get_function_values(topography_vector, topo_values);
+
 
               // check whether observation is within this cell
               // TODO current scheme of finding whether there is an observation in the current cell isn't great /
@@ -228,39 +235,18 @@ Postprocess::DynamicTopography<dim> *dynamic_topography =
               // in the spatial kernels and have a point in that location
               if (parameters.read_in_points == false | calc_RHS)
                 {
-                  // TODO: change to CBF method - gets around subracting the mean
 
-                  double dynamic_topography_x_surface = 0;
-                  double surface = 0;
-                  const double density_above = 0;
+                  // TODO: interpolate to measurement location?
 
-                  // Compute the integral of the dynamic topography function
-                  // over the entire cell, by looping over all quadrature points
+                  double cell_surface_area = 0.0;
+                  double dynamic_topography_cell_average = 0.0;
+
                   for (unsigned int q=0; q<n_face_q_points; ++q)
                     {
-                      const Point<dim> location = scratch.face_finite_element_values.quadrature_point(q);
-                      const double viscosity = scratch.face_material_model_outputs.viscosities[q];
-                      const double density   = scratch.face_material_model_outputs.densities[q];
-
-                      const SymmetricTensor<2,dim> strain_rate_in = scratch.face_material_model_inputs.strain_rate[q];
-                      const SymmetricTensor<2,dim> strain_rate = strain_rate_in - 1./3 * trace(strain_rate_in) * unit_symmetric_tensor<dim>();
-                      const SymmetricTensor<2,dim> shear_stress = 2 * viscosity * strain_rate;
-
-                      const Tensor<1,dim> gravity = this->get_gravity_model().gravity_vector (scratch.face_finite_element_values.quadrature_point(q));;
-                      const Tensor<1,dim> gravity_direction = gravity/gravity.norm();
-
-                      // Subtract the dynamic pressure
-                      const double dynamic_pressure   = scratch.face_material_model_inputs.pressure[q] - this->get_adiabatic_conditions().pressure(location);
-                      const double sigma_rr           = gravity_direction * (shear_stress * gravity_direction) - dynamic_pressure;
-                      const double dynamic_topography = - sigma_rr / gravity.norm() / (density - density_above);
-
-                      dynamic_topography_x_surface += dynamic_topography * scratch.face_finite_element_values.JxW(q);
-                      surface += scratch.face_finite_element_values.JxW(q);
+                      dynamic_topography_cell_average += topo_values[q] * scratch.face_finite_element_values.JxW(q);
+                      cell_surface_area += scratch.face_finite_element_values.JxW(q);
                     }
-
-                  const double average_dynamic_topography = 0;
-                  const double dynamic_topography_cell_average = dynamic_topography_x_surface / surface - average_dynamic_topography;
-
+                  dynamic_topography_cell_average /= cell_surface_area;
 
                   //std::cout << "*** DT at point 4450000, 4510254 is " << dynamic_topography_cell_average << std::endl;
                   //std::cout << "*** Found face " << cell->face(face_no)->center() << std::endl;
@@ -270,8 +256,6 @@ Postprocess::DynamicTopography<dim> *dynamic_topography =
 
                   for (unsigned int q=0; q<n_face_q_points; ++q)
                     {
-
-
                       for (unsigned int i=0, i_stokes=0; i_stokes<stokes_dofs_per_cell; /*increment at end of loop*/)
                         {
                           if (introspection.is_stokes_component(fe.system_to_component_index(i).first))
@@ -295,7 +279,7 @@ Postprocess::DynamicTopography<dim> *dynamic_topography =
                           data.local_rhs(i) += (dynamic_topography_cell_average - DT_obs)/DT_sigma
                                                * (2.0*eta *(n_hat * (scratch.grads_phi_u[i] * n_hat))
                                                   -  pressure_scaling *scratch.phi_p[i]) / ((density-density_above)* gravity*n_hat)
-                                               *JxW / surface;
+                                               *JxW / cell_surface_area;
                         }
                     }
                 }
