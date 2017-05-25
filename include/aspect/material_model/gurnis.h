@@ -48,7 +48,7 @@ namespace aspect
      * @ingroup MaterialModels
      */
     template <int dim>
-    class Gurnis : public MaterialModel::InterfaceCompatibility<dim>, public ::aspect::SimulatorAccess<dim>
+    class Gurnis : public MaterialModel::Interface<dim>, public ::aspect::SimulatorAccess<dim>
     {
       public:
         /**
@@ -177,6 +177,16 @@ namespace aspect
         /**
          * @}
          */
+
+        /**
+ *          * Function to compute the material properties in @p out given the
+ *                   * inputs in @p in. If MaterialModelInputs.strain_rate has the length
+ *                            * 0, then the viscosity does not need to be computed.
+ *                                     */
+        virtual
+        void
+        evaluate(const MaterialModel::MaterialModelInputs<dim> &in,
+                 MaterialModel::MaterialModelOutputs<dim> &out) const;
 
         /**
          * @name Functions used in dealing with run-time parameters
