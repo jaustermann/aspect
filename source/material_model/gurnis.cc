@@ -530,7 +530,35 @@ namespace aspect
       return (reference_compressibility != 0);
     }
 
+    template <int dim>
+    void
+    Gurnis<dim>::evaluate(const MaterialModel::MaterialModelInputs<dim> &in,
+                               MaterialModel::MaterialModelOutputs<dim> &out) const
+    {
+      for (unsigned int i=0; i < in.temperature.size(); ++i)
+        {
+          // We are only asked to give viscosities if strain_rate.size() > 0.
+          if (in.strain_rate.size() > 0)
+            out.viscosities[i]                  = viscosity                     (in.temperature[i], in.pressure[i], in.composition[i], in.strain_rate[i], in.position[i]);
 
+          out.densities[i]                      = density                       (in.temperature[i], in.pressure[i], in.composition[i], in.position[i]);
+          out.thermal_expansion_coefficients[i] = thermal_expansion_coefficient (in.temperature[i], in.pressure[i], in.composition[i], in.position[i]);
+          out.specific_heat[i]                  = specific_heat                 (in.temperature[i], in.pressure[i], in.composition[i], in.position[i]);
+          out.thermal_conductivities[i]         = thermal_conductivity          (in.temperature[i], in.pressure[i], in.composition[i], in.position[i]);
+          out.compressibilities[i]              = compressibility               (in.temperature[i], in.pressure[i], in.composition[i], in.position[i]);
+          out.entropy_derivative_pressure[i]    = 0;
+          out.entropy_derivative_temperature[i] = 0;
+          for (unsigned int c=0; c<in.composition[i].size(); ++c)
+            out.reaction_terms[i][c]            = 0;
+
+          // fill seismic velocities outputs if they exist
+//          if (SeismicAdditionalOutputs<dim> *seismic_out = out.template get_additional_output<SeismicAdditionalOutputs<dim> >())
+  //          {
+    //          seismic_out->vp[i] = seismic_Vp(in.temperature[i], in.pressure[i], in.composition[i], in.position[i]);
+      //        seismic_out->vs[i] = seismic_Vs(in.temperature[i], in.pressure[i], in.composition[i], in.position[i]);
+        //    }
+        }
+    }
 
     template <int dim>
     void
