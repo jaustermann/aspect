@@ -388,7 +388,7 @@ namespace aspect
       {
         prm.enter_subsection("TX2008 perturbation");
         {
-          prm.declare_entry("Data directory", "$ASPECT_SOURCE_DIR/data/initial-conditions/TX2008/",
+          prm.declare_entry("Data directory", "$ASPECT_SOURCE_DIR/data/initial-temperature/TX2008/",
                             Patterns::DirectoryName (),
                             "The path to the model data. ");
           prm.declare_entry ("Initial condition file name", "TX2008_dens.txt",

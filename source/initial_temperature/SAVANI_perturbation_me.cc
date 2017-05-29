@@ -502,7 +502,7 @@ namespace aspect
       {
         prm.enter_subsection("SAVANI perturbation");
         {
-          prm.declare_entry("Data directory", "$ASPECT_SOURCE_DIR/data/initial-conditions/SAVANI/",
+          prm.declare_entry("Data directory", "$ASPECT_SOURCE_DIR/data/initial-temperature/SAVANI/",
                             Patterns::DirectoryName (),
                             "The path to the model data. ");
           prm.declare_entry ("Initial condition file name", "savani.dlnvs.60.m.ab",

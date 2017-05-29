@@ -466,7 +466,7 @@ namespace aspect
       {
         prm.enter_subsection("Gypsum perturbation");
         {
-          prm.declare_entry("Data directory", "$ASPECT_SOURCE_DIR/data/initial-conditions/Gypsum/",
+          prm.declare_entry("Data directory", "$ASPECT_SOURCE_DIR/data/initial-temperature/Gypsum/",
                             Patterns::DirectoryName (),
                             "The path to the model data. ");
           prm.declare_entry ("Initial condition file name", "Gypsum_s.txt",
