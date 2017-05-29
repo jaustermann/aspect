@@ -71,6 +71,7 @@ namespace aspect
          * viscosity is determined by evaluating the depth-dependent part of the viscosity at
          * the mean depth of the model.
          */
+
         virtual double reference_viscosity () const;
 
         /**
@@ -81,9 +82,9 @@ namespace aspect
         //virtual double reference_density () const;
 
 
-
       private:
-
+        double reference_eta;
+        double reference_rho;
         /**
          * Pointer to the material model used as the base model
          */

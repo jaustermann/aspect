@@ -442,6 +442,8 @@ namespace aspect
        */
       void assemble_stokes_system ();
 
+      void compute_parameter_update ();
+
       /**
        * Initiate the assembly of one advection matrix and right hand side and
        * build a preconditioner for the matrix.

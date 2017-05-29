@@ -944,6 +944,157 @@ namespace aspect
   }
 
 
+  template <int dim>
+  void
+  Simulator<dim>::compute_parameter_update ()
+  {
+    system_matrix = 0.;
+    system_rhs = 0.;
+
+    const unsigned int quadrature_degree = introspection.polynomial_degree.compositional_fields + 1;
+
+    // Gauss quadrature in the interior for best accuracy.
+    const QGauss<dim> quadrature_formula(quadrature_degree);
+    const unsigned int dofs_per_cell = finite_element.dofs_per_cell;
+    const unsigned int n_q_points = quadrature_formula.size();
+
+    FEValues<dim> fe_values (*mapping,
+                             finite_element,
+                             quadrature_formula,
+                             update_values |
+                             update_gradients |
+                             update_q_points |
+                             update_JxW_values);
+
+    FEValues<dim> fe_values_adjoint (*mapping,
+                                     finite_element,
+                                     quadrature_formula,
+                                     update_values |
+                                     update_gradients |
+                                     update_q_points |
+                                     update_JxW_values);
+
+    // Storage for shape function values for the current solution.
+    // Used for constructing the known side of the CBF system.
+    std::vector<double> phi_eta (dofs_per_cell);
+    std::vector<Tensor<1,dim> > grad_phi_eta (dofs_per_cell);
+
+    // Initializing local rhs and mass matrix
+    Vector<double> local_rhs(dofs_per_cell);
+    FullMatrix<double> local_mass_matrix(dofs_per_cell, dofs_per_cell);
+
+    // do viscosity one first
+    const int c = 1;
+
+    // Loop over all of the surface cells and if one less than h/3 away from
+    // one of the top or bottom boundaries, assemble CBF system for it.
+    typename DoFHandler<dim>::active_cell_iterator
+    cell = dof_handler.begin_active(),
+    endc = dof_handler.end();
+
+    for (; cell!=endc; ++cell)
+      if (cell->is_locally_owned())
+        {
+          fe_values.reinit (cell);
+          fe_values_adjoint.reinit (cell);
+
+          // Evaluate the material properties and the solution within the cell
+          MaterialModel::MaterialModelInputs<dim> in(fe_values, &cell, introspection, solution);
+          MaterialModel::MaterialModelOutputs<dim> out(fe_values.n_quadrature_points, introspection.n_compositional_fields);
+          material_model->evaluate(in, out);
+
+          MaterialModel::MaterialModelInputs<dim> in_adjoint(fe_values, &cell, introspection, current_adjoint_solution);
+
+          local_rhs = 0.;
+          local_mass_matrix = 0.;
+
+          for (unsigned int q=0; q<n_q_points; ++q)
+            {
+              const double eta = out.viscosities[q];
+              const Tensor<1,dim> gravity = gravity_model->gravity_vector(in.position[q]);
+
+              for (unsigned int k=0; k<dofs_per_cell; ++k)
+                {
+                  phi_eta[k] = fe_values[introspection.extractors.compositional_fields[c]].value(k,q);
+                  grad_phi_eta[k] = fe_values[introspection.extractors.compositional_fields[c]].gradient(k,q);
+                }
+
+              for (unsigned int i = 0; i<dofs_per_cell; ++i)
+                {
+                  const SymmetricTensor<2,dim> strain_rate_forward = in.strain_rate[q] - 1./3 * trace(in.strain_rate[q]) * unit_symmetric_tensor<dim>();
+                  const SymmetricTensor<2,dim> strain_rate_adjoint = in_adjoint.strain_rate[q] - 1./3 * trace(in_adjoint.strain_rate[q]) * unit_symmetric_tensor<dim>();
+                  local_rhs(i) += ( -2 * eta * strain_rate_forward * strain_rate_adjoint) * phi_eta[i] * fe_values.JxW(q);
+
+                  // TODO: calculate grad_eta_1 for smoothing
+                  // local_rhs(i) += grads_phi_eta[i] * grad_eta_1 <- how to calculate?
+
+                  for (unsigned int j = 0; j<dofs_per_cell; j++)
+                    {
+                      // Assemble Mass Matrix
+                      local_mass_matrix(i,j) += fe_values[introspection.extractors.compositional_fields[c]].value(i,q) *
+                                                fe_values[introspection.extractors.compositional_fields[c]].value(j,q) *
+                                                fe_values.JxW(q);
+                    }
+                }
+
+            }
+
+          // get local dofs for this compositional fields
+          std::vector<types::global_dof_index> local_dof_indices (finite_element.dofs_per_cell);
+          cell->get_dof_indices (local_dof_indices);
+
+          // assemble local mass matrix and rhs into global mass matrix and rhs
+          current_constraints.distribute_local_to_global (local_mass_matrix,
+                                                          local_rhs,
+                                                          local_dof_indices,
+                                                          system_matrix,
+                                                          system_rhs);
+
+          system_rhs.compress(VectorOperation::add);
+          system_matrix.compress(VectorOperation::add);
+        }
+
+
+    // solve linear system
+    const AdvectionField adv_field (AdvectionField::composition(c));
+    const unsigned int eta_comp_block =  adv_field.block_index(introspection);
+    std::cout << "eta_comp_block" << std::endl;
+    LinearAlgebra::BlockVector delta (system_rhs);
+    SolverControl control(1000, 1e-6);
+    SolverCG<LinearAlgebra::Vector> solver_cg (control);
+    solver_cg.solve (system_matrix.block(eta_comp_block, eta_comp_block),
+                     delta.block(eta_comp_block),
+                     system_rhs.block(eta_comp_block),
+                     PreconditionIdentity());
+    solution.block(eta_comp_block) += delta.block(eta_comp_block);
+
+
+    // output rhs
+    DataOut<dim> data_out;
+
+    data_out.attach_dof_handler (dof_handler);
+    std::vector<DataComponentInterpretation::DataComponentInterpretation>  data_component_interpretation(dim, DataComponentInterpretation::component_is_part_of_vector);
+    data_component_interpretation.push_back (DataComponentInterpretation::component_is_scalar);
+    data_component_interpretation.push_back (DataComponentInterpretation::component_is_scalar);
+    data_component_interpretation.push_back (DataComponentInterpretation::component_is_scalar);
+    data_component_interpretation.push_back (DataComponentInterpretation::component_is_scalar);
+
+
+    LinearAlgebra::BlockVector distr_rhs;
+    distr_rhs.reinit(introspection.index_sets.system_partitioning, introspection.index_sets.system_relevant_partitioning, mpi_communicator);
+    distr_rhs = system_rhs;
+    data_out.add_data_vector (distr_rhs, "rhs",
+                              DataOut<dim>::type_dof_data,
+                              data_component_interpretation);
+
+    data_out.build_patches ();
+    std::ofstream output (dim == 2 ?
+                          "solution-2d.vtk":
+                          "solution-3d.vtk");
+    data_out.write_vtk (output);
+
+  }
+
 
   template <int dim>
   void
@@ -1204,8 +1355,6 @@ namespace aspect
   }
 
 
-
-
   template <int dim>
   void Simulator<dim>::assemble_stokes_system ()
   {
@@ -1340,17 +1489,6 @@ namespace aspect
     computing_timer.exit_section();
   }
 
-
-
-  template <int dim>
-  void
-  Simulator<dim>::
-  calculate_kernels ()
-  {
-
-
-
-  }
 
 
   template <int dim>
@@ -1724,8 +1862,6 @@ namespace aspect
                                                                       const bool                                             compute_strainrate, \
                                                                       MaterialModel::MaterialModelInputs<dim>               &material_model_inputs) const; \
   template void Simulator<dim>::create_additional_material_model_outputs(MaterialModel::MaterialModelOutputs<dim> &outputs) const; \
-  template void Simulator<dim>::calculate_kernels (); \
-   
-
+  template void Simulator<dim>::compute_parameter_update ();
   ASPECT_INSTANTIATE(INSTANTIATE)
 }

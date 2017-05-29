@@ -516,6 +516,7 @@ namespace aspect
      */
     std::string                    adjoint_input_file;
     bool         read_in_points;
+    bool         do_iteration;
 
 
   };

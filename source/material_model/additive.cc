@@ -32,15 +32,15 @@ namespace aspect
     Additive<dim>::evaluate(const typename Interface<dim>::MaterialModelInputs &in,
                             typename Interface<dim>::MaterialModelOutputs &out) const
     {
-      const unsigned int density_idx = this->introspection().compositional_index_for_name("density_kernel");
-      const unsigned int viscosity_idx = this->introspection().compositional_index_for_name("viscosity_kernel");
+      const unsigned int density_idx = this->introspection().compositional_index_for_name("density_term");
+      const unsigned int viscosity_idx = this->introspection().compositional_index_for_name("viscosity_factor");
 
       base_model -> evaluate(in,out);
 
       for (unsigned int i=0; i<in.position.size(); ++i)
         {
           out.densities[i] += in.composition[i][density_idx];
-          out.viscosities[i] += in.composition[i][viscosity_idx];
+          out.viscosities[i] *= in.composition[i][viscosity_idx];
         }
 
     }
@@ -60,6 +60,14 @@ namespace aspect
                             "are the names of models that are also valid for the "
                             "``Material models/Model name'' parameter. See the documentation for "
                             "that for more information.");
+          prm.declare_entry ("Reference density", "3300",
+                             Patterns::Double (0),
+                             "Reference density $\\rho_0$. Units: $kg/m^3$.");
+          prm.declare_entry ("Reference viscosity", "1e21",
+                             Patterns::Double (0),
+                             "The value of the constant viscosity $\\eta_0$. This viscosity may be "
+                             "modified by both temperature and compositional dependencies. Units: $kg/m/s$.");
+
         }
         prm.leave_subsection();
       }
@@ -74,6 +82,8 @@ namespace aspect
       {
         prm.enter_subsection("Additive model");
         {
+          reference_rho                        = prm.get_double ("Reference density");
+          reference_eta                        = prm.get_double ("Reference viscosity");
           Assert( prm.get("Base model") != "additive",
                   ExcMessage("You may not use ``additive'' as the base model for "
                              "a averaging model.") );

@@ -292,13 +292,14 @@ namespace aspect
             for (unsigned int q=0; q<quadrature_formula.size(); ++q)
               {
                 Point<dim> location = fe_values.quadrature_point(q);
+                const double eta = out.viscosities[q];
                 const SymmetricTensor<2,dim> strain_rate_forward = in.strain_rate[q] - 1./3 * trace(in.strain_rate[q]) * unit_symmetric_tensor<dim>();
                 const SymmetricTensor<2,dim> strain_rate_adjoint = in_adjoint.strain_rate[q] - 1./3 * trace(in_adjoint.strain_rate[q]) * unit_symmetric_tensor<dim>();
                 const Tensor<1,dim> velocity_adjoint = in_adjoint.velocity[q];
                 const Tensor<1,dim> gravity = this->get_gravity_model().gravity_vector(location);
 
                 kernel_density_temp += (gravity*velocity_adjoint) * fe_values.JxW(q);
-                kernel_viscosity_temp += (-2.0 * (strain_rate_adjoint*strain_rate_forward)) * fe_values.JxW(q);
+                kernel_viscosity_temp += (-2.0 * eta * (strain_rate_adjoint*strain_rate_forward)) * fe_values.JxW(q);
                 //volume += fe_values.JxW(q);
               }
 

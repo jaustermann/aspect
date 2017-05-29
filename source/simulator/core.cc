@@ -25,7 +25,6 @@
 #include <aspect/utilities.h>
 #include <aspect/melt.h>
 #include <aspect/free_surface.h>
-
 #include <aspect/geometry_model/initial_topography_model/zero_topography.h>
 
 #include <deal.II/base/index_set.h>
@@ -1977,7 +1976,8 @@ namespace aspect
           for (unsigned int i=0; i<1; ++i)
             {
               // -------------------------------------------------------------
-              // forward problem
+              // SOLVE FORWARD PROBLEM
+
               adjoint_problem = false;
               rebuild_stokes_matrix = rebuild_stokes_preconditioner = true;
 
@@ -1993,16 +1993,20 @@ namespace aspect
                 current_linearization_point.block(introspection.block_indices.pressure)
                   = solution.block(introspection.block_indices.pressure);
 
-              // TODO: ONLY CALCULATE DT
-              postprocess ();
 
               // -------------------------------------------------------------
-              // adjoint problem
+              // SOLVE ADJOINT PROBLEM
+
+              // postprocess forward solution to calculate DT and maybe geoid etc.
+              // TODO: only run the postprocessors I need, e.g. DT
+              postprocess ();
+
+              // only do adjoint if final (refined) mesh is reached
               adjoint_problem = true;
               rebuild_stokes_matrix = rebuild_stokes_preconditioner = false;
 
-              assemble_stokes_system(); // need to adjust this function
-
+              // the right hand side is assembled differently when adjoint_problem is true
+              assemble_stokes_system();
               solve_stokes();  // solve Ax=b_adj
 
               // put 'solution' into 'current_adjoint_solution' (=lambda_u/lambda_p)
@@ -2012,7 +2016,7 @@ namespace aspect
                 current_adjoint_solution.block(introspection.block_indices.pressure)
                   = solution.block(introspection.block_indices.pressure);
 
-
+              // put forward solution back into solution vector
               solution.block(introspection.block_indices.velocities) =
                 current_linearization_point.block(introspection.block_indices.velocities);
               if (introspection.block_indices.velocities != introspection.block_indices.pressure)
@@ -2020,19 +2024,27 @@ namespace aspect
                   = current_linearization_point.block(introspection.block_indices.pressure);
 
               // -------------------------------------------------------------
-              // compute updates for eta,rho
-              //...
+              // COMPUTE UPDATES FOR ETA AND RHO
+
+              // check if we even want to do an iteration or if we're just interested in the kernels
+              if (parameters.do_iteration == true)
+                {
+                  // the inversion only works with a specific material model
+                  Assert(introspection.n_compositional_fields == 2,
+                         ExcMessage ("You're not using the right material model for the adjoint problem. "
+                                     "The only model that is consistent is the additive material model."));
+
+                  // set up rhs and mass matrix
+                  // solve system for gradients in eta and rho
+                  compute_parameter_update();
 
 
-              // TODO save misfit as function of iteration number
+                  // update initial density and viscosity guess
+                  const double  alpha = 0.1;
 
-
-              // calculate kernels for viscosity and density
-              // calculate_kernels();
-
-              // update initial guess for density and viscosity with kernels, e.g. gradient descent.
-
-
+                  //in.composition[i][density_idx];
+                  //in.composition[i][viscosity_idx];
+                }
 
               pcout << std::endl;
             }

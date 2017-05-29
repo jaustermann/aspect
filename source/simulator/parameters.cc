@@ -935,6 +935,9 @@ namespace aspect
       prm.declare_entry ("Read points in from file", "false",
                          Patterns::Bool (),
                          "");
+      prm.declare_entry ("Do iterations for inversion", "false",
+                         Patterns::Bool (),
+                         "");
     }
     prm.leave_subsection();
 
@@ -1471,6 +1474,7 @@ namespace aspect
     {
       adjoint_input_file              = prm.get ("Input filename for ajoint points");
       read_in_points                  = prm.get_bool ("Read points in from file");
+      do_iteration                    = prm.get_bool ("Do iterations for inversion");
     }
     prm.leave_subsection ();
 
