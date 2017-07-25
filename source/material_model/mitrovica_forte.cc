@@ -479,10 +479,10 @@ namespace aspect
       return (reference_compressibility != 0);
     }
 
- template <int dim>
+    template <int dim>
     void
     MitrovicaForte<dim>::evaluate(const MaterialModel::MaterialModelInputs<dim> &in,
-                               MaterialModel::MaterialModelOutputs<dim> &out) const
+                                  MaterialModel::MaterialModelOutputs<dim> &out) const
     {
       for (unsigned int i=0; i < in.temperature.size(); ++i)
         {
@@ -501,11 +501,11 @@ namespace aspect
             out.reaction_terms[i][c]            = 0;
 
           // fill seismic velocities outputs if they exist
- //         if (SeismicAdditionalOutputs<dim> *seismic_out = out.template get_additional_output<SeismicAdditionalOutputs<dim> >())
-   //         {
-     //         seismic_out->vp[i] = seismic_Vp(in.temperature[i], in.pressure[i], in.composition[i], in.position[i]);
-       //       seismic_out->vs[i] = seismic_Vs(in.temperature[i], in.pressure[i], in.composition[i], in.position[i]);
-         //   }
+//         if (SeismicAdditionalOutputs<dim> *seismic_out = out.template get_additional_output<SeismicAdditionalOutputs<dim> >())
+          //         {
+          //         seismic_out->vp[i] = seismic_Vp(in.temperature[i], in.pressure[i], in.composition[i], in.position[i]);
+          //       seismic_out->vs[i] = seismic_Vs(in.temperature[i], in.pressure[i], in.composition[i], in.position[i]);
+          //   }
         }
     }
 

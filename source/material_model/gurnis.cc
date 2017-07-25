@@ -533,7 +533,7 @@ namespace aspect
     template <int dim>
     void
     Gurnis<dim>::evaluate(const MaterialModel::MaterialModelInputs<dim> &in,
-                               MaterialModel::MaterialModelOutputs<dim> &out) const
+                          MaterialModel::MaterialModelOutputs<dim> &out) const
     {
       for (unsigned int i=0; i < in.temperature.size(); ++i)
         {
@@ -553,10 +553,10 @@ namespace aspect
 
           // fill seismic velocities outputs if they exist
 //          if (SeismicAdditionalOutputs<dim> *seismic_out = out.template get_additional_output<SeismicAdditionalOutputs<dim> >())
-  //          {
-    //          seismic_out->vp[i] = seismic_Vp(in.temperature[i], in.pressure[i], in.composition[i], in.position[i]);
-      //        seismic_out->vs[i] = seismic_Vs(in.temperature[i], in.pressure[i], in.composition[i], in.position[i]);
-        //    }
+          //          {
+          //          seismic_out->vp[i] = seismic_Vp(in.temperature[i], in.pressure[i], in.composition[i], in.position[i]);
+          //        seismic_out->vs[i] = seismic_Vs(in.temperature[i], in.pressure[i], in.composition[i], in.position[i]);
+          //    }
         }
     }
 

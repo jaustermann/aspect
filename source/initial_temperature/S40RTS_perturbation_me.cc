@@ -29,7 +29,7 @@
 
 namespace aspect
 {
-  namespace InitialTemperature 
+  namespace InitialTemperature
   {
     namespace internal
     {
@@ -608,31 +608,31 @@ namespace aspect
   namespace InitialTemperature
   {
     ASPECT_REGISTER_INITIAL_TEMPERATURE_MODEL(S40RTSPerturbation_me,
-                                       "S40RTS perturbation 2.0",
-                                       "An initial temperature field in which the temperature "
-                                       "is perturbed following the S20RTS or S40RTS shear wave "
-                                       "velocity model by Ritsema and others, which can be downloaded "
-                                       "here \\url{http://www.earth.lsa.umich.edu/~jritsema/research.html}. "
-                                       "Information on the vs model can be found in Ritsema, J., Deuss, "
-                                       "A., van Heijst, H.J. \\& Woodhouse, J.H., 2011. S40RTS: a "
-                                       "degree-40 shear-velocity model for the mantle from new Rayleigh "
-                                       "wave dispersion, teleseismic traveltime and normal-mode "
-                                       "splitting function measurements, Geophys. J. Int. 184, 1223-1236. "
-                                       "The scaling between the shear wave perturbation and the "
-                                       "temperature perturbation can be set by the user with the "
-                                       "'vs to density scaling' parameter and the 'Thermal "
-                                       "expansion coefficient in initial temperature scaling' "
-                                       "parameter. The scaling is as follows: $\\delta ln \\rho "
-                                       "(r,\\theta,\\phi) = \\xi \\cdot \\delta ln v_s(r,\\theta, "
-                                       "\\phi)$ and $\\delta T(r,\\theta,\\phi) = - \\frac{1}{\\alpha} "
-                                       "\\delta ln \\rho(r,\\theta,\\phi)$. $\\xi$ is the 'vs to "
-                                       "density scaling' parameter and $\\alpha$ is the 'Thermal "
-                                       "expansion coefficient in initial temperature scaling' "
-                                       "parameter. The temperature perturbation is added to an "
-                                       "otherwise constant temperature (incompressible model) or "
-                                       "adiabatic reference profile (compressible model). If a depth "
-                                       "is specified in 'Remove temperature heterogeneity down to "
-                                       "specified depth', there is no temperature perturbation "
-                                       "prescribed down to that depth.")
+                                              "S40RTS perturbation 2.0",
+                                              "An initial temperature field in which the temperature "
+                                              "is perturbed following the S20RTS or S40RTS shear wave "
+                                              "velocity model by Ritsema and others, which can be downloaded "
+                                              "here \\url{http://www.earth.lsa.umich.edu/~jritsema/research.html}. "
+                                              "Information on the vs model can be found in Ritsema, J., Deuss, "
+                                              "A., van Heijst, H.J. \\& Woodhouse, J.H., 2011. S40RTS: a "
+                                              "degree-40 shear-velocity model for the mantle from new Rayleigh "
+                                              "wave dispersion, teleseismic traveltime and normal-mode "
+                                              "splitting function measurements, Geophys. J. Int. 184, 1223-1236. "
+                                              "The scaling between the shear wave perturbation and the "
+                                              "temperature perturbation can be set by the user with the "
+                                              "'vs to density scaling' parameter and the 'Thermal "
+                                              "expansion coefficient in initial temperature scaling' "
+                                              "parameter. The scaling is as follows: $\\delta ln \\rho "
+                                              "(r,\\theta,\\phi) = \\xi \\cdot \\delta ln v_s(r,\\theta, "
+                                              "\\phi)$ and $\\delta T(r,\\theta,\\phi) = - \\frac{1}{\\alpha} "
+                                              "\\delta ln \\rho(r,\\theta,\\phi)$. $\\xi$ is the 'vs to "
+                                              "density scaling' parameter and $\\alpha$ is the 'Thermal "
+                                              "expansion coefficient in initial temperature scaling' "
+                                              "parameter. The temperature perturbation is added to an "
+                                              "otherwise constant temperature (incompressible model) or "
+                                              "adiabatic reference profile (compressible model). If a depth "
+                                              "is specified in 'Remove temperature heterogeneity down to "
+                                              "specified depth', there is no temperature perturbation "
+                                              "prescribed down to that depth.")
   }
 }
