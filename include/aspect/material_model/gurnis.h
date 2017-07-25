@@ -179,10 +179,10 @@ namespace aspect
          */
 
         /**
- *          * Function to compute the material properties in @p out given the
- *                   * inputs in @p in. If MaterialModelInputs.strain_rate has the length
- *                            * 0, then the viscosity does not need to be computed.
- *                                     */
+        *          * Function to compute the material properties in @p out given the
+        *                   * inputs in @p in. If MaterialModelInputs.strain_rate has the length
+        *                            * 0, then the viscosity does not need to be computed.
+        *                                     */
         virtual
         void
         evaluate(const MaterialModel::MaterialModelInputs<dim> &in,
