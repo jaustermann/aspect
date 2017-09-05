@@ -126,6 +126,8 @@ namespace aspect
       const double density_above = 0;
 
       std::vector <double> kernel_density;
+      std::vector <double> volume_out;
+      std::vector <double> density_out;
       std::vector <double> kernel_viscosity;
       std::vector<Point<dim> > location;
 
@@ -286,22 +288,28 @@ namespace aspect
 
             double kernel_density_temp = 0;
             double kernel_viscosity_temp = 0;
-            //double volume = 0;
+            double volume = 0;
+            double density_int = 0;
 
             // over the entire cell, by looping over all quadrature points
             for (unsigned int q=0; q<quadrature_formula.size(); ++q)
               {
                 Point<dim> location = fe_values.quadrature_point(q);
-                const double eta = out.viscosities[q];
+
+                density_int += out.densities[q] * fe_values.JxW(q);
+
                 const SymmetricTensor<2,dim> strain_rate_forward = in.strain_rate[q] - 1./3 * trace(in.strain_rate[q]) * unit_symmetric_tensor<dim>();
                 const SymmetricTensor<2,dim> strain_rate_adjoint = in_adjoint.strain_rate[q] - 1./3 * trace(in_adjoint.strain_rate[q]) * unit_symmetric_tensor<dim>();
                 const Tensor<1,dim> velocity_adjoint = in_adjoint.velocity[q];
                 const Tensor<1,dim> gravity = this->get_gravity_model().gravity_vector(location);
 
                 kernel_density_temp += (gravity*velocity_adjoint) * fe_values.JxW(q);
-                kernel_viscosity_temp += (-2.0 * eta * (strain_rate_adjoint*strain_rate_forward)) * fe_values.JxW(q);
-                //volume += fe_values.JxW(q);
+                kernel_viscosity_temp += (-2.0 * (strain_rate_adjoint*strain_rate_forward)) * fe_values.JxW(q);
+                volume += fe_values.JxW(q);
               }
+
+            double const kernel_density_final = kernel_density_temp / volume;
+            double const kernel_viscosity_final = kernel_viscosity_temp / volume;
 
             // add boundary term; this is zero if not on the boundary
             // kernel_density_temp += density_kernel_term;
@@ -309,8 +317,10 @@ namespace aspect
 
 //      std::cout << density_kernel_term << std::endl;
 
-            kernel_density.push_back(kernel_density_temp); // +  density_kernel_term);
-            kernel_viscosity.push_back(kernel_viscosity_temp); // + viscosity_kernel_term);
+            kernel_density.push_back(kernel_density_final); // +  density_kernel_term);
+            volume_out.push_back(volume); // +  density_kernel_term);
+            density_out.push_back(density_int/volume);
+            kernel_viscosity.push_back(kernel_viscosity_final); // + viscosity_kernel_term);
             location.push_back(midpoint_of_cell);
           }
 
@@ -323,6 +333,10 @@ namespace aspect
           output << location[i]
                  << ' '
                  << kernel_density[i]
+                 << ' '
+                 << volume_out[i]
+                 << ' '
+                 << density_out[i]
                  << ' '
                  << kernel_viscosity[i]
                  << ' '

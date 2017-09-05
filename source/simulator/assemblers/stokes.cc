@@ -239,14 +239,14 @@ namespace aspect
                   // TODO: interpolate to measurement location?
 
                   double cell_surface_area = 0.0;
-                  double dynamic_topography_cell_average = 0.0;
+                  double dynamic_topography_surface_average = 0.0;
 
                   for (unsigned int q=0; q<n_face_q_points; ++q)
                     {
-                      dynamic_topography_cell_average += topo_values[q] * scratch.face_finite_element_values.JxW(q);
+                      dynamic_topography_surface_average += topo_values[q] * scratch.face_finite_element_values.JxW(q);
                       cell_surface_area += scratch.face_finite_element_values.JxW(q);
                     }
-                  dynamic_topography_cell_average /= cell_surface_area;
+                  dynamic_topography_surface_average /= cell_surface_area;
 
                   //std::cout << "*** DT at point 4450000, 4510254 is " << dynamic_topography_cell_average << std::endl;
                   //std::cout << "*** Found face " << cell->face(face_no)->center() << std::endl;
@@ -260,6 +260,7 @@ namespace aspect
                         {
                           if (introspection.is_stokes_component(fe.system_to_component_index(i).first))
                             {
+			      scratch.div_phi_u[i_stokes]   = scratch.finite_element_values[introspection.extractors.velocities].divergence (i, q);
                               scratch.phi_p[i_stokes] = scratch.finite_element_values[introspection.extractors.pressure].value (i, q);
                               scratch.grads_phi_u[i_stokes] = scratch.finite_element_values[introspection.extractors.velocities].symmetric_gradient(i,q);
                               ++i_stokes;
@@ -276,10 +277,11 @@ namespace aspect
 
                       for (unsigned int i=0; i<stokes_dofs_per_cell; ++i)
                         {
-                          data.local_rhs(i) += (dynamic_topography_cell_average - DT_obs)/DT_sigma
+                          data.local_rhs(i) += (dynamic_topography_surface_average - DT_obs)/DT_sigma
+					//	* (2.0*eta/6371000.0 * scratch.div_phi_u[i] 
                                                * (2.0*eta *(n_hat * (scratch.grads_phi_u[i] * n_hat))
                                                   -  pressure_scaling *scratch.phi_p[i]) / ((density-density_above)* gravity*n_hat)
-                                               *JxW / cell_surface_area;
+                                               *JxW; // / cell_surface_area;
                         }
                     }
                 }
