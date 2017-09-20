@@ -938,6 +938,9 @@ namespace aspect
       prm.declare_entry ("Do iterations for inversion", "false",
                          Patterns::Bool (),
                          "");
+      prm.declare_entry ("Use fixed surface value", "false",
+			 Patterns::Bool (),
+			 "");
     }
     prm.leave_subsection();
 
@@ -1475,6 +1478,7 @@ namespace aspect
       adjoint_input_file              = prm.get ("Input filename for ajoint points");
       read_in_points                  = prm.get_bool ("Read points in from file");
       do_iteration                    = prm.get_bool ("Do iterations for inversion");
+      use_fixed_surface_value         = prm.get_bool ("Use fixed surface value");
     }
     prm.leave_subsection ();
 

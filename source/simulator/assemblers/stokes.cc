@@ -231,7 +231,7 @@ namespace aspect
                     }
                 }
 
-              // assembler a right hand sider either if we are interested in the spectral kernels or if we are interested
+              // assembler a right hand side either if we are interested in the spectral kernels or if we are interested
               // in the spatial kernels and have a point in that location
               if (parameters.read_in_points == false | calc_RHS)
                 {
@@ -247,9 +247,6 @@ namespace aspect
                       cell_surface_area += scratch.face_finite_element_values.JxW(q);
                     }
                   dynamic_topography_surface_average /= cell_surface_area;
-
-                  //std::cout << "*** DT at point 4450000, 4510254 is " << dynamic_topography_cell_average << std::endl;
-                  //std::cout << "*** Found face " << cell->face(face_no)->center() << std::endl;
 
 
                   // ----------  Assemble RHS  ---------------
@@ -271,17 +268,20 @@ namespace aspect
 
                       const Tensor<1,dim> n_hat = scratch.face_finite_element_values.normal_vector(q);
                       const Tensor<1,dim> gravity = this->get_gravity_model().gravity_vector (scratch.finite_element_values.quadrature_point(q));
-                      const double density = scratch.material_model_outputs.densities[q]; // 3300;
+                      const double density = scratch.material_model_outputs.densities[q];
                       const double eta = scratch.material_model_outputs.viscosities[q];
                       const double JxW = scratch.face_finite_element_values.JxW(q);
 
                       for (unsigned int i=0; i<stokes_dofs_per_cell; ++i)
                         {
-                          data.local_rhs(i) += (dynamic_topography_surface_average - DT_obs)/DT_sigma
-					//	* (2.0*eta/6371000.0 * scratch.div_phi_u[i] 
-                                               * (2.0*eta *(n_hat * (scratch.grads_phi_u[i] * n_hat))
-                                                  -  pressure_scaling *scratch.phi_p[i]) / ((density-density_above)* gravity*n_hat)
-                                               *JxW; // / cell_surface_area;
+			  const double surface_difference = parameters.use_fixed_surface_value
+							    ?
+							    1
+							    :
+							    (dynamic_topography_surface_average - DT_obs)/DT_sigma;
+                          data.local_rhs(i) += surface_difference * (2.0*eta *(n_hat * (scratch.grads_phi_u[i] * n_hat))
+                                               - pressure_scaling *scratch.phi_p[i]) / ((density-density_above)* gravity*n_hat)
+                                               * JxW; // don't divide by cell_surface_area because we're interested in cell integral
                         }
                     }
                 }

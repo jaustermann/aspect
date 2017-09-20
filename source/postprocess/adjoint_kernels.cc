@@ -38,7 +38,6 @@ namespace aspect
 
         std::string temp;
         // Read data from disk and distribute among processes
-        //  std::string filename = "/Users/jackyaustermann/Desktop/Aspect_code/aspect/data/adjoint-observations/dynamic_topography_observations.txt";
         std::istringstream in(Utilities::read_and_distribute_file_content(filename, mpi_communicator));
 
         getline(in,temp);  // throw away the rest of the line
@@ -126,17 +125,21 @@ namespace aspect
       const double density_above = 0;
 
       std::vector <double> kernel_density;
-      std::vector <double> volume_out;
-      std::vector <double> density_out;
       std::vector <double> kernel_viscosity;
+      std::vector <double> kernel_density_surface;
+      std::vector <double> kernel_viscosity_surface; 
+      std::vector <double> volume_out;
+      std::vector <double> surface_out;
       std::vector<Point<dim> > location;
 
       for (; cell!=endc; ++cell)
         if (cell->is_locally_owned())
           {
 
+            // ----------------------------- This is to calculate the surface component that I'm not quite sure about yet
             double viscosity_kernel_term = 0;
             double density_kernel_term = 0;
+            double surface = 0;
 
             // calculate DT contribution
             if (cell->at_boundary())
@@ -158,7 +161,7 @@ namespace aspect
                 fe_face_values.reinit (cell,top_face_idx);
 
 
-// check whether observation is within this cell
+                // check whether observation is within this cell
                 // TODO current scheme of finding whether there is an observation in the current cell isn't great /
                 // doesn't extend to 3D. Also doesn't check for multiple obesrvations per cell. Maybe better:
                 // calculate DT everywhere and then interpolate to locations
@@ -185,14 +188,13 @@ namespace aspect
                       }
                   }
 
+		// go to this if either we are not reading in points (i.e. using points everywhere) or if we
+		// are reading in points and there is a read in point in this cell
                 if (this->get_parameters().read_in_points == false | calc_RHS)
                   {
-
-
                     double density_kernel_factor_x_surface = 0;
                     double viscosity_kernel_factor_x_surface = 0;
                     double dynamic_topography_x_surface = 0;
-                    double surface = 0;
 
                     fe_face_values[this->introspection().extractors.temperature]
                     .get_function_values (this->get_solution(), in_face.temperature);
@@ -210,8 +212,11 @@ namespace aspect
 
                     this->get_material_model().evaluate(in_face, out_face);
 
+                    // NOTE: This is different than the DT calculation in the RHS (uses post processed DT) - CBF
+
                     // Compute the integral of the dynamic topography function
                     // over the entire cell, by looping over all quadrature points
+
                     for (unsigned int q=0; q<quadrature_formula_face.size(); ++q)
                       {
                         Point<dim> location = fe_face_values.quadrature_point(q);
@@ -222,28 +227,53 @@ namespace aspect
                         const SymmetricTensor<2,dim> shear_stress = 2 * viscosity * strain_rate;
 
                         const Tensor<1,dim> gravity = this->get_gravity_model().gravity_vector(location);
-                        const Tensor<1,dim> gravity_direction = gravity/gravity.norm();
+                        const Tensor<1,dim> radial_direction = - gravity/gravity.norm();
 
                         // Subtract the dynamic pressure
                         const double dynamic_pressure   = in_face.pressure[q] - this->get_adiabatic_conditions().pressure(location);
-                        const double sigma_rr           = gravity_direction * (shear_stress * gravity_direction) - dynamic_pressure;
-                        const double dynamic_topography = - sigma_rr / gravity.norm() / (density - density_above);
+                        const double sigma_rr           = radial_direction * (shear_stress * radial_direction) - dynamic_pressure;
 
-                        const double viscosity_kernel_factor = - (dynamic_topography-DT_obs)/DT_sigma * gravity_direction * (shear_stress * gravity_direction) / gravity.norm() / (density - density_above);
-                        const double density_kernel_factor = (dynamic_topography-DT_obs)/DT_sigma * sigma_rr / gravity.norm() / ((density - density_above)*(density - density_above));
+                        dynamic_topography_x_surface += sigma_rr / gravity.norm() / (density - density_above) * fe_face_values.JxW(q);
+			surface += fe_face_values.JxW(q);
+		       }
+		
+  		     const double dynamic_topography_surface_average = dynamic_topography_x_surface / surface; 
+
+		     for (unsigned int q=0; q<quadrature_formula_face.size(); ++q)
+		       {
+                        const double surface_difference = this->get_parameters().use_fixed_surface_value
+                                                            ?
+                                                            1
+                                                            :
+                                                            (dynamic_topography_surface_average - DT_obs)/DT_sigma;
+
+                        Point<dim> location = fe_face_values.quadrature_point(q);
+                        const double viscosity = out_face.viscosities[q];
+                        const double density   = out_face.densities[q];
+
+                        const SymmetricTensor<2,dim> strain_rate = in_face.strain_rate[q] - 1./3 * trace(in_face.strain_rate[q]) * unit_symmetric_tensor<dim>();
+                        const SymmetricTensor<2,dim> shear_stress = 2 * viscosity * strain_rate;
+
+                        const Tensor<1,dim> gravity = this->get_gravity_model().gravity_vector(location);
+                        const Tensor<1,dim> radial_direction = - gravity/gravity.norm();
+
+                        // Subtract the dynamic pressure
+                        const double dynamic_pressure   = in_face.pressure[q] - this->get_adiabatic_conditions().pressure(location);
+                        const double sigma_rr           = radial_direction * (shear_stress * radial_direction) - dynamic_pressure;
+
+			// use the opposite sign here because for the topography we also use the opposite sign (depends on the definition)
+                        const double viscosity_kernel_factor = surface_difference * radial_direction * (shear_stress * radial_direction) 
+					 		       / gravity.norm() / (density - density_above);
+                        const double density_kernel_factor = - surface_difference * sigma_rr / 
+							     gravity.norm() / ((density - density_above)*(density - density_above));
 
                         // JxW provides the volume quadrature weights. This is a general formulation
                         // necessary for when a quadrature formula is used that has more than one point.
 
                         viscosity_kernel_factor_x_surface += viscosity_kernel_factor * fe_face_values.JxW(q);
                         density_kernel_factor_x_surface += density_kernel_factor * fe_face_values.JxW(q);
-                        dynamic_topography_x_surface += dynamic_topography * fe_face_values.JxW(q);
                         surface += fe_face_values.JxW(q);
-
                       }
-
-                    // const double average_dynamic_topography = 0;
-                    //const double dynamic_topography_cell_average = dynamic_topography_x_surface / surface - average_dynamic_topography;
 
                     density_kernel_term = density_kernel_factor_x_surface/surface;
                     viscosity_kernel_term = viscosity_kernel_factor_x_surface/surface;
@@ -251,19 +281,13 @@ namespace aspect
                   }
               }
 
-//      const double viscosity_kernel_term_allMPIs = Utilities::MPI::sum (viscosity_kernel_term,this->get_mpi_communicator());
-//      const double density_kernel_term_allMPIs = Utilities::MPI::sum (density_kernel_term,this->get_mpi_communicator());
-
-//      std::cout << "visc kernel " << viscosity_kernel_term_allMPIs << std::endl;
-//      std::cout << "density kernel " << density_kernel_term_allMPIs << std::endl;
+            // ------------------------- End of surface component, beginning of interior components
 
             fe_values.reinit (cell);
             fe_values_adjoint.reinit (cell);
 
             // get the various components of the solution, then
             // evaluate the material properties there
-            //fe_values[this->introspection().extractors.velocities]
-            //.get_function_values (this->get_solution(), in.velocity);
 
             const Point<dim> midpoint_of_cell = cell->center();
             in.position = fe_values.get_quadrature_points();
@@ -286,60 +310,58 @@ namespace aspect
             fe_values_adjoint[this->introspection().extractors.velocities]
             .get_function_symmetric_gradients (this->get_current_adjoint_solution(), in_adjoint.strain_rate);
 
-            double kernel_density_temp = 0;
-            double kernel_viscosity_temp = 0;
+            double kernel_density_x_volume = 0;
+            double kernel_viscosity_x_volume = 0;
             double volume = 0;
-            double density_int = 0;
+
 
             // over the entire cell, by looping over all quadrature points
             for (unsigned int q=0; q<quadrature_formula.size(); ++q)
               {
                 Point<dim> location = fe_values.quadrature_point(q);
-
-                density_int += out.densities[q] * fe_values.JxW(q);
+                const double viscosity = out.viscosities[q];
 
                 const SymmetricTensor<2,dim> strain_rate_forward = in.strain_rate[q] - 1./3 * trace(in.strain_rate[q]) * unit_symmetric_tensor<dim>();
                 const SymmetricTensor<2,dim> strain_rate_adjoint = in_adjoint.strain_rate[q] - 1./3 * trace(in_adjoint.strain_rate[q]) * unit_symmetric_tensor<dim>();
                 const Tensor<1,dim> velocity_adjoint = in_adjoint.velocity[q];
                 const Tensor<1,dim> gravity = this->get_gravity_model().gravity_vector(location);
 
-                kernel_density_temp += (gravity*velocity_adjoint) * fe_values.JxW(q);
-                kernel_viscosity_temp += (-2.0 * (strain_rate_adjoint*strain_rate_forward)) * fe_values.JxW(q);
+                kernel_density_x_volume += (gravity*velocity_adjoint) * fe_values.JxW(q);
+                kernel_viscosity_x_volume += (-2.0 * viscosity * (strain_rate_adjoint*strain_rate_forward)) * fe_values.JxW(q);
                 volume += fe_values.JxW(q);
               }
 
-            double const kernel_density_final = kernel_density_temp / volume;
-            double const kernel_viscosity_final = kernel_viscosity_temp / volume;
+            double const kernel_density_final = kernel_density_x_volume / volume;
+            double const kernel_viscosity_final = kernel_viscosity_x_volume / volume;
 
-            // add boundary term; this is zero if not on the boundary
-            // kernel_density_temp += density_kernel_term;
-            // kernel_viscosity_temp += viscosity_kernel_term;
 
-//      std::cout << density_kernel_term << std::endl;
-
-            kernel_density.push_back(kernel_density_final); // +  density_kernel_term);
-            volume_out.push_back(volume); // +  density_kernel_term);
-            density_out.push_back(density_int/volume);
-            kernel_viscosity.push_back(kernel_viscosity_final); // + viscosity_kernel_term);
+            kernel_density.push_back(kernel_density_final); 
+            kernel_viscosity.push_back(kernel_viscosity_final); 
+            kernel_density_surface.push_back(density_kernel_term);
+            kernel_viscosity_surface.push_back(viscosity_kernel_term);  
+            volume_out.push_back(volume); 
+            surface_out.push_back(surface);
             location.push_back(midpoint_of_cell);
           }
 
 
       // Write the solution to an output file
-      // if (DT_mean_switch == true) subtract the average dynamic topography,
-      // otherwise leave as is
       for (unsigned int i=0; i<kernel_viscosity.size(); ++i)
         {
           output << location[i]
                  << ' '
                  << kernel_density[i]
                  << ' '
-                 << volume_out[i]
-                 << ' '
-                 << density_out[i]
-                 << ' '
                  << kernel_viscosity[i]
                  << ' '
+                 << kernel_density_surface[i]
+                 << ' '
+                 << kernel_viscosity_surface[i]
+                 << ' '
+                 << volume_out[i]
+                 << ' '
+		 << surface_out[i]
+		 << ' '
                  << std::endl;
         }
 
@@ -360,7 +382,7 @@ namespace aspect
 
           file << "# "
                << ((dim==2)? "x y" : "x y z")
-               << " density  viscosity" << std::endl;
+               << " density  viscosity density_surface density_viscosity volume" << std::endl;
 
           // first write out the data we have created locally
           file << output.str();

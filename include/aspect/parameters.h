@@ -515,8 +515,9 @@ namespace aspect
      * Adjoint problem
      */
     std::string                    adjoint_input_file;
-    bool         read_in_points;
-    bool         do_iteration;
+    bool         		   read_in_points;
+    bool         		   do_iteration;
+    bool 	 		   use_fixed_surface_value;
 
 
   };
