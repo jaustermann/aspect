@@ -1887,6 +1887,9 @@ namespace aspect
   Simulator<dim>::
   solve_timestep ()
   {
+    // set adjoint problem to false as default
+    adjoint_problem = false;
+
     // start any scheme with an extrapolated value from the previous
     // two time steps if those are available
     current_linearization_point = old_solution;
