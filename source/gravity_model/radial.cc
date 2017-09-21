@@ -27,6 +27,25 @@ namespace aspect
 {
   namespace GravityModel
   {
+// 
+    template <int dim>
+    Tensor<1,dim>
+    RadialSia<dim>::gravity_vector (const Point<dim> &p) const
+    {
+      const double p0=9.9252; 
+      const double p1=-7.0887e-07;
+      const double p2=2.5579e-13; 
+      const double p3=-6.1861e-20;
+      const double p4=3.2231e-26;
+
+      const double depth = this->get_geometry_model().depth(p);
+      const double magnitude = p0 + p1 * depth + p2 * depth*depth + p3 * depth*depth*depth + p4 * depth*depth*depth*depth;
+
+      const double r = p.norm();
+      return -magnitude * p/r;
+    }
+
+
 // ------------------------------ RadialConstant -------------------
     template <int dim>
     Tensor<1,dim>
@@ -141,6 +160,13 @@ namespace aspect
 {
   namespace GravityModel
   {
+    ASPECT_REGISTER_GRAVITY_MODEL(RadialSia,
+                                  "radial sia",
+                                  "A gravity model in which the gravity has a constant magnitude "
+                                  "and the direction is radial (pointing inward if the value "
+                                  "is positive). The magnitude is read from the parameter "
+                                  "file in subsection 'Radial constant'.")
+
     ASPECT_REGISTER_GRAVITY_MODEL(RadialConstant,
                                   "radial constant",
                                   "A gravity model in which the gravity has a constant magnitude "

@@ -31,6 +31,15 @@ namespace aspect
   {
     using namespace dealii;
 
+    template <int dim>
+    class RadialSia : public Interface<dim>, public virtual SimulatorAccess<dim>
+    {
+      public:
+        /**
+         * Return the gravity vector as a function of position.
+         */
+        virtual Tensor<1,dim> gravity_vector (const Point<dim> &position) const;
+    };
     /**
      * A class that describes gravity as a radial vector of constant
      * magnitude. The magnitude's value is read from the input file.
