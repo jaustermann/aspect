@@ -147,28 +147,23 @@ namespace aspect
         if (cell->is_locally_owned())
           {
 
-            // ----------------------------- This is to calculate the surface component that I'm not quite sure about yet
             double viscosity_kernel_term = 0;
             double density_kernel_term = 0;
             double surface = 0;
 
-            // calculate DT contribution
-            if (cell->at_boundary())
-              {
-                // see if the cell is at the *top* boundary, not just any boundary
-                unsigned int top_face_idx = numbers::invalid_unsigned_int;
+            // see if the cell is at the *top* boundary and if so start surface term calculation
+            unsigned int top_face_idx = numbers::invalid_unsigned_int;
+            for (unsigned int f=0; f<GeometryInfo<dim>::faces_per_cell; ++f)
+              if (cell->at_boundary(f) && this->get_geometry_model().depth (cell->face(f)->center()) < cell->face(f)->minimum_vertex_distance()/3)
                 {
-                  for (unsigned int f=0; f<GeometryInfo<dim>::faces_per_cell; ++f)
-                    if (cell->at_boundary(f) && this->get_geometry_model().depth (cell->face(f)->center()) < cell->face(f)->minimum_vertex_distance()/3)
-                      {
-                        top_face_idx = f;
-                        break;
-                      }
-
-                  if (top_face_idx == numbers::invalid_unsigned_int)
-                    continue;
+                  top_face_idx = f;
+                  break;
                 }
 
+            if (top_face_idx != numbers::invalid_unsigned_int)
+              {
+
+                // ----------------------------- This is to calculate the surface component that I'm not quite sure about yet
                 fe_face_values.reinit (cell,top_face_idx);
 
 
@@ -274,7 +269,6 @@ namespace aspect
                     viscosity_kernel_term = viscosity_kernel_factor_x_surface/surface;
                   }
               }
-
             // ------------------------- End of surface component, beginning of interior components
 
             fe_values.reinit (cell);
@@ -337,7 +331,6 @@ namespace aspect
             surface_out.push_back(surface);
             location.push_back(midpoint_of_cell);
           }
-
 
       // Write the solution to an output file
       for (unsigned int i=0; i<kernel_viscosity.size(); ++i)
