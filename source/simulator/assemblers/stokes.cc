@@ -257,7 +257,7 @@ namespace aspect
                         {
                           if (introspection.is_stokes_component(fe.system_to_component_index(i).first))
                             {
-			      scratch.div_phi_u[i_stokes]   = scratch.finite_element_values[introspection.extractors.velocities].divergence (i, q);
+                              scratch.div_phi_u[i_stokes]   = scratch.finite_element_values[introspection.extractors.velocities].divergence (i, q);
                               scratch.phi_p[i_stokes] = scratch.finite_element_values[introspection.extractors.pressure].value (i, q);
                               scratch.grads_phi_u[i_stokes] = scratch.finite_element_values[introspection.extractors.velocities].symmetric_gradient(i,q);
                               ++i_stokes;
@@ -272,15 +272,21 @@ namespace aspect
                       const double eta = scratch.material_model_outputs.viscosities[q];
                       const double JxW = scratch.face_finite_element_values.JxW(q);
 
+
+                      // -------- to calculate sensitivity to specific degree
+                      //const Point<dim> position = scratch.face_finite_element_values.quadrature_point(q);
+                      //const std_cxx11::array<double, dim> spherical_point = Utilities::Coordinates::cartesian_to_spherical_coordinates(position);
+                      //const double surface_difference = std::sin(4*spherical_point[1]);
+
                       for (unsigned int i=0; i<stokes_dofs_per_cell; ++i)
                         {
-			  const double surface_difference = parameters.use_fixed_surface_value
-							    ?
-							    1
-							    :
-							    (dynamic_topography_surface_average - DT_obs)/DT_sigma;
+                          const double surface_difference = parameters.use_fixed_surface_value
+                                                            ?
+                                                            1
+                                                            :
+                                                            (dynamic_topography_surface_average - DT_obs)/DT_sigma;
                           data.local_rhs(i) += surface_difference * (2.0*eta *(n_hat * (scratch.grads_phi_u[i] * n_hat))
-                                               - pressure_scaling *scratch.phi_p[i]) / ((density-density_above)* gravity*n_hat)
+                                                                     - pressure_scaling *scratch.phi_p[i]) / ((density-density_above)* gravity*n_hat)
                                                * JxW; // don't divide by cell_surface_area because we're interested in cell integral
                         }
                     }

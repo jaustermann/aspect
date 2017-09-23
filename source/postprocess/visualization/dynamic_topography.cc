@@ -19,8 +19,6 @@
 */
 
 #include <aspect/simulator.h>
-
-#include <aspect/simulator.h>
 #include <aspect/postprocess/visualization/dynamic_topography.h>
 #include <aspect/postprocess/dynamic_topography.h>
 

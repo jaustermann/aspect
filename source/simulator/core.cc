@@ -630,6 +630,7 @@ namespace aspect
     // We need to do the RHS compatibility modification, if the model is
     // compressible or compatible (in the case of melt transport), and
     // there is no open boundary to balance the pressure.
+    // The same correction has to be applied for the adjoint equation
     do_pressure_rhs_compatibility_modification = ((material_model->is_compressible() && !parameters.include_melt_transport)
                                                   ||
                                                   (parameters.include_melt_transport && !material_model->is_compressible())
@@ -1583,6 +1584,7 @@ namespace aspect
   template <int dim>
   void Simulator<dim>::postprocess ()
   {
+
     computing_timer.enter_section ("Postprocessing");
     pcout << "   Postprocessing:" << std::endl;
 

@@ -939,8 +939,8 @@ namespace aspect
                          Patterns::Bool (),
                          "");
       prm.declare_entry ("Use fixed surface value", "false",
-			 Patterns::Bool (),
-			 "");
+                         Patterns::Bool (),
+                         "");
     }
     prm.leave_subsection();
 

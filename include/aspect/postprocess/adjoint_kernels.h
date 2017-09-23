@@ -46,6 +46,12 @@ namespace aspect
         virtual
         std::pair<std::string,std::string>
         execute (TableHandler &statistics);
+        /**
+         * Register the other postprocessor that we need: DynamicTopography
+         */
+        virtual
+        std::list<std::string>
+        required_other_postprocessors() const;
 
     };
   }

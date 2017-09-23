@@ -27,14 +27,14 @@ namespace aspect
 {
   namespace GravityModel
   {
-// 
+//
     template <int dim>
     Tensor<1,dim>
     RadialSia<dim>::gravity_vector (const Point<dim> &p) const
     {
-      const double p0=9.9252; 
+      const double p0=9.9252;
       const double p1=-7.0887e-07;
-      const double p2=2.5579e-13; 
+      const double p2=2.5579e-13;
       const double p3=-6.1861e-20;
       const double p4=3.2231e-26;
 
