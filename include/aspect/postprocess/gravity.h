@@ -15,8 +15,8 @@
 */
 
 
-#ifndef __aspect__postprocess_surface_topography_h
-#define __aspect__postprocess_surface_topography_h
+#ifndef __aspect__postprocess_gravity_h
+#define __aspect__postprocess_gravity_h
 
 #include <aspect/postprocess/interface.h>
 #include <aspect/simulator_access.h>

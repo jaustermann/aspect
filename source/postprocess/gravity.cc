@@ -46,8 +46,6 @@ namespace aspect
       // Gravitational constant
       double G = 6.67408E-11;
 
-      // set local gravity to zero for integration
-      double integrated_gravity = 0;
       std::vector<std::pair<Point<dim>,double> > stored_values;
 
       // loop over all of the surface cells and if one less than h/3 away from
@@ -81,6 +79,9 @@ namespace aspect
       // if cell is at surface loop over all cells and integrate density
       const Point<dim> midpoint_at_surface = cell->face(face_idx)->center();      
 
+      // set local gravity to zero for integration
+      double integrated_gravity = 0;
+
       typename DoFHandler<dim>::active_cell_iterator
       cell_in = this->get_dof_handler().begin_active(),
       endc_in = this->get_dof_handler().end();
@@ -97,10 +98,8 @@ namespace aspect
 
           const Point<dim> point_in_cell = cell_in->center();
 
-// get distance between surface cell (surface face) and midpoint of cell_in
-              const double distance = (Tensor<1,dim> (midpoint_at_surface - point_in_cell)).norm();
-
-          double density_int = 0;
+          // get distance between surface cell (surface face) and midpoint of cell_in
+          const double distance = (Tensor<1,dim> (midpoint_at_surface - point_in_cell)).norm();
 
           for (unsigned int q=0; q<quadrature_formula.size(); ++q)
            {
@@ -109,11 +108,7 @@ namespace aspect
 
               // multiply by volume and integrate / add to integrated_gravity
               integrated_gravity +=  G * density * fe_volume_values.JxW(q) / (distance * distance);
-              density_int += density * fe_volume_values.JxW(q);
            }
-
-           std::cout << " Distance " << distance << " Int_Density " << density_int << std::endl;
-
         }
 
         stored_values.push_back (std::make_pair(midpoint_at_surface, integrated_gravity));
