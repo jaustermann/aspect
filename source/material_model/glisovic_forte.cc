@@ -19,7 +19,7 @@
 */
 
 
-
+#include <aspect/adiabatic_conditions/interface.h>
 #include <aspect/material_model/glisovic_forte.h>
 #include <deal.II/base/parameter_handler.h>
 #include <aspect/utilities.h>

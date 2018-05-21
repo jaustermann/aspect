@@ -25,6 +25,7 @@
 #include <iostream>
 #include <deal.II/base/std_cxx1x/array.h>
 #include <aspect/utilities.h>
+#include <aspect/adiabatic_conditions/interface.h>
 
 namespace aspect
 {

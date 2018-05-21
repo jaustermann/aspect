@@ -22,8 +22,9 @@
 #ifndef __aspect__initial_temperature_S40RTS_perturbation_h
 #define __aspect__initial_temperature_S40RTS_perturbation_h
 
-#include <aspect/simulator_access.h>
-#include <deal.II/base/std_cxx11/array.h>
+#include <aspect/initial_temperature/interface.h>
+//#include <aspect/simulator_access.h>
+//#include <deal.II/base/std_cxx11/array.h>
 
 namespace aspect
 {

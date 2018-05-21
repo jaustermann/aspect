@@ -24,6 +24,7 @@
 #include <fstream>
 #include <iostream>
 #include <deal.II/base/std_cxx11/array.h>
+#include <aspect/adiabatic_conditions/interface.h>
 
 #include <boost/lexical_cast.hpp>
 
@@ -53,40 +54,41 @@ namespace aspect
               in >> order;
               getline(in,temp);  // throw away the rest of the line
 
-              const int num_splines = 21;
-              const int maxnumber = num_splines * (order+1)*(order+1);
+              const unsigned int num_splines = 21;
+              const unsigned int maxnumber = num_splines * (order+1)*(order+1);
 
               // read in all coefficients as a single data vector
-              for (int i=0; i<maxnumber; i++)
+              std::vector<double> coeffs(maxnumber,0.0);
+
+              for (unsigned int i=0; i<maxnumber; ++i)
                 {
-                  double new_val;
-                  in >> new_val;
-                  coeffs.push_back(new_val);
+                  in >> coeffs[i];
                 }
 
-              // reorder the coefficients into sin and cos coefficients. a_lm will be the cos coefficients
+	      // reorder the coefficients into sin and cos coefficients. a_lm will be the cos coefficients
               // and b_lm the sin coefficients.
-              int ind = 0;
-              int ind_degree;
+              unsigned int ind = 0;
 
-              for (int j=0; j<num_splines; j++)
-
-                for (int i=0; i<order+1; i++)
+              a_lm.reserve(maxnumber);
+              b_lm.reserve(maxnumber);
+              for (unsigned int j=0; j<num_splines; ++j)
+                for (unsigned int i=0; i<order+1; ++i)
                   {
                     a_lm.push_back(coeffs[ind]);
                     b_lm.push_back(0.0);
-                    ind += 1;
+                    ++ind;
 
-                    ind_degree = 0;
+                    unsigned int ind_degree = 0;
                     while (ind_degree < i)
                       {
                         a_lm.push_back(coeffs[ind]);
-                        ind += 1;
+                        ++ind;
                         b_lm.push_back(coeffs[ind]);
-                        ind += 1;
-                        ind_degree +=1;
+                        ++ind;
+                        ++ind_degree;
                       }
                   }
+
             }
 
             // Declare a function that returns the cosine coefficients
@@ -107,7 +109,7 @@ namespace aspect
             }
 
           private:
-            int order;
+            unsigned int order;
             std::vector<double> coeffs;
             std::vector<double> a_lm;
             std::vector<double> b_lm;
@@ -131,14 +133,13 @@ namespace aspect
               getline(in,temp);  // throw away the rest of the line
               getline(in,temp);  // throw away the rest of the line
 
-              int num_splines = 21;
+              // This is fixed for this tomography model
+              const unsigned int num_splines = 21;
 
-              for (int i=0; i<num_splines; i++)
+              depths.resize(num_splines);
+              for (unsigned int i=0; i<num_splines; ++i)
                 {
-                  double new_val;
-                  in >> new_val;
-
-                  depths.push_back(new_val);
+                  in >> depths[i];
                 }
             }
 
@@ -234,11 +235,10 @@ namespace aspect
               // const int maxnumber = num_splines * (order+1)*(order+1);
               const int maxnumber = 65341;
               // read in all coefficients as a single data vector
+              on_continent.resize(maxnumber);
               for (int i=0; i<maxnumber; i++)
                 {
-                  double new_val;
-                  in >> new_val;
-                  on_continent.push_back(new_val);
+                  in >> on_continent[i];
                 }
 
             }

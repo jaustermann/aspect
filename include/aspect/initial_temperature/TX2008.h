@@ -22,8 +22,9 @@
 #ifndef __aspect__initial_temperature_TX2008_perturbation_h
 #define __aspect__initial_temperature_TX2008_perturbation_h
 
-#include <aspect/simulator_access.h>
-#include <deal.II/base/std_cxx1x/array.h>
+#include <aspect/initial_temperature/interface.h>
+//#include <aspect/simulator_access.h>
+//#include <deal.II/base/std_cxx1x/array.h>
 
 namespace aspect
 {

@@ -24,6 +24,7 @@
 #include <fstream>
 #include <iostream>
 #include <deal.II/base/std_cxx11/array.h>
+#include <aspect/adiabatic_conditions/interface.h>
 
 #include <boost/lexical_cast.hpp>
 
@@ -57,9 +58,9 @@ namespace aspect
               //const int maxnumber = num_splines * (order+1)*(order+1);
 
               // read in all coefficients as a single data vector
-              for (int i=0; i<num_layers; i++)
+              for (unsigned int i=0; i<num_layers; i++)
                 {
-                  for (int j=0; j<(order+1)*(order+2); j++)
+                  for (unsigned int j=0; j<(order+1)*(order+2); j++)
                     {
                       double new_val;
                       in >> new_val;
@@ -111,7 +112,7 @@ namespace aspect
             }
 
           private:
-            int order;
+            unsigned int order;
             std::vector<double> coeffs;
             std::vector<double> a_lm;
             std::vector<double> b_lm;
