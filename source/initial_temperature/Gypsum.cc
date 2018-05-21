@@ -114,15 +114,15 @@ namespace aspect
             Assert(depth>=min_depth, ExcMessage("not in range"));
             Assert(depth<=max_depth, ExcMessage("not in range"));
 
-            for (int i = 0; i < values.size(); i++)
+            for (unsigned int i = 0; i < values.size(); i++)
               depth_diff[i] = std::abs(depthvalues[i] - depth);
 
             double depth_val = 1e6;
-            for (int i = 0; i < values.size(); i++)
+            for (unsigned int i = 0; i < values.size(); i++)
               depth_val = std::min(depth_diff[i],depth_val);
 
             unsigned int idx = values.size();
-            for (int i = 0; i < values.size(); i++)
+            for (unsigned int i = 0; i < values.size(); i++)
               if (depth_val == std::abs(depthvalues[i] - depth))
                 idx = i;
 
@@ -180,15 +180,15 @@ namespace aspect
             Assert(depth>=min_depth, ExcMessage("not in range"));
             Assert(depth<=max_depth, ExcMessage("not in range"));
 
-            for (int i = 0; i < values.size(); i++)
+            for (unsigned int i = 0; i < values.size(); i++)
               depth_diff[i] = std::abs(depthvalues[i] - depth);
 
             double depth_val = 1e6;
-            for (int i = 0; i < values.size(); i++)
+            for (unsigned int i = 0; i < values.size(); i++)
               depth_val = std::min(depth_diff[i],depth_val);
 
             unsigned int idx = values.size();
-            for (int i = 0; i < values.size(); i++)
+            for (unsigned int i = 0; i < values.size(); i++)
               if (depth_val == std::abs(depthvalues[i] - depth))
                 idx = i;
 
