@@ -79,15 +79,15 @@ namespace aspect
             Assert(depth<=max_depth, ExcMessage("not in range"));
             //const unsigned int idx = static_cast<unsigned int>((depth-min_depth)/delta_depth);
 
-            for (int i = 0; i < values.size(); i++)
+            for (unsigned int i = 0; i < values.size(); i++)
               depth_diff[i] = std::abs(depthvalues[i] - depth);
 
             double depth_val = 1e7;
-            for (int i = 0; i < values.size(); i++)
+            for (unsigned int i = 0; i < values.size(); i++)
               depth_val = std::min(depth_diff[i],depth_val);
 
             unsigned int idx = values.size();
-            for (int i = 0; i < values.size(); i++)
+            for (unsigned int i = 0; i < values.size(); i++)
               if (depth_val == std::abs(depthvalues[i] - depth))
                 idx = i;
 

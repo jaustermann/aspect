@@ -33,8 +33,11 @@ namespace aspect
 
     namespace internal
     {
-      class TX2008Lookup;
-      class GeothermLookup;
+      namespace TX2008
+      {
+        class TX2008Lookup;
+        class GeothermLookup;
+      }
     }
 
     /**
@@ -133,14 +136,14 @@ namespace aspect
          * Pointer to an object that reads and processes the spherical harmonics
          * coefficients
          */
-        std_cxx1x::shared_ptr<internal::TX2008Lookup> TX2008_lookup;
+        std_cxx1x::shared_ptr<internal::TX2008::TX2008Lookup> TX2008_lookup;
 
         /**
          * Pointer to an object that reads and processes the depths for the spline
          * knot points.
          */
 
-        std_cxx1x::shared_ptr<internal::GeothermLookup> geotherm_lookup;
+        std_cxx1x::shared_ptr<internal::TX2008::GeothermLookup> geotherm_lookup;
 
         bool thermal_alpha_constant;
         bool vs_to_depth_constant;

@@ -698,9 +698,6 @@ namespace aspect
         const double solver_tolerance = parameters.linear_stokes_solver_tolerance *
                                         sqrt(residual_u*residual_u+residual_p*residual_p);
 
- pcout << "  residual_u " << residual_u << std::endl;
- pcout << "  residual_p " << residual_p << std::endl;
-
         // Now overwrite the solution vector again with the current best guess
         // to solve the linear system
         distributed_stokes_solution = linearized_stokes_initial_guess;
@@ -846,28 +843,6 @@ namespace aspect
                                    preconditioner_cheap.n_iterations_A() + preconditioner_expensive.n_iterations_A(),
                                    solver_control_cheap,
                                    solver_control_expensive);
-
-        // write solver output
-        if (Utilities::MPI::this_mpi_process(mpi_communicator) == 0)
-          {
-            // output solver history
-            std::ofstream f((parameters.output_directory+"solver_history"+Utilities::to_string(time)+".txt").c_str());
-
-            // Only request the solver history if a history has actually been created
-            if (parameters.n_cheap_stokes_solver_steps > 0)
-              {
-                for (unsigned int i=0; i<solver_control_cheap.get_history_data().size(); ++i)
-                  f << i << " " << solver_control_cheap.get_history_data()[i] << "\n";
-
-                f << "\n";
-              }
-
-
-            for (unsigned int i=0; i<solver_control_expensive.get_history_data().size(); ++i)
-              f << i << " " << solver_control_expensive.get_history_data()[i] << "\n";
-
-            f.close();
-          }
 
         // distribute hanging node and
         // other constraints

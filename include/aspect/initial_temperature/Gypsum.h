@@ -18,9 +18,8 @@
   <http://www.gnu.org/licenses/>.
 */
 
-
 #ifndef __aspect__initial_temperature_Gypsum_perturbation_h
-#define __aspect__initial_tempearture_Gypsum_perturbation_h
+#define __aspect__initial_temperature_Gypsum_perturbation_h
 
 #include <aspect/simulator_access.h>
 #include <deal.II/base/std_cxx1x/array.h>
