@@ -227,10 +227,6 @@ namespace aspect
       index_lonlat[2] = (x1+180) + 361*(y2 + 90);
       index_lonlat[3] = (x2+180) + 361*(y2 + 90);
 
-      for (int i=1; i<4; i++)
-         if (index_lonlat[i] < 0 || index_lonlat[i] > 65340)
-	    std::cout << "index_lonlat " << index_lonlat[i] << " y2 " << y2 << " theta " << theta << " phi " << phi << std::endl;
-
       const std::vector<double> coeffs = TX2008_lookup->grid_perturbations();
 
       // pick out the values surrounding the value
