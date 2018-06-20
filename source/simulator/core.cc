@@ -389,9 +389,12 @@ namespace aspect
     // We need to do the RHS compatibility modification, if the model is
     // compressible or compatible (in the case of melt transport), and
     // there is no open boundary to balance the pressure.
+    // The same correction has to be applied for the adjoint equation
     do_pressure_rhs_compatibility_modification = ((material_model->is_compressible() && !parameters.include_melt_transport)
                                                   ||
-                                                  (parameters.include_melt_transport && !material_model->is_compressible()))
+                                                  (parameters.include_melt_transport && !material_model->is_compressible())
+                                                  ||
+                                                  parameters.nonlinear_solver == NonlinearSolver::Stokes_adjoint)
                                                  &&
                                                  (open_velocity_boundary_indicators.size() == 0);
 
@@ -1165,6 +1168,7 @@ namespace aspect
     old_solution.reinit(introspection.index_sets.system_partitioning, introspection.index_sets.system_relevant_partitioning, mpi_communicator);
     old_old_solution.reinit(introspection.index_sets.system_partitioning, introspection.index_sets.system_relevant_partitioning, mpi_communicator);
     current_linearization_point.reinit (introspection.index_sets.system_partitioning, introspection.index_sets.system_relevant_partitioning, mpi_communicator);
+    current_adjoint_solution.reinit (introspection.index_sets.system_partitioning, introspection.index_sets.system_relevant_partitioning, mpi_communicator);
 
     if (parameters.use_operator_splitting)
       operator_split_reaction_vector.reinit (introspection.index_sets.system_partitioning, introspection.index_sets.system_relevant_partitioning, mpi_communicator);
@@ -1456,6 +1460,9 @@ namespace aspect
   Simulator<dim>::
   solve_timestep ()
   {
+    // set adjoint problem to false as default
+    adjoint_problem = false;
+
     // start any scheme with an extrapolated value from the previous
     // two time steps if those are available
     current_linearization_point = old_solution;
@@ -1521,6 +1528,12 @@ namespace aspect
         case NonlinearSolver::single_Advection_no_Stokes:
         {
           solve_single_advection_no_stokes();
+          break;
+        }
+
+        case NonlinearSolver::Stokes_adjoint:
+        {
+          solve_stokes_adjoint();
           break;
         }
 

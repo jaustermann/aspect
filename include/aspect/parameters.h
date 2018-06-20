@@ -69,7 +69,8 @@ namespace aspect
         single_Advection_iterated_Stokes,
         no_Advection_iterated_Stokes,
         iterated_Advection_and_Newton_Stokes,
-        single_Advection_no_Stokes
+        single_Advection_no_Stokes,
+        Stokes_adjoint
       };
     };
 
@@ -509,6 +510,14 @@ namespace aspect
     /**
      * @}
      */
+
+    /**
+     * Adjoint problem
+     */
+    std::string        adjoint_input_file;
+    bool               read_in_points;
+    bool               do_iteration;
+    bool          use_fixed_surface_value;
 
   };
 

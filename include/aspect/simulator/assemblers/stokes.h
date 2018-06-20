@@ -209,6 +209,19 @@ namespace aspect
         execute(internal::Assembly::Scratch::ScratchBase<dim>   &scratch,
                 internal::Assembly::CopyData::CopyDataBase<dim> &data) const;
     };
+
+    /**
+     */
+    template <int dim>
+    class StokesAdjointRHS : public Assemblers::Interface<dim>,
+      public SimulatorAccess<dim>
+    {
+      public:
+        virtual
+        void
+        execute(internal::Assembly::Scratch::ScratchBase<dim>   &scratch,
+                internal::Assembly::CopyData::CopyDataBase<dim> &data) const;
+    };
   }
 }
 
