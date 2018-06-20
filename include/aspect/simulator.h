@@ -718,6 +718,11 @@ namespace aspect
        */
       void solve_no_advection_no_stokes ();
 
+      /** 
+       * This solves the adjoint equations
+       */
+      void solve_stokes_adjoint ();
+
       /**
        * Initiate the assembly of the Stokes preconditioner matrix via
        * assemble_stokes_preconditoner(), then set up the data structures to
@@ -1936,6 +1941,7 @@ namespace aspect
       unsigned int                                              timestep_number;
       unsigned int                                              pre_refinement_step;
       unsigned int                                              nonlinear_iteration;
+      bool              adjoint_problem;
       /**
        * @}
        */
@@ -2060,6 +2066,7 @@ namespace aspect
       LinearAlgebra::BlockVector                                system_rhs;
 
       LinearAlgebra::BlockVector                                current_linearization_point;
+      LinearAlgebra::BlockVector                                current_adjoint_solution;
 
       // only used if is_compressible()
       LinearAlgebra::BlockVector                                pressure_shape_function_integrals;
