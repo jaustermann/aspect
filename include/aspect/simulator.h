@@ -309,6 +309,10 @@ namespace aspect
         unsigned int polynomial_degree(const Introspection<dim> &introspection) const;
       };
 
+      virtual
+      std::list<std::string>
+      required_other_postprocessors() const;
+
 
     private:
 
@@ -509,11 +513,6 @@ namespace aspect
        * <code>source/simulator/solver_schemes.cc</code>.
        */
       void solve_single_advection_no_stokes ();
-
-      /**
-       * This solves the adjoint equations
-       */
-      void solve_stokes_adjoint ();
 
       /**
        * Initiate the assembly of the Stokes preconditioner matrix via
@@ -1560,7 +1559,6 @@ namespace aspect
       unsigned int                                              timestep_number;
       unsigned int                                              pre_refinement_step;
       unsigned int                                              nonlinear_iteration;
-      bool              adjoint_problem;
       /**
        * @}
        */
@@ -1685,7 +1683,6 @@ namespace aspect
       LinearAlgebra::BlockVector                                system_rhs;
 
       LinearAlgebra::BlockVector                                current_linearization_point;
-      LinearAlgebra::BlockVector                                current_adjoint_solution;
 
       // only used if is_compressible()
       LinearAlgebra::BlockVector                                pressure_shape_function_integrals;
@@ -1721,6 +1718,13 @@ namespace aspect
       friend class SimulatorAccess<dim>;
       friend class FreeSurfaceHandler<dim>;  // FreeSurfaceHandler needs access to the internals of the Simulator
       friend struct Parameters<dim>;
+
+      /** Parameters for the adjoint problem
+       */
+      bool                                                      adjoint_problem;
+      LinearAlgebra::BlockVector                                current_adjoint_solution;
+      void solve_stokes_adjoint ();
+      void compute_parameter_update ();
   };
 }
 

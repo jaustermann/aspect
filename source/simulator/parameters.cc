@@ -709,7 +709,7 @@ namespace aspect
                          "discontinuous field. "
                          "Units: None.");
       prm.declare_entry ("Composition polynomial degree", "2",
-                         Patterns::Integer (1),
+                         Patterns::Integer (0),
                          "The polynomial degree to use for the composition variable(s). "
                          "As an example, a value of 2 for this parameter will yield "
                          "either the element $Q_2$ or $DGQ_2$ for the compositional "
@@ -986,6 +986,9 @@ namespace aspect
                          "");
       prm.declare_entry ("Use fixed surface value", "false",
                          Patterns::Bool (),
+                         "");
+      prm.declare_entry ("Factor to update the material properties", "0.1",
+                         Patterns::Double (),
                          "");
     }
     prm.leave_subsection();
@@ -1542,6 +1545,7 @@ namespace aspect
       read_in_points                  = prm.get_bool ("Read points in from file");
       do_iteration                    = prm.get_bool ("Do iterations for inversion");
       use_fixed_surface_value         = prm.get_bool ("Use fixed surface value");
+      update_factor             = prm.get_double ("Factor to update the material properties");
     }
     prm.leave_subsection ();
 
