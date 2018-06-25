@@ -373,6 +373,11 @@ namespace aspect
         unsigned int polynomial_degree(const Introspection<dim> &introspection) const;
       };
 
+      virtual
+      std::list<std::string>
+      required_other_postprocessors() const;
+
+
     private:
 
       /**
@@ -1941,7 +1946,6 @@ namespace aspect
       unsigned int                                              timestep_number;
       unsigned int                                              pre_refinement_step;
       unsigned int                                              nonlinear_iteration;
-      bool              adjoint_problem;
       /**
        * @}
        */
@@ -2066,7 +2070,6 @@ namespace aspect
       LinearAlgebra::BlockVector                                system_rhs;
 
       LinearAlgebra::BlockVector                                current_linearization_point;
-      LinearAlgebra::BlockVector                                current_adjoint_solution;
 
       // only used if is_compressible()
       LinearAlgebra::BlockVector                                pressure_shape_function_integrals;
@@ -2111,6 +2114,13 @@ namespace aspect
       template <int dimension, int velocity_degree>
       friend class StokesMatrixFreeHandlerImplementation;
       friend struct Parameters<dim>;
+
+      /** Parameters for the adjoint problem
+       */
+      bool                                                      adjoint_problem;
+      LinearAlgebra::BlockVector                                current_adjoint_solution;
+      void solve_stokes_adjoint ();
+      void compute_parameter_update ();
   };
 }
 
