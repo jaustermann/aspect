@@ -65,7 +65,7 @@ namespace aspect
                   in >> coeffs[i];
                 }
 
-	      // reorder the coefficients into sin and cos coefficients. a_lm will be the cos coefficients
+              // reorder the coefficients into sin and cos coefficients. a_lm will be the cos coefficients
               // and b_lm the sin coefficients.
               unsigned int ind = 0;
 
@@ -462,7 +462,7 @@ namespace aspect
 
       //get thermal alpha
       double B_val, A_val;
-      double thermal_alpha_gliso;
+      double thermal_alpha_gliso = 1.;
       std::vector<double>  alpha_val (3,3.5e-5);
       std::vector<double>  depth_val (3,0);
 

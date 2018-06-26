@@ -72,11 +72,11 @@ namespace aspect
               // reorder the coefficients into sin and cos coefficients. a_lm will be the cos coefficients
               // and b_lm the sin coefficients.
               int ind = 0;
-              int ind_degree;
+              unsigned int ind_degree;
 
-              for (int j=0; j<num_layers; j++)
+              for (unsigned int j=0; j<num_layers; j++)
 
-                for (int i=0; i<order+1; i++)
+                for (unsigned int i=0; i<order+1; i++)
                   {
                     //a_lm.push_back(coeffs[ind]);
                     //b_lm.push_back(0.0);
@@ -464,7 +464,7 @@ namespace aspect
 
       //get thermal alpha
       double B_val, A_val;
-      double thermal_alpha_gliso;
+      double thermal_alpha_gliso = 1.;
       std::vector<double>  alpha_val (3,3.5e-5);
       std::vector<double>  depth_val (3,0);
 

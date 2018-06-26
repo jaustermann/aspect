@@ -34,115 +34,115 @@ namespace aspect
     namespace internal
     {
       namespace TX2008
-      { 
-
-      // Read in the spherical harmonics that are located in data/initial-conditions/S40RTS
-      // and were downloaded from http://www.earth.lsa.umich.edu/~jritsema/research.html
-      // Ritsema et al. choose real sine and cosine coefficients that follow the normalization
-      // by Dahlen & Tromp, Theoretical Global Seismology (equations B.58 and B.99).
-
-      class TX2008Lookup
       {
-        public:
-          TX2008Lookup(const std::string &filename,
-                       const MPI_Comm &comm)
-          {
-            std::string temp;
-            std::istringstream in(Utilities::read_and_distribute_file_content(filename, comm));
-            AssertThrow (in,
-                         ExcMessage (std::string("Couldn't open file <") + filename));
 
-            // in >> order;
-            // getline(in,temp);  // throw away the rest of the line
+        // Read in the spherical harmonics that are located in data/initial-conditions/S40RTS
+        // and were downloaded from http://www.earth.lsa.umich.edu/~jritsema/research.html
+        // Ritsema et al. choose real sine and cosine coefficients that follow the normalization
+        // by Dahlen & Tromp, Theoretical Global Seismology (equations B.58 and B.99).
 
-            // const int maxnumber = num_splines * (order+1)*(order+1);
-            const int maxnumber = 65341 * 22;
-            // read in all coefficients as a single data vector
-            for (int i=0; i<maxnumber; i++)
-              {
-                double new_val;
-                in >> new_val;
-                coeffs.push_back(new_val);
-             }
+        class TX2008Lookup
+        {
+          public:
+            TX2008Lookup(const std::string &filename,
+                         const MPI_Comm &comm)
+            {
+              std::string temp;
+              std::istringstream in(Utilities::read_and_distribute_file_content(filename, comm));
+              AssertThrow (in,
+                           ExcMessage (std::string("Couldn't open file <") + filename));
 
-          }
+              // in >> order;
+              // getline(in,temp);  // throw away the rest of the line
 
-          // Declare a function that returns the cosine coefficients
-          const std::vector<double> &grid_perturbations() const
-          {
-            return coeffs;
-          }
+              // const int maxnumber = num_splines * (order+1)*(order+1);
+              const int maxnumber = 65341 * 22;
+              // read in all coefficients as a single data vector
+              for (int i=0; i<maxnumber; i++)
+                {
+                  double new_val;
+                  in >> new_val;
+                  coeffs.push_back(new_val);
+                }
 
-        private:
-          std::vector<double> coeffs;
-      };
+            }
+
+            // Declare a function that returns the cosine coefficients
+            const std::vector<double> &grid_perturbations() const
+            {
+              return coeffs;
+            }
+
+          private:
+            std::vector<double> coeffs;
+        };
 
 
 
-      class GeothermLookup
-      {
-        public:
-          GeothermLookup(const std::string &filename)
-          {
-            std::string temp;
-            std::ifstream in(filename.c_str(), std::ios::in);
-            AssertThrow (in,
-                         ExcMessage (std::string("Couldn't open file <") + filename));
+        class GeothermLookup
+        {
+          public:
+            GeothermLookup(const std::string &filename)
+            {
+              std::string temp;
+              std::ifstream in(filename.c_str(), std::ios::in);
+              AssertThrow (in,
+                           ExcMessage (std::string("Couldn't open file <") + filename));
 
-            min_depth=1e20;
-            max_depth=-1;
+              min_depth=1e20;
+              max_depth=-1;
 
-            getline(in,temp);  //eat first line
+              getline(in,temp);  //eat first line
 
-            while (!in.eof())
-              {
-                double val, depth;
-                in >> depth;
-                if (in.eof())
-                  break;
-                in >> val;
-                depth *=1000.0;
-                getline(in, temp);
+              while (!in.eof())
+                {
+                  double val, depth;
+                  in >> depth;
+                  if (in.eof())
+                    break;
+                  in >> val;
+                  depth *=1000.0;
+                  getline(in, temp);
 
-                min_depth = std::min(depth, min_depth);
-                max_depth = std::max(depth, max_depth);
+                  min_depth = std::min(depth, min_depth);
+                  max_depth = std::max(depth, max_depth);
 
-                values.push_back(val);
-                depthvalues.push_back(depth);
-              }
-          }
+                  values.push_back(val);
+                  depthvalues.push_back(depth);
+                }
+            }
 
-          double geotherm(double depth)
-          {
+            double geotherm(double depth)
+            {
 
-            std::vector<double> depth_diff (values.size(), 0);
+              std::vector<double> depth_diff (values.size(), 0);
 
-            Assert(depth>=min_depth, ExcMessage("not in range"));
-            Assert(depth<=max_depth, ExcMessage("not in range"));
+              Assert(depth>=min_depth, ExcMessage("not in range"));
+              Assert(depth<=max_depth, ExcMessage("not in range"));
 
-            for (unsigned int i = 0; i < values.size(); i++)
-              depth_diff[i] = std::abs(depthvalues[i] - depth);
+              for (unsigned int i = 0; i < values.size(); i++)
+                depth_diff[i] = std::abs(depthvalues[i] - depth);
 
-            double depth_val = 1e6;
-            for (unsigned int i = 0; i < values.size(); i++)
-              depth_val = std::min(depth_diff[i],depth_val);
+              double depth_val = 1e6;
+              for (unsigned int i = 0; i < values.size(); i++)
+                depth_val = std::min(depth_diff[i],depth_val);
 
-            unsigned int idx = values.size();
-            for (unsigned int i = 0; i < values.size(); i++)
-              if (depth_val == std::abs(depthvalues[i] - depth))
-                idx = i;
+              unsigned int idx = values.size();
+              for (unsigned int i = 0; i < values.size(); i++)
+                if (depth_val == std::abs(depthvalues[i] - depth))
+                  idx = i;
 
-            Assert(idx<values.size(), ExcMessage("not in range"));
-            return values[idx];
-          }
+              Assert(idx<values.size(), ExcMessage("not in range"));
+              return values[idx];
+            }
 
-        private:
-          std::vector<double> depthvalues;
-          std::vector<double> values;
-          double min_depth;
-          double max_depth;
+          private:
+            std::vector<double> depthvalues;
+            std::vector<double> values;
+            double min_depth;
+            double max_depth;
 
-      };
+        };
 
       }
     }
@@ -194,7 +194,7 @@ namespace aspect
       std_cxx1x::array<double,dim> scoord = spherical_surface_coordinates(position);
 
       const double depth = this->get_geometry_model().depth(position);
-      int depth_index;
+      int depth_index = 1;
       for (int i=0; i<22; i++)
         if ( depth > depth_values[i] && depth < depth_values[i+1])
           depth_index = i;
@@ -217,9 +217,9 @@ namespace aspect
       int y1 = floor(theta);
       int y2 = ceil(theta);
 
-      // in case point is at 90 deg flip the interpolation cell upside down 
+      // in case point is at 90 deg flip the interpolation cell upside down
       if (y2 == 91)
-	 y2 = 89;;
+        y2 = 89;;
 
       std::vector<int> index_lonlat (4,0);
       index_lonlat[0] = (x1+180) + 361*(y1 + 90);
@@ -241,12 +241,12 @@ namespace aspect
           {
 
             if ( j == depth_index )
-	      {
-		if (i == index_lonlat[0])
-		  Q11 = coeffs[next_ind];
-		
-		if (i == index_lonlat[1])
-		  Q21 = coeffs[next_ind];
+              {
+                if (i == index_lonlat[0])
+                  Q11 = coeffs[next_ind];
+
+                if (i == index_lonlat[1])
+                  Q21 = coeffs[next_ind];
 
                 if (i == index_lonlat[2])
                   Q12 = coeffs[next_ind];
@@ -257,13 +257,13 @@ namespace aspect
             next_ind += 1;
           }
 
-/*
-      // bilinear interpolation from http://en.wikipedia.org/wiki/Bilinear_interpolation
-      const double Q11 = density_pert[depth_index][index_lonlat[0]];
-      const double Q21 = density_pert[depth_index][index_lonlat[1]];
-      const double Q12 = density_pert[depth_index][index_lonlat[2]];
-      const double Q22 = density_pert[depth_index][index_lonlat[3]];
-*/
+      /*
+            // bilinear interpolation from http://en.wikipedia.org/wiki/Bilinear_interpolation
+            const double Q11 = density_pert[depth_index][index_lonlat[0]];
+            const double Q21 = density_pert[depth_index][index_lonlat[1]];
+            const double Q12 = density_pert[depth_index][index_lonlat[2]];
+            const double Q22 = density_pert[depth_index][index_lonlat[3]];
+      */
       // The last term (0.01) is necessary to convert percent perturbations to absolute values
       const double perturbation = 1/((x2-x1) * (y2-y1)) *
                                   (Q11 *(x2 - phi)*(y2 - theta) +
@@ -277,8 +277,8 @@ namespace aspect
         if (depth <= 200000)
           density_perturbation = 0;
 
-      //get thermal alpha
-      double thermal_alpha_val;
+      //get thermal alpha, set constant as initializer
+      double thermal_alpha_val = thermal_alpha;
       double B_val, A_val;
 
       std::vector<double>  alpha_val (3,3.5e-5);
@@ -311,10 +311,6 @@ namespace aspect
       // scale the density perturbation into a temperature perturbation
       // THIS ISNT COMPRESSIBLE - GLISOVIC ET AL 2012 THAT ITS THIRD ORDER EFFECT
       const double temperature_perturbation =  -1./thermal_alpha_val * density_perturbation;
-
-      double temperature;
-
-
 
       // set up background temperature as a geotherm
       /*       Note that the values we read in here have reasonable default values equation to
@@ -379,11 +375,12 @@ namespace aspect
             }
 
        */    // option to either take simplified geotherm or read one in from file
-  
 
-     if (read_geotherm_in == true)
+      // use constant temperature as default
+      double temperature = reference_temperature + temperature_perturbation;
+
+      if (read_geotherm_in == true)
         temperature = geotherm_lookup->geotherm(depth) + temperature_perturbation;
-
 
       if (adiabat_temp == true)
         temperature = this->get_adiabatic_conditions().temperature(position) + temperature_perturbation;
