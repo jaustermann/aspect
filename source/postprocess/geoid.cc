@@ -140,8 +140,8 @@ namespace aspect
                         const double density = out.densities[q];
                         const double r_q = in.position[q].norm();
 
-                        integrated_density_cos_component += density * (1./r_q) * std::pow(r_q/outer_radius,ideg+1) * cos_component * fe_values.JxW(q);
-                        integrated_density_sin_component += density * (1./r_q) * std::pow(r_q/outer_radius,ideg+1) * sin_component * fe_values.JxW(q);
+                        integrated_density_cos_component += density * (1./(r_q*r_q)) * ideg * std::pow(r_q/outer_radius,ideg+1) * cos_component * fe_values.JxW(q);
+                        integrated_density_sin_component += density * (1./(r_q*r_q)) * ideg * std::pow(r_q/outer_radius,ideg+1) * sin_component * fe_values.JxW(q);
                       }
                   }
               SH_density_coecos.push_back(integrated_density_cos_component);
@@ -367,16 +367,16 @@ namespace aspect
               density_anomaly_contribution_coesin.push_back(coesin_density_anomaly);
 
               double coecos_surface_dyna_topo = (4 * numbers::PI * G / (surface_gravity * (2 * ideg + 1)))
-                                                * surface_delta_rho*SH_surface_dyna_topo_coes.second.first.at(ind)*outer_radius;
+                                                * surface_delta_rho*SH_surface_dyna_topo_coes.second.first.at(ind)*ideg;
               double coesin_surface_dyna_topo = (4 * numbers::PI * G / (surface_gravity * (2 * ideg + 1)))
-                                                * surface_delta_rho*SH_surface_dyna_topo_coes.second.second.at(ind)*outer_radius;
+                                                * surface_delta_rho*SH_surface_dyna_topo_coes.second.second.at(ind)*ideg;
               surface_dyna_topo_contribution_coecos.push_back(coecos_surface_dyna_topo);
               surface_dyna_topo_contribution_coesin.push_back(coesin_surface_dyna_topo);
 
               double coecos_CMB_dyna_topo = (4 * numbers::PI * G / (surface_gravity * (2 * ideg + 1)))
-                                            * CMB_delta_rho*SH_CMB_dyna_topo_coes.second.first.at(ind)*inner_radius*std::pow(inner_radius/outer_radius,ideg+1);
+                                            * CMB_delta_rho*SH_CMB_dyna_topo_coes.second.first.at(ind)*std::pow(inner_radius/outer_radius,ideg+2) * (-ideg-1);
               double coesin_CMB_dyna_topo = (4 * numbers::PI * G / (surface_gravity * (2 * ideg + 1)))
-                                            * CMB_delta_rho*SH_CMB_dyna_topo_coes.second.second.at(ind)*inner_radius*std::pow(inner_radius/outer_radius,ideg+1);
+                                            * CMB_delta_rho*SH_CMB_dyna_topo_coes.second.second.at(ind)*std::pow(inner_radius/outer_radius,ideg+2) * (-ideg-1);
               CMB_dyna_topo_contribution_coecos.push_back(coecos_CMB_dyna_topo);
               CMB_dyna_topo_contribution_coesin.push_back(coesin_CMB_dyna_topo);
 
