@@ -374,9 +374,9 @@ namespace aspect
               surface_dyna_topo_contribution_coesin.push_back(coesin_surface_dyna_topo);
 
               double coecos_CMB_dyna_topo = (4 * numbers::PI * G / (surface_gravity * (2 * ideg + 1)))
-                                            * CMB_delta_rho*SH_CMB_dyna_topo_coes.second.first.at(ind)*std::pow(inner_radius/outer_radius,ideg+2) * (-ideg-1);
+                                            * CMB_delta_rho*SH_CMB_dyna_topo_coes.second.first.at(ind)*std::pow(inner_radius/outer_radius,ideg+2) * (-1.) * (ideg+1);
               double coesin_CMB_dyna_topo = (4 * numbers::PI * G / (surface_gravity * (2 * ideg + 1)))
-                                            * CMB_delta_rho*SH_CMB_dyna_topo_coes.second.second.at(ind)*std::pow(inner_radius/outer_radius,ideg+2) * (-ideg-1);
+                                            * CMB_delta_rho*SH_CMB_dyna_topo_coes.second.second.at(ind)*std::pow(inner_radius/outer_radius,ideg+2) * (-1.) * (ideg+1);
               CMB_dyna_topo_contribution_coecos.push_back(coecos_CMB_dyna_topo);
               CMB_dyna_topo_contribution_coesin.push_back(coesin_CMB_dyna_topo);
 
