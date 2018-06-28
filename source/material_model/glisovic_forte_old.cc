@@ -212,7 +212,7 @@ namespace aspect
       // Set up three values of thermal conducivity for different depths and
       // interpolate linearly inbetween
       const double depth = this->get_geometry_model().depth(position);
-      double thermal_cond_val;
+      double thermal_cond_val = 0.;
       double B_val, A_val;
 
       std::vector<double>  cond_val (4,3.3);
@@ -438,7 +438,7 @@ namespace aspect
     template <int dim>
     void
     GlisovicForteOld<dim>::evaluate(const MaterialModel::MaterialModelInputs<dim> &in,
-                                 MaterialModel::MaterialModelOutputs<dim> &out) const
+                                    MaterialModel::MaterialModelOutputs<dim> &out) const
     {
       for (unsigned int i=0; i < in.temperature.size(); ++i)
         {

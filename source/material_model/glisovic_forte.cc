@@ -21,6 +21,7 @@
 
 #include <aspect/material_model/glisovic_forte.h>
 #include <aspect/utilities.h>
+#include <aspect/geometry_model/interface.h>
 
 namespace aspect
 {
@@ -38,9 +39,9 @@ namespace aspect
           const double temperature_dependence
             = (reference_T > 0
                ?
-           //    std::max(std::min(std::exp(-thermal_viscosity_exponent *
-           //                               delta_temp/reference_T),
-		std::max(std::min(std::exp(- thermal_viscosity_exponent * delta_temp),
+               //    std::max(std::min(std::exp(-thermal_viscosity_exponent *
+               //                               delta_temp/reference_T),
+               std::max(std::min(std::exp(- thermal_viscosity_exponent * delta_temp),
                                  maximum_thermal_prefactor),
                         minimum_thermal_prefactor)
                :
@@ -64,7 +65,7 @@ namespace aspect
                            0.0;
 
           out.specific_heat[i] = reference_specific_heat;
-          out.thermal_conductivities[i] = k_value;
+          //  out.thermal_conductivities[i] = k_value;
           out.compressibilities[i] = 0.0;
           // Pressure derivative of entropy at the given positions.
           out.entropy_derivative_pressure[i] = 0.0;
@@ -76,87 +77,87 @@ namespace aspect
           for (unsigned int c=0; c<in.composition[i].size(); ++c)
             out.reaction_terms[i][c] = 0.0;
 
-// --------------- Thermal expansivisty
-// Set up three values of thermal expansion for different depths and
-      // interpolate linearly inbetween
+          // --------------- Thermal expansivisty
+          // Set up three values of thermal expansion for different depths and
+          // interpolate linearly inbetween
 
-      const double depth = this->get_geometry_model().depth(in.position[i]);
-      double thermal_alpha_val = 0.;
-      double B_val, A_val;
+          const double depth = this->get_geometry_model().depth(in.position[i]);
+          double thermal_alpha_val = 0.;
+          double B_val, A_val;
 
-      std::vector<double>  alpha_val (3,3.5e-5);
-      std::vector<double>  depth_val_a (3,0);
+          std::vector<double>  alpha_val (3,3.5e-5);
+          std::vector<double>  depth_val_a (3,0);
 
-      alpha_val[1] = 2.5e-5;
-      alpha_val[2] = 1.0e-5;
+          alpha_val[1] = 2.5e-5;
+          alpha_val[2] = 1.0e-5;
 
-      depth_val_a[1] =  670000;
-      depth_val_a[2] = 2890000;
+          depth_val_a[1] =  670000;
+          depth_val_a[2] = 2890000;
 
-      if (depth < 670000)
-        {
-          B_val = (alpha_val[0] - alpha_val[1])/(depth_val_a[0] - depth_val_a[1]);
-          A_val = alpha_val[0] - B_val * depth_val_a[0];
-          thermal_alpha_val = A_val + B_val * depth;
-        }
+          if (depth < 670000)
+            {
+              B_val = (alpha_val[0] - alpha_val[1])/(depth_val_a[0] - depth_val_a[1]);
+              A_val = alpha_val[0] - B_val * depth_val_a[0];
+              thermal_alpha_val = A_val + B_val * depth;
+            }
 
-      if (depth >= 670000)
-        thermal_alpha_val = 3.48e-05 + 2.72e-18 * depth*depth - 1.644e-11*depth;
-      //  {B_val = (alpha_val[1] - alpha_val[2])/(depth_val[1] - depth_val[2]);
-      //   A_val = alpha_val[1] - B_val * depth_val[1];
-      //   thermal_alpha_val = A_val + B_val * depth;
-      //  }
+          if (depth >= 670000)
+            thermal_alpha_val = 3.48e-05 + 2.72e-18 * depth*depth - 1.644e-11*depth;
+          //  {B_val = (alpha_val[1] - alpha_val[2])/(depth_val[1] - depth_val[2]);
+          //   A_val = alpha_val[1] - B_val * depth_val[1];
+          //   thermal_alpha_val = A_val + B_val * depth;
+          //  }
 
-      if (thermal_alpha_constant == true)
-        thermal_alpha_val = thermal_alpha;
+          if (thermal_alpha_constant == true)
+            thermal_alpha_val = thermal_alpha;
 
           out.thermal_expansion_coefficients[i] = thermal_alpha_val;
 
 
-// --------------- Thermal conductivity
-// Set up three values of thermal conducivity for different depths and
-      // interpolate linearly inbetween
-      double thermal_cond_val;
+          // --------------- Thermal conductivity
+          // Set up three values of thermal conducivity for different depths and
+          // interpolate linearly inbetween
+          double thermal_cond_val = 0.;
 
-      std::vector<double>  cond_val (4,3.3);
-      std::vector<double>  depth_val (4,0);
+          std::vector<double>  cond_val (4,3.3);
+          std::vector<double>  depth_val (4,0);
 
-      cond_val[1] = 2.5;
-      cond_val[2] = 6.25;
-      cond_val[3] = 4.8;
+          cond_val[1] = 2.5;
+          cond_val[2] = 6.25;
+          cond_val[3] = 4.8;
 
-      depth_val[1] =   80000;
-      depth_val[2] = 2650000;
-      depth_val[3] = 2890000;
+          depth_val[1] =   80000;
+          depth_val[2] = 2650000;
+          depth_val[3] = 2890000;
 
-      if (depth < depth_val[1])
-        {
-          B_val = (cond_val[0] - cond_val[1])/(depth_val[0] - depth_val[1]);
-          A_val = cond_val[0] - B_val * depth_val[0];
-          thermal_cond_val = A_val + B_val * depth;
-        }
+          if (depth < depth_val[1])
+            {
+              B_val = (cond_val[0] - cond_val[1])/(depth_val[0] - depth_val[1]);
+              A_val = cond_val[0] - B_val * depth_val[0];
+              thermal_cond_val = A_val + B_val * depth;
+            }
 
-      if (depth >= depth_val[1])
-        if (depth < depth_val[2])
-          {
-            B_val = (cond_val[1] - cond_val[2])/(depth_val[1] - depth_val[2]);
-            A_val = cond_val[1] - B_val * depth_val[1];
-            thermal_cond_val = A_val + B_val * depth;
-          }
+          if (depth >= depth_val[1])
+            if (depth < depth_val[2])
+              {
+                B_val = (cond_val[1] - cond_val[2])/(depth_val[1] - depth_val[2]);
+                A_val = cond_val[1] - B_val * depth_val[1];
+                thermal_cond_val = A_val + B_val * depth;
+              }
 
-      if (depth >= depth_val[2])
-        {
-          B_val = (cond_val[2] - cond_val[3])/(depth_val[2] - depth_val[3]);
-          A_val = cond_val[2] - B_val * depth_val[2];
-          thermal_cond_val = A_val + B_val * depth;
-        }
+          if (depth >= depth_val[2])
+            {
+              B_val = (cond_val[2] - cond_val[3])/(depth_val[2] - depth_val[3]);
+              A_val = cond_val[2] - B_val * depth_val[2];
+              thermal_cond_val = A_val + B_val * depth;
+            }
 
-      if (thermal_cond_constant == true)
-        thermal_cond_val = k_value;
+          if (thermal_cond_constant == true)
+            thermal_cond_val = k_value;
 
-out.thermal_conductivities[i] = thermal_cond_val;
+          out.thermal_conductivities[i] = thermal_cond_val;
 
-// ------------ Density
+          // ------------ Density
           out.densities[i] = reference_rho * (1 - thermal_alpha_val * (in.temperature[i] - reference_T))
                              + compositional_delta_rho * c;
 
@@ -247,7 +248,7 @@ out.thermal_conductivities[i] = thermal_cond_val;
                              "the density has an additional term of the kind $+\\Delta \\rho \\; c_1(\\mathbf x)$. "
                              "This parameter describes the value of $\\Delta \\rho$. Units: $kg/m^3/\\textrm{unit "
                              "change in composition}$.");
-         prm.declare_entry ("Thermal conductivity constant", "false",
+          prm.declare_entry ("Thermal conductivity constant", "false",
                              Patterns::Bool(),
                              "Switch to leave the thermal conductivity constant.");
           prm.declare_entry ("Thermal expansion constant", "false",
@@ -284,7 +285,7 @@ out.thermal_conductivities[i] = thermal_cond_val;
           thermal_alpha              = prm.get_double ("Thermal expansion coefficient");
           compositional_delta_rho    = prm.get_double ("Density differential for compositional field 1");
           thermal_cond_constant        = prm.get_bool ("Thermal conductivity constant");
-thermal_alpha_constant       = prm.get_bool ("Thermal expansion constant");
+          thermal_alpha_constant       = prm.get_bool ("Thermal expansion constant");
 
           if (thermal_viscosity_exponent!=0.0 && reference_T == 0.0)
             AssertThrow(false, ExcMessage("Error: Material model simple with Thermal viscosity exponent can not have reference_T=0."));
