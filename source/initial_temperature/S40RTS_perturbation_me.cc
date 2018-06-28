@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2015 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2018 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,17 +14,17 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 
 #include <aspect/initial_temperature/S40RTS_perturbation_me.h>
+#include <aspect/adiabatic_conditions/interface.h>
 #include <aspect/utilities.h>
 #include <fstream>
 #include <iostream>
 #include <deal.II/base/std_cxx11/array.h>
-#include <aspect/adiabatic_conditions/interface.h>
 
 #include <boost/lexical_cast.hpp>
 
@@ -36,10 +36,15 @@ namespace aspect
     {
       namespace S40RTS
       {
-        // Read in the spherical harmonics that are located in data/initial-conditions/S40RTS
+        // Read in the spherical harmonics that are located in data/initial-temperature/S40RTS
         // and were downloaded from http://www.earth.lsa.umich.edu/~jritsema/research.html
         // Ritsema et al. choose real sine and cosine coefficients that follow the normalization
         // by Dahlen & Tromp, Theoretical Global Seismology (equations B.58 and B.99).
+
+        // NOTE: There is a factor of sqrt(2) difference between the standard orthonormalized
+        // spherical harmonics used by Dahlen & Tromp and that used for S40RTS (see PR # 966).
+        // This might need adjusting if this code is used to read in spherical harmonic
+        // based tomography models that aren't S40RTS or S20RTS.
 
         class SphericalHarmonicsLookup
         {
@@ -88,7 +93,6 @@ namespace aspect
                         ++ind_degree;
                       }
                   }
-
             }
 
             // Declare a function that returns the cosine coefficients
@@ -110,14 +114,13 @@ namespace aspect
 
           private:
             unsigned int order;
-            std::vector<double> coeffs;
             std::vector<double> a_lm;
             std::vector<double> b_lm;
 
         };
 
         // Read in the knot points for the spline interpolation. They are located in data/
-        // initial-conditions/S40RTS and were taken from the plotting script
+        // initial-temperature/S40RTS and were taken from the plotting script
         // lib/libS20/splhsetup.f which is part of the plotting package downloadable at
         // http://www.earth.lsa.umich.edu/~jritsema/research.html
         class SplineDepthsLookup
@@ -152,73 +155,7 @@ namespace aspect
             std::vector<double> depths;
         };
 
-
-        class VsToDensityLookup
-        {
-          public:
-            VsToDensityLookup(const std::string &filename,
-                              const MPI_Comm &comm)
-            {
-              std::string temp;
-              std::istringstream in(Utilities::read_and_distribute_file_content(filename, comm));
-              AssertThrow (in,
-                           ExcMessage (std::string("Couldn't open file <") + filename));
-
-              min_depth=1e20;
-              max_depth=-1;
-
-              getline(in,temp);  //eat first line
-
-              while (!in.eof())
-                {
-                  double scaling, depth;
-                  in >> scaling;
-                  if (in.eof())
-                    break;
-                  in >> depth;
-                  depth *=1000.0;
-                  getline(in, temp);
-
-                  min_depth = std::min(depth, min_depth);
-                  max_depth = std::max(depth, max_depth);
-
-                  values.push_back(scaling);
-                  depthvalues.push_back(depth);
-                }
-            }
-            double vstodensity_scaling(double depth)
-            {
-
-              std::vector<double> depth_diff (values.size(), 0);
-
-              Assert(depth>=min_depth, ExcMessage("not in range"));
-              Assert(depth<=max_depth, ExcMessage("not in range"));
-
-              for (unsigned int i = 0; i < values.size(); i++)
-                depth_diff[i] = std::abs(depthvalues[i] - depth);
-
-              double depth_val = 1e6;
-              for (unsigned int i = 0; i < values.size(); i++)
-                depth_val = std::min(depth_diff[i],depth_val);
-
-              unsigned int idx = values.size();
-              for (unsigned int i = 0; i < values.size(); i++)
-                if (depth_val == std::abs(depthvalues[i] - depth))
-                  idx = i;
-
-              Assert(idx<values.size(), ExcMessage("not in range"));
-              return values[idx];
-            }
-
-          private:
-            std::vector<double> depthvalues;
-            std::vector<double> values;
-            double min_depth;
-            double max_depth;
-
-        };
-
-        class ContinentLookup
+class ContinentLookup
         {
           public:
             ContinentLookup(const std::string &filename,
@@ -232,15 +169,18 @@ namespace aspect
               // in >> order;
               // getline(in,temp);  // throw away the rest of the line
 
-              // const int maxnumber = num_splines * (order+1)*(order+1);
+
+
+// const int maxnumber = num_splines * (order+1)*(order+1);
               const int maxnumber = 65341;
               // read in all coefficients as a single data vector
-              on_continent.resize(maxnumber);
+              on_continent.reserve(maxnumber);
+              double new_val;
               for (int i=0; i<maxnumber; i++)
                 {
-                  in >> on_continent[i];
+                  in >> new_val;
+                  on_continent.push_back(new_val);
                 }
-
             }
 
             // Declare a function that returns the cosine coefficients
@@ -252,28 +192,32 @@ namespace aspect
           private:
             std::vector<double> on_continent;
         };
+
       }
     }
 
 
     template <int dim>
+    S40RTSPerturbation_me<dim>::S40RTSPerturbation_me()
+      :
+      vs_to_density_index(numbers::invalid_unsigned_int)
+    {}
+
+    template <int dim>
     void
     S40RTSPerturbation_me<dim>::initialize()
     {
-      spherical_harmonics_lookup.reset(new internal::S40RTS::SphericalHarmonicsLookup(datadirectory+harmonics_coeffs_file_name,this->get_mpi_communicator()));
-      spline_depths_lookup.reset(new internal::S40RTS::SplineDepthsLookup(datadirectory+spline_depth_file_name,this->get_mpi_communicator()));
+      spherical_harmonics_lookup.reset(new internal::S40RTS::SphericalHarmonicsLookup(data_directory+harmonics_coeffs_file_name,this->get_mpi_communicator()));
+      spline_depths_lookup.reset(new internal::S40RTS::SplineDepthsLookup(data_directory+spline_depth_file_name,this->get_mpi_communicator()));
 
-      if (vs_to_depth_constant == false)
-        vs_to_density_lookup.reset(new internal::S40RTS::VsToDensityLookup(datadirectory+vs_to_density_file_name,this->get_mpi_communicator()));
+      if (vs_to_density_method == file)
+        {
+          profile.initialize(this->get_mpi_communicator());
+          vs_to_density_index = profile.get_column_index_from_name("vs_to_density");
+        }
 
-      Continent_lookup.reset(new internal::S40RTS::ContinentLookup(datadirectory+ "Cont_func.txt",this->get_mpi_communicator()));
+Continent_lookup.reset(new internal::S40RTS::ContinentLookup(data_directory+ "Cont_func.txt",this->get_mpi_communicator()));
     }
-
-    // NOTE: this module uses the Boost spherical harmonics package which is not designed
-    // for very high order (> 100) spherical harmonics computation. If you use harmonic
-    // perturbations of a high order be sure to confirm the accuracy first.
-    // For more information, see:
-    // http://www.boost.org/doc/libs/1_49_0/libs/math/doc/sf_and_dist/html/math_toolkit/special/sf_poly/sph_harm.html
 
     template <>
     double
@@ -290,47 +234,57 @@ namespace aspect
 
     template <>
     double
-    S40RTSPerturbation_me<3>::
-    initial_temperature (const Point<3> &position) const
+    S40RTSPerturbation_me<2>::
+    get_Vs (const Point<2> &/*position*/) const
     {
-      const unsigned int dim = 3;
+      Assert (false, ExcNotImplemented());
+      return 0;
+    }
 
-      // use either the user-input reference temperature as background temperature
-      // (incompressible model) or the adiabatic temperature profile (compressible model)
-      const double background_temperature = this->get_material_model().is_compressible() ?
-                                            this->get_adiabatic_conditions().temperature(position) :
-                                            reference_temperature;
 
-      //get the degree from the input file (20 or 40)
-      const unsigned int maxdegree = spherical_harmonics_lookup->maxdegree();
+    template <>
+    double
+    S40RTSPerturbation_me<3>::
+    get_Vs (const Point<3> &position) const
+    {
+      // get the degree from the input file (20 or 40)
+      unsigned int max_degree = spherical_harmonics_lookup->maxdegree();
 
-      const int num_spline_knots = 21; // The tomography models are parameterized by 21 layers
+      // lower the maximum order if needed
+      if (lower_max_order)
+        {
+          AssertThrow(max_order <= max_degree, ExcMessage("Specifying a maximum order higher than the order of spherical harmonic data is not allowed"));
+          max_degree = max_order;
+        }
+
+      // This tomography model is parameterized by 21 layers
+      const unsigned int num_spline_knots = 21;
 
       // get the spherical harmonics coefficients
       const std::vector<double> a_lm = spherical_harmonics_lookup->cos_coeffs();
       const std::vector<double> b_lm = spherical_harmonics_lookup->sin_coeffs();
 
-      // get spline knots and rescale them from [-1 1] to [CMB moho]
+      // get spline knots and rescale them from [-1 1] to [CMB Moho]
       const std::vector<double> r = spline_depths_lookup->spline_depths();
       const double rmoho = 6346e3;
       const double rcmb = 3480e3;
       std::vector<double> depth_values(num_spline_knots,0);
 
-      for (int i = 0; i<num_spline_knots; i++)
+      for (unsigned int i = 0; i<num_spline_knots; ++i)
         depth_values[i] = rcmb+(rmoho-rcmb)*0.5*(r[i]+1);
 
       // convert coordinates from [x,y,z] to [r, phi, theta]
-      std_cxx11::array<double,dim> scoord = aspect::Utilities::Coordinates::cartesian_to_spherical_coordinates(position);
+      std_cxx11::array<double,3> scoord = aspect::Utilities::Coordinates::cartesian_to_spherical_coordinates(position);
 
       // Evaluate the spherical harmonics at this position. Since they are the
       // same for all depth splines, do it once to avoid multiple evaluations.
       // NOTE: there is apparently a factor of sqrt(2) difference
       // between the standard orthonormalized spherical harmonics
       // and those used for S40RTS (see PR # 966)
-      std::vector<std::vector<double> > cosine_components(maxdegree+1,std::vector<double>(maxdegree+1,0.0));
-      std::vector<std::vector<double> > sine_components(maxdegree+1,std::vector<double>(maxdegree+1,0.0));
+      std::vector<std::vector<double> > cosine_components(max_degree+1,std::vector<double>(max_degree+1,0.0));
+      std::vector<std::vector<double> > sine_components(max_degree+1,std::vector<double>(max_degree+1,0.0));
 
-      for (unsigned int degree_l = 0; degree_l < maxdegree+1; ++degree_l)
+      for (unsigned int degree_l = 0; degree_l < max_degree+1; ++degree_l)
         {
           for (unsigned int order_m = 0; order_m < degree_l+1; ++order_m)
             {
@@ -345,11 +299,11 @@ namespace aspect
       double prefact;
       unsigned int ind = 0;
 
-      for (unsigned int depth_interp = 0; depth_interp < num_spline_knots; depth_interp++)
+      for (unsigned int depth_interp = 0; depth_interp < num_spline_knots; ++depth_interp)
         {
-          for (unsigned int degree_l = 0; degree_l < maxdegree+1; degree_l++)
+          for (unsigned int degree_l = 0; degree_l < max_degree+1; ++degree_l)
             {
-              for (unsigned int order_m = 0; order_m < degree_l+1; order_m++)
+              for (unsigned int order_m = 0; order_m < degree_l+1; ++order_m)
                 {
                   if (degree_l == 0)
                     prefact = (zero_out_degree_0
@@ -358,6 +312,7 @@ namespace aspect
                                :
                                1.);
                   else if (order_m != 0)
+                    // this removes the sqrt(2) factor difference in normalization (see PR # 966)
                     prefact = 1./sqrt(2.);
                   else prefact = 1.0;
 
@@ -373,34 +328,58 @@ namespace aspect
       // the surface down to the CMB and the interpolation knots range from the CMB up to
       // the surface.
       std::vector<double> spline_values_inv(num_spline_knots,0);
-      for (int i=0; i<num_spline_knots; i++)
+      for (unsigned int i=0; i<num_spline_knots; ++i)
         spline_values_inv[i] = spline_values[num_spline_knots-1 - i];
 
       // The boundary condition for the cubic spline interpolation is that the function is linear
-      // at the boundary (i.e. moho and CMB). Values outside the range are linearly
+      // at the boundary (i.e. Moho and CMB). Values outside the range are linearly
       // extrapolated.
       aspect::Utilities::tk::spline s;
       s.set_points(depth_values,spline_values_inv);
 
-      // Get value at specific depth
-      const double perturbation = s(scoord[0]);
+      // Return value of Vs perturbation at specific depth
+      return s(scoord[0]);
+    }
 
-      // Get depth
+
+    template <>
+    double
+    S40RTSPerturbation_me<3>::
+    initial_temperature (const Point<3> &position) const
+    {
+
+      // use either the user-input reference temperature as background temperature
+      // (incompressible model) or the adiabatic temperature profile (compressible model)
+      const double background_temperature = this->get_material_model().is_compressible() ?
+                                            this->get_adiabatic_conditions().temperature(position) :
+                                            reference_temperature;
+
+      //Read in Vs perturbation data using function above
+      const double perturbation = get_Vs (position);
+
+
+      // Get the vs to density conversion
       const double depth = this->get_geometry_model().depth(position);
 
-      double dens_scaling;
-      if (vs_to_depth_constant == true)
-        dens_scaling = vs_to_density;
+      double vs_to_density = 0.0;
+      if (vs_to_density_method == file)
+        vs_to_density = profile.get_data_component(Point<1>(depth), vs_to_density_index);
+      else if (vs_to_density_method == constant)
+        vs_to_density = vs_to_density_constant;
       else
-        dens_scaling = vs_to_density_lookup -> vstodensity_scaling(depth);
-
+        // we shouldn't get here but instead should already have been
+        // kicked out by the assertion in the parse_parameters()
+        // function
+        Assert (false, ExcNotImplemented());
 
       // scale the perturbation in seismic velocity into a density perturbation
       // vs_to_density is an input parameter
-      double density_perturbation = dens_scaling * perturbation;
+      double density_perturbation = vs_to_density * perturbation;
+
+ // check whether continental lithosphere should be scaled differently
+std_cxx11::array<double,3> scoord = aspect::Utilities::Coordinates::cartesian_to_spherical_coordinates(position);
 
 
-      // check whether continental lithosphere should be scaled differently
       if (include_continents == true)
         {
           // only scale if within 400km of the surface
@@ -460,7 +439,9 @@ namespace aspect
             }
         }
 
-      //get thermal alpha
+
+
+ //get thermal alpha
       double B_val, A_val;
       double thermal_alpha_gliso = 1.;
       std::vector<double>  alpha_val (3,3.5e-5);
@@ -510,7 +491,7 @@ namespace aspect
     void
     S40RTSPerturbation_me<dim>::declare_parameters (ParameterHandler &prm)
     {
-      prm.enter_subsection("Initial temperature model");
+      prm.enter_subsection ("Initial temperature model");
       {
         prm.enter_subsection("S40RTS perturbation");
         {
@@ -525,7 +506,11 @@ namespace aspect
                              Patterns::Anything(),
                              "The file name of the spline knot locations from "
                              "Ritsema et al.");
-          prm.declare_entry ("vs to density scaling", "0.25",
+          prm.declare_entry ("Vs to density scaling method", "constant",
+                             Patterns::Selection("file|constant"),
+                             "Method that is used to specify how the vs-to-density scaling varies "
+                             "with depth.");
+          prm.declare_entry ("Vs to density scaling", "0.25",
                              Patterns::Double (0),
                              "This parameter specifies how the perturbation in shear wave velocity "
                              "as prescribed by S20RTS or S40RTS is scaled into a density perturbation. "
@@ -546,24 +531,31 @@ namespace aspect
           prm.declare_entry ("Remove temperature heterogeneity down to specified depth", boost::lexical_cast<std::string>(-std::numeric_limits<double>::max()),
                              Patterns::Double (),
                              "This will set the heterogeneity prescribed by S20RTS or S40RTS to zero "
-                             "down to the specified depth (in meters).Note that your resolution has "
-                             "to be adquate to capture this cutoff. For example if you specify a depth "
+                             "down to the specified depth (in meters). Note that your resolution has "
+                             "to be adequate to capture this cutoff. For example if you specify a depth "
                              "of 660km, but your closest spherical depth layers are only at 500km and "
                              "750km (due to a coarse resolution) it will only zero out heterogeneities "
                              "down to 500km. Similar caution has to be taken when using adaptive meshing.");
-          prm.declare_entry ("Vs to density scaling constant","false",
-                             Patterns::Bool(),
-                             "Switch to set the vs to density scalind to a constant value.");
-          prm.declare_entry ("Vs to density scaling file", "R_scaling.txt",
-                             Patterns::Anything(),
-                             "The file name of the scaling between vs and density. "
-                             "Default values are from Simmons et al., 2009.");
+          prm.declare_entry ("Specify a lower maximum order","false",
+                             Patterns::Bool (),
+                             "Option to use a lower maximum order when reading the data file of spherical "
+                             "harmonic coefficients. This is probably used for the faster tests or when the "
+                             "users only want to see the spherical harmonic pattern up to a certain order.");
+          prm.declare_entry ("Maximum order","20",
+                             Patterns::Integer (0),
+                             "The maximum order the users specify when reading the data file of spherical harmonic "
+                             "coefficients, which must be smaller than the maximum order the data file stored. "
+                             "This parameter will be used only if 'Specify a lower maximum order' is set to true.");
           prm.declare_entry ("Thermal expansion constant","false",
                              Patterns::Bool(),
                              "");
           prm.declare_entry ("Scale continental lithosphere differently", "false",
                              Patterns::Bool(),
                              "");
+          aspect::Utilities::AsciiDataProfile<dim>::declare_parameters(prm,
+                                                                       "$ASPECT_SOURCE_DIR/data/initial-temperature/S40RTS/",
+                                                                       "vs_to_density_Steinberger.txt",
+                                                                       "Ascii data vs to density model");
         }
         prm.leave_subsection ();
       }
@@ -579,30 +571,36 @@ namespace aspect
                    ExcMessage ("The 'S40RTS perturbation' model for the initial "
                                "temperature is only available for 3d computations."));
 
-      prm.enter_subsection("Initial temperature model");
+      prm.enter_subsection ("Initial temperature model");
       {
         prm.enter_subsection("S40RTS perturbation");
         {
-          datadirectory           = prm.get ("Data directory");
-          {
-            const std::string      subst_text = "$ASPECT_SOURCE_DIR";
-            std::string::size_type position;
-            while (position = datadirectory.find (subst_text),  position!=std::string::npos)
-              datadirectory.replace (datadirectory.begin()+position,
-                                     datadirectory.begin()+position+subst_text.size(),
-                                     ASPECT_SOURCE_DIR);
-          }
+          data_directory = Utilities::expand_ASPECT_SOURCE_DIR(prm.get ("Data directory"));
+
+          if ((data_directory.size() > 0) && (data_directory[data_directory.size()-1] != '/'))
+            data_directory += "/";
           harmonics_coeffs_file_name = prm.get ("Initial condition file name");
           spline_depth_file_name  = prm.get ("Spline knots depth file name");
-          vs_to_density           = prm.get_double ("vs to density scaling");
+          vs_to_density_constant           = prm.get_double ("Vs to density scaling");
           thermal_alpha           = prm.get_double ("Thermal expansion coefficient in initial temperature scaling");
           zero_out_degree_0       = prm.get_bool ("Remove degree 0 from perturbation");
           reference_temperature   = prm.get_double ("Reference temperature");
           no_perturbation_depth   = prm.get_double ("Remove temperature heterogeneity down to specified depth");
-          vs_to_depth_constant    = prm.get_bool ("Vs to density scaling constant");
-          vs_to_density_file_name = prm.get("Vs to density scaling file");
+          lower_max_order         = prm.get_bool ("Specify a lower maximum order");
+          max_order               = prm.get_integer ("Maximum order");
           thermal_alpha_constant  = prm.get_bool ("Thermal expansion constant");
           include_continents      = prm.get_bool ("Scale continental lithosphere differently");
+
+          if (prm.get("Vs to density scaling method") == "file")
+            vs_to_density_method = file;
+          else if (prm.get("Vs to density scaling method") == "constant")
+            vs_to_density_method = constant;
+          else
+            {
+              AssertThrow(false, ExcMessage("Unknown method for vs to density scaling."));
+            }
+
+          profile.parse_parameters(prm,"Ascii data vs to density model");
         }
         prm.leave_subsection ();
       }
@@ -630,13 +628,14 @@ namespace aspect
                                               "wave dispersion, teleseismic traveltime and normal-mode "
                                               "splitting function measurements, Geophys. J. Int. 184, 1223-1236. "
                                               "The scaling between the shear wave perturbation and the "
-                                              "temperature perturbation can be set by the user with the "
-                                              "'vs to density scaling' parameter and the 'Thermal "
-                                              "expansion coefficient in initial temperature scaling' "
+                                              "density perturbation can be constant and set by the user with the "
+                                              "'Vs to density scaling' parameter or depth-dependent and "
+                                              "read in from a file. To convert density the user can specify "
+                                              "the 'Thermal expansion coefficient in initial temperature scaling' "
                                               "parameter. The scaling is as follows: $\\delta ln \\rho "
                                               "(r,\\theta,\\phi) = \\xi \\cdot \\delta ln v_s(r,\\theta, "
                                               "\\phi)$ and $\\delta T(r,\\theta,\\phi) = - \\frac{1}{\\alpha} "
-                                              "\\delta ln \\rho(r,\\theta,\\phi)$. $\\xi$ is the 'vs to "
+                                              "\\delta ln \\rho(r,\\theta,\\phi)$. $\\xi$ is the `vs to "
                                               "density scaling' parameter and $\\alpha$ is the 'Thermal "
                                               "expansion coefficient in initial temperature scaling' "
                                               "parameter. The temperature perturbation is added to an "
@@ -644,6 +643,25 @@ namespace aspect
                                               "adiabatic reference profile (compressible model). If a depth "
                                               "is specified in 'Remove temperature heterogeneity down to "
                                               "specified depth', there is no temperature perturbation "
-                                              "prescribed down to that depth.")
+                                              "prescribed down to that depth."
+                                              "\n"
+                                              "Note the required file format if the vs to density scaling is read in "
+                                              "from a file: The first lines may contain any number of comments "
+                                              "if they begin with '#', but one of these lines needs to "
+                                              "contain the number of points in the reference state as "
+                                              "for example '# POINTS: 3'. "
+                                              "Following the comment lines there has to be a single line "
+                                              "containing the names of all data columns, separated by arbitrarily "
+                                              "many spaces. Column names are not allowed to contain spaces. "
+                                              "The file can contain unnecessary columns, but for this plugin it "
+                                              "needs to at least provide the columns named `depth' and "
+                                              "`vs\\_to\\_density'. "
+                                              "Note that the data lines in the file need to be sorted in order "
+                                              "of increasing depth from 0 to the maximal depth in the model "
+                                              "domain. Points in the model that are outside of the provided "
+                                              "depth range will be assigned the maximum or minimum depth values, "
+                                              "respectively. Points do not need to be equidistant, "
+                                              "but the computation of properties is optimized in speed "
+                                              "if they are.")
   }
 }
