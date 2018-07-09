@@ -187,9 +187,15 @@ namespace aspect
          */
         unsigned int vs_to_density_index;
 
-        bool thermal_alpha_constant;
         bool include_continents;
         std_cxx11::shared_ptr<internal::S40RTS::ContinentLookup> Continent_lookup;
+
+        /**
+         * Whether to use the thermal expansion coefficient from the material model
+         */
+        bool use_material_model_thermal_alpha;
+
+
     };
 
   }

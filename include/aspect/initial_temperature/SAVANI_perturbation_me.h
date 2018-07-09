@@ -182,7 +182,10 @@ namespace aspect
         std_cxx11::shared_ptr<internal::SAVANI::ContinentLookup> Continent_lookup;
         bool include_continents;
 
-        bool thermal_alpha_constant;
+        /**
+         * Whether to use the thermal expansion coefficient from the material model
+         */
+        bool use_material_model_thermal_alpha;
 
     };
 

@@ -22,6 +22,9 @@
 #include <aspect/initial_temperature/S40RTS_perturbation_me.h>
 #include <aspect/adiabatic_conditions/interface.h>
 #include <aspect/utilities.h>
+#include <aspect/simulator_access.h>
+#include <aspect/initial_composition/interface.h>
+#include <aspect/material_model/interface.h>
 #include <fstream>
 #include <iostream>
 #include <deal.II/base/std_cxx11/array.h>
@@ -155,7 +158,7 @@ namespace aspect
             std::vector<double> depths;
         };
 
-class ContinentLookup
+        class ContinentLookup
         {
           public:
             ContinentLookup(const std::string &filename,
@@ -216,7 +219,7 @@ class ContinentLookup
           vs_to_density_index = profile.get_column_index_from_name("vs_to_density");
         }
 
-Continent_lookup.reset(new internal::S40RTS::ContinentLookup(data_directory+ "Cont_func.txt",this->get_mpi_communicator()));
+      Continent_lookup.reset(new internal::S40RTS::ContinentLookup(data_directory+ "Cont_func.txt",this->get_mpi_communicator()));
     }
 
     template <>
@@ -376,8 +379,8 @@ Continent_lookup.reset(new internal::S40RTS::ContinentLookup(data_directory+ "Co
       // vs_to_density is an input parameter
       double density_perturbation = vs_to_density * perturbation;
 
- // check whether continental lithosphere should be scaled differently
-std_cxx11::array<double,3> scoord = aspect::Utilities::Coordinates::cartesian_to_spherical_coordinates(position);
+// check whether continental lithosphere should be scaled differently
+      std_cxx11::array<double,3> scoord = aspect::Utilities::Coordinates::cartesian_to_spherical_coordinates(position);
 
 
       if (include_continents == true)
@@ -440,47 +443,34 @@ std_cxx11::array<double,3> scoord = aspect::Utilities::Coordinates::cartesian_to
         }
 
 
-
- //get thermal alpha
-      double B_val, A_val;
-      double thermal_alpha_gliso = 1.;
-      std::vector<double>  alpha_val (3,3.5e-5);
-      std::vector<double>  depth_val (3,0);
-
-      alpha_val[1] = 2.5e-5;
-      alpha_val[2] = 1.5e-5;
-
-      depth_val[1] =  670000;
-      depth_val[2] = 2890000;
-
-      if (depth < 670000)
-        {
-          B_val = (alpha_val[0] - alpha_val[1])/(depth_val[0] - depth_val[1]);
-          A_val = alpha_val[0] - B_val * depth_val[0];
-          thermal_alpha_gliso = A_val + B_val * depth;
-        }
-
-      if (depth >= 670000)
-        {
-          B_val = (alpha_val[1] - alpha_val[2])/(depth_val[1] - depth_val[2]);
-          A_val = alpha_val[1] - B_val * depth_val[1];
-          thermal_alpha_gliso = A_val + B_val * depth;
-        }
-
-      double thermal_alpha_used;
-      if (thermal_alpha_constant == true)
-        thermal_alpha_used = thermal_alpha;
-      else
-        thermal_alpha_used = thermal_alpha_gliso;
-
-
       double temperature_perturbation;
       if (depth > no_perturbation_depth)
-        // scale the density perturbation into a temperature perturbation
-        temperature_perturbation =  -1./thermal_alpha_used * density_perturbation;
+        {
+          // scale the density perturbation into a temperature perturbation
+          // see if we need to ask material model for the thermal expansion coefficient
+          if (use_material_model_thermal_alpha)
+            {
+              MaterialModel::MaterialModelInputs<3> in(1, this->n_compositional_fields());
+              MaterialModel::MaterialModelOutputs<3> out(1, this->n_compositional_fields());
+              in.position[0] = position;
+              in.temperature[0] = background_temperature;
+              in.pressure[0] = this->get_adiabatic_conditions().pressure(position);
+              in.velocity[0] = Tensor<1,3> ();
+              for (unsigned int c=0; c<this->n_compositional_fields(); ++c)
+                in.composition[0][c] = this->get_initial_composition_manager().initial_composition(position, c);
+              in.strain_rate.resize(0);
+
+              this->get_material_model().evaluate(in, out);
+
+              temperature_perturbation = -1./(out.thermal_expansion_coefficients[0]) * density_perturbation;
+            }
+          else
+            temperature_perturbation = -1./thermal_alpha * density_perturbation;
+        }
       else
         // set heterogeneity to zero down to a specified depth
         temperature_perturbation = 0.0;
+
 
       // add the temperature perturbation to the background temperature
       return background_temperature + temperature_perturbation;
@@ -546,9 +536,6 @@ std_cxx11::array<double,3> scoord = aspect::Utilities::Coordinates::cartesian_to
                              "The maximum order the users specify when reading the data file of spherical harmonic "
                              "coefficients, which must be smaller than the maximum order the data file stored. "
                              "This parameter will be used only if 'Specify a lower maximum order' is set to true.");
-          prm.declare_entry ("Thermal expansion constant","false",
-                             Patterns::Bool(),
-                             "");
           prm.declare_entry ("Scale continental lithosphere differently", "false",
                              Patterns::Bool(),
                              "");
@@ -556,6 +543,11 @@ std_cxx11::array<double,3> scoord = aspect::Utilities::Coordinates::cartesian_to
                                                                        "$ASPECT_SOURCE_DIR/data/initial-temperature/S40RTS/",
                                                                        "vs_to_density_Steinberger.txt",
                                                                        "Ascii data vs to density model");
+          prm.declare_entry ("Use thermal expansion coefficient from material model", "false",
+                             Patterns::Bool (),
+                             "Option to take the thermal expansion coefficient from the "
+                             "material model instead of from what is specified in this "
+                             "section.");
         }
         prm.leave_subsection ();
       }
@@ -588,8 +580,8 @@ std_cxx11::array<double,3> scoord = aspect::Utilities::Coordinates::cartesian_to
           no_perturbation_depth   = prm.get_double ("Remove temperature heterogeneity down to specified depth");
           lower_max_order         = prm.get_bool ("Specify a lower maximum order");
           max_order               = prm.get_integer ("Maximum order");
-          thermal_alpha_constant  = prm.get_bool ("Thermal expansion constant");
           include_continents      = prm.get_bool ("Scale continental lithosphere differently");
+          use_material_model_thermal_alpha = prm.get_bool ("Use thermal expansion coefficient from material model");
 
           if (prm.get("Vs to density scaling method") == "file")
             vs_to_density_method = file;
