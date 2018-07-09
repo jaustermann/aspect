@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011, 2012 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2017 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,17 +14,18 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 
-#ifndef __aspect__initial_temperature_TX2008_perturbation_h
-#define __aspect__initial_temperature_TX2008_perturbation_h
+#ifndef _aspect_initial_temperature_TX2008_h
+#define _aspect_initial_temperature_TX2008_h
 
 #include <aspect/initial_temperature/interface.h>
-//#include <aspect/simulator_access.h>
-//#include <deal.II/base/std_cxx1x/array.h>
+#include <aspect/simulator_access.h>
+#include <aspect/utilities.h>
+
 
 namespace aspect
 {
@@ -32,45 +33,37 @@ namespace aspect
   {
     using namespace dealii;
 
-    namespace internal
-    {
-      namespace TX2008
-      {
-        class TX2008Lookup;
-        class GeothermLookup;
-      }
-    }
-
     /**
-     * A class that describes a perturbed initial temperature field for a spherical
-     * shell geometry model. The perturbation is based on the S20RTS / S40RTS
-     * global shear wave velocity model by Ritsema et al.
-     * http://www.earth.lsa.umich.edu/~jritsema/research.html
+     * A class that implements a prescribed temperature field determined from
+     * a AsciiData input file.
      *
-     * @ingroup InitialTemperatureModels
+     * @ingroup InitialTemperatures
      */
-
     template <int dim>
-    class TX2008Perturbation : public Interface<dim>, public ::aspect::SimulatorAccess<dim>
+    class TX2008 : public Utilities::AsciiDataInitial<dim>, public Interface<dim>
     {
       public:
         /**
-         * Initialization function. Loads the material data and sets up
-         * pointers.
+         * Empty Constructor.
+         */
+        TX2008 ();
+
+        /**
+         * Initialization function. This function is called once at the
+         * beginning of the program. Checks preconditions.
          */
         void
         initialize ();
 
-        /**
-         * Constructor.
-         */
-        //GeothermValues<dim>();
+        // avoid -Woverloaded-virtual:
+        using Utilities::AsciiDataInitial<dim>::initialize;
 
         /**
-        * Return the initial temperature as a function of position.
-        */
-        virtual
-        double initial_temperature (const Point<dim> &position) const;
+         * Return the boundary temperature as a function of position. For the
+         * current class, this function returns value from the text files.
+         */
+        double
+        initial_temperature (const Point<dim> &position) const;
 
         /**
          * Declare the parameters this class takes through input files.
@@ -82,78 +75,22 @@ namespace aspect
         /**
          * Read the parameters this class declares from the parameter file.
          */
-        virtual
         void
         parse_parameters (ParameterHandler &prm);
-
 
       private:
 
         /**
-         * Returns spherical coordinates of a cartesian position.
+         * Whether to use the thermal expansion coefficient from the material model
          */
-        static std_cxx1x::array<double,dim>
-        spherical_surface_coordinates(const dealii::Point<dim,double> &position);
+        bool use_material_model_thermal_alpha;
 
-        /**
-         * File directory and names
-         */
-        std::string datadirectory;
-
-        /**
-         * This parameter allows setting the input file for the shear-wave perturbation. Options so far
-         * are S20RTS.sph and S40RTS.sph. For S40RTS there are different versions available that differ
-         * by the degree of damping in the seismic inversion. These models could be downloaded and used
-         * as well.
-         */
-        std::string TX2008_file_name;
-
-
-        std::string geotherm_file_name;
-        /**
-         * The parameters below describe the perturbation of shear wave velocity into a temperatures perturbation
-         * The first parameter is constant so far but could be made depth dependent as constraint
-         * by e.g. Forte, A.M. & Woodward, R.L., 1997. Seismic-geodynamic constraints on three-
-         * dimensional structure, vertical flow, and heat transfer in the mantle, J. Geophys. Res.
-         * 102 (B8), 17,981-17,994.
-         */
-
-        double vs_to_density;
         double thermal_alpha;
-
-        /**
-         * This parameter allows to set the degree 0 component of the shear wave velocity perturbation to
-         * zero, which guarantees that average temperature at a certain depth is the background temperature.
-         */
-
-        bool read_geotherm_in;
-        /**
-         * This parameter gives the reference temperature, which will be perturbed. In the compressional case
-         * the background temperature will be the adiabat.
-         */
+        double no_perturbation_depth;
         double reference_temperature;
-
-        /**
-         * Pointer to an object that reads and processes the spherical harmonics
-         * coefficients
-         */
-        std_cxx1x::shared_ptr<internal::TX2008::TX2008Lookup> TX2008_lookup;
-
-        /**
-         * Pointer to an object that reads and processes the depths for the spline
-         * knot points.
-         */
-
-        std_cxx1x::shared_ptr<internal::TX2008::GeothermLookup> geotherm_lookup;
-
-        bool thermal_alpha_constant;
-        bool vs_to_depth_constant;
-        bool constant_temp;
-        bool take_upper_200km_out;
-        bool adiabat_temp;
     };
-
   }
 }
+
 
 #endif
