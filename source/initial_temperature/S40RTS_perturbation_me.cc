@@ -379,7 +379,7 @@ namespace aspect
       // vs_to_density is an input parameter
       double density_perturbation = vs_to_density * perturbation;
 
-// check whether continental lithosphere should be scaled differently
+      // check whether continental lithosphere should be scaled differently
       std_cxx11::array<double,3> scoord = aspect::Utilities::Coordinates::cartesian_to_spherical_coordinates(position);
 
 

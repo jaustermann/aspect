@@ -338,7 +338,7 @@ namespace aspect
       // vs_to_density is an input parameter
       double density_perturbation = vs_to_density * perturbation;
 
-// check whether continental lithosphere should be scaled differently
+      // check whether continental lithosphere should be scaled differently
       if (include_continents == true)
         {
           // only scale if within 400km of the surface
@@ -405,29 +405,29 @@ namespace aspect
 
 
       double temperature_perturbation;
-      {
-        // scale the density perturbation into a temperature perturbation
-        // see if we need to ask material model for the thermal expansion coefficient
-        if (use_material_model_thermal_alpha)
-          {
-            MaterialModel::MaterialModelInputs<3> in(1, this->n_compositional_fields());
-            MaterialModel::MaterialModelOutputs<3> out(1, this->n_compositional_fields());
-            in.position[0] = position;
-            in.temperature[0] = background_temperature;
-            in.pressure[0] = this->get_adiabatic_conditions().pressure(position);
-            in.velocity[0] = Tensor<1,3> ();
-            for (unsigned int c=0; c<this->n_compositional_fields(); ++c)
-              in.composition[0][c] = this->get_initial_composition_manager().initial_composition(position, c);
-            in.strain_rate.resize(0);
+      if (depth > no_perturbation_depth)
+        {
+          // scale the density perturbation into a temperature perturbation
+          // see if we need to ask material model for the thermal expansion coefficient
+          if (use_material_model_thermal_alpha)
+            {
+              MaterialModel::MaterialModelInputs<3> in(1, this->n_compositional_fields());
+              MaterialModel::MaterialModelOutputs<3> out(1, this->n_compositional_fields());
+              in.position[0] = position;
+              in.temperature[0] = background_temperature;
+              in.pressure[0] = this->get_adiabatic_conditions().pressure(position);
+              in.velocity[0] = Tensor<1,3> ();
+              for (unsigned int c=0; c<this->n_compositional_fields(); ++c)
+                in.composition[0][c] = this->get_initial_composition_manager().initial_composition(position, c);
+              in.strain_rate.resize(0);
 
-            this->get_material_model().evaluate(in, out);
+              this->get_material_model().evaluate(in, out);
 
-            temperature_perturbation = -1./(out.thermal_expansion_coefficients[0]) * density_perturbation;
-          }
-        else
-          temperature_perturbation = -1./thermal_alpha * density_perturbation;
-      }
-
+              temperature_perturbation = -1./(out.thermal_expansion_coefficients[0]) * density_perturbation;
+            }
+          else
+            temperature_perturbation = -1./thermal_alpha * density_perturbation;
+        }
       else
         // set heterogeneity to zero down to a specified depth
         temperature_perturbation = 0.0;

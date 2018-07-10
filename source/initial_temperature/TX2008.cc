@@ -167,7 +167,7 @@ namespace aspect
   namespace InitialTemperature
   {
     ASPECT_REGISTER_INITIAL_TEMPERATURE_MODEL(TX2008,
-                                              "TX2008",
+                                              "TX2008 perturbation",
                                               "Implementation of a model in which the initial "
                                               "temperature is derived from files containing data "
                                               "in ascii format. Note the required format of the "

@@ -102,11 +102,11 @@ namespace aspect
             }
 
           if (depth >= 670000)
-            thermal_alpha_val = 3.48e-05 + 2.72e-18 * depth*depth - 1.644e-11*depth;
-          //  {B_val = (alpha_val[1] - alpha_val[2])/(depth_val[1] - depth_val[2]);
-          //   A_val = alpha_val[1] - B_val * depth_val[1];
-          //   thermal_alpha_val = A_val + B_val * depth;
-          //  }
+            {
+              B_val = (alpha_val[1] - alpha_val[2])/(depth_val_a[1] - depth_val_a[2]);
+              A_val = alpha_val[1] - B_val * depth_val_a[1];
+              thermal_alpha_val = A_val + B_val * depth;
+            }
 
           if (thermal_alpha_constant == true)
             thermal_alpha_val = thermal_alpha;
@@ -321,6 +321,6 @@ namespace aspect
   {
     ASPECT_REGISTER_MATERIAL_MODEL(GlisovicForte,
                                    "Glisovic Forte",
-                                   "the role the current model was originally intended to fill.}")
+                                   "")
   }
 }
