@@ -681,6 +681,19 @@ namespace aspect
   {
     return simulator->postprocess_manager;
   }
+
+  template <int dim>
+  bool SimulatorAccess<dim>::get_adjoint_problem () const
+  {
+    return simulator->adjoint_problem;
+  }
+
+  template <int dim>
+  const LinearAlgebra::BlockVector &
+  SimulatorAccess<dim>::get_current_adjoint_solution () const
+  {
+    return simulator->current_adjoint_solution;
+  }
 }
 
 
