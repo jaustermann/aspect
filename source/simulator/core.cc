@@ -472,9 +472,9 @@ namespace aspect
     do_pressure_rhs_compatibility_modification = ((material_model->is_compressible() && !parameters.include_melt_transport)
                                                   ||
                                                   (parameters.include_melt_transport && !material_model->is_compressible())
-                                                  || parameters.enable_prescribed_dilation)
+                                                  || parameters.enable_prescribed_dilation
                                                   ||
-                                                  (parameters.nonlinear_solver == NonlinearSolver::Stokes_adjoint)
+                                                  parameters.nonlinear_solver == NonlinearSolver::Stokes_adjoint)
                                                  &&
                                                  (open_velocity_boundary_indicators.size() == 0);
 
@@ -1942,6 +1942,14 @@ namespace aspect
     simulator_is_past_initialization = true;
     do
       {
+
+      // since the default for num_it_adjoint i 0, this won't do anything if this isn't run in adjoint mode
+      for (unsigned int i=0; i<parameters.num_it_adjoint; ++i)
+      {
+
+       if (parameters.nonlinear_solver == NonlinearSolver::Stokes_adjoint) 
+          pcout << " ^^ Adjoint iteration number " << i  << std::endl;
+
         // Only solve if we are not in pre-refinement, or we do not want to skip
         // solving in pre-refinement.
         if (! (parameters.skip_solvers_on_initial_refinement
@@ -1973,7 +1981,7 @@ namespace aspect
 
         const double new_time_step_size = time_stepping_manager.get_next_time_step_size();
 
-        // if we postprocess nonlinear iterations, this function is called within
+        // if we postprocess nonlinear iterations or adjoint stokes, this function is called within
         // solve_timestep () in the individual solver schemes
         if (!time_stepping_manager.should_repeat_time_step()
             && !parameters.run_postprocessors_on_nonlinear_iterations)
@@ -2021,12 +2029,20 @@ namespace aspect
 
         const bool checkpoint_written = maybe_write_checkpoint(last_checkpoint_time,
                                                                write_checkpoint_due_to_termination);
+        }
+
+        // check whether to terminate the simulation. the
+        // first part of the pair indicates whether to terminate
+        // the execution; the second indicates whether to do one
+        // more checkpoint
+        const std::pair<bool,bool> termination = termination_manager.execute();
 
         if (checkpoint_written)
           last_checkpoint_time = std::time(nullptr);
 
         if (should_terminate)
           break;
+
       }
     while (true);
 
