@@ -1626,7 +1626,15 @@ namespace aspect
     // start the principal loop over time steps:
     do
       {
+
         start_timestep ();
+
+      // since the default for num_it_adjoint i 0, this won't do anything if this isn't run in adjoint mode
+      for (unsigned int i=0; i<parameters.num_it_adjoint; ++i)
+      {
+
+       if (parameters.nonlinear_solver == NonlinearSolver::Stokes_adjoint) 
+          pcout << " ^^ Adjoint iteration number " << i  << std::endl;
 
         // then do the core work: assemble systems and solve
         solve_timestep ();
@@ -1640,10 +1648,10 @@ namespace aspect
               goto start_time_iteration;
           }
 
-        // if we postprocess nonlinear iterations, this function is called within
+        // if we postprocess nonlinear iterations or adjoint stokes, this function is called within
         // solve_timestep () in the individual solver schemes
         if (!parameters.run_postprocessors_on_nonlinear_iterations)
-          postprocess ();
+             postprocess ();
 
         // get new time step size
         const double new_time_step = compute_time_step();
@@ -1666,6 +1674,8 @@ namespace aspect
           old_solution          = solution;
         }
 
+        }
+
         // check whether to terminate the simulation. the
         // first part of the pair indicates whether to terminate
         // the execution; the second indicates whether to do one
@@ -1679,6 +1689,7 @@ namespace aspect
         // see if we want to terminate
         if (termination.first)
           break;
+
       }
     while (true);
 
