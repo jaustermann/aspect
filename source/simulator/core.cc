@@ -799,6 +799,7 @@ namespace aspect
           case Parameters<dim>::NonlinearSolver::Kind::iterated_Advection_and_Newton_Stokes:
           case Parameters<dim>::NonlinearSolver::Kind::single_Advection_iterated_Newton_Stokes:
           case Parameters<dim>::NonlinearSolver::Kind::single_Advection_no_Stokes:
+          case Parameters<dim>::NonlinearSolver::Kind::Stokes_adjoint: // is that right?
             return true;
 
           case Parameters<dim>::NonlinearSolver::Kind::no_Advection_iterated_Stokes:
@@ -830,6 +831,7 @@ namespace aspect
           case Parameters<dim>::NonlinearSolver::Kind::iterated_Advection_and_Newton_Stokes:
           case Parameters<dim>::NonlinearSolver::Kind::single_Advection_iterated_Newton_Stokes:
           case Parameters<dim>::NonlinearSolver::Kind::first_timestep_only_single_Stokes:
+          case Parameters<dim>::NonlinearSolver::Kind::Stokes_adjoint: // is that right?
             return true;
 
           case Parameters<dim>::NonlinearSolver::Kind::single_Advection_no_Stokes:
@@ -1943,6 +1945,12 @@ namespace aspect
     do
       {
 
+      if (! (parameters.skip_solvers_on_initial_refinement
+             && pre_refinement_step < parameters.initial_adaptive_refinement))
+        {
+          start_timestep ();
+        }
+
       // since the default for num_it_adjoint i 0, this won't do anything if this isn't run in adjoint mode
       for (unsigned int i=0; i<parameters.num_it_adjoint; ++i)
       {
@@ -1955,8 +1963,6 @@ namespace aspect
         if (! (parameters.skip_solvers_on_initial_refinement
                && pre_refinement_step < parameters.initial_adaptive_refinement))
           {
-            start_timestep ();
-
             // then do the core work: assemble systems and solve
             solve_timestep ();
           }
