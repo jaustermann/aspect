@@ -25,7 +25,7 @@
 #include <aspect/volume_of_fluid/handler.h>
 #include <aspect/newton.h>
 #include <aspect/melt.h>
-#include <aspect/adjoint.h>
+#include <aspect/simulator/assemblers/adjoint.h>
 
 #include <deal.II/numerics/vector_tools.h>
 
@@ -1509,10 +1509,10 @@ namespace aspect
 
 
     assemblers->stokes_system.push_back(
-        std_cxx14::make_unique<aspect::Assemblers::StokesPressureRHSCompatibilityModification<dim> >());
+      std_cxx14::make_unique<aspect::Assemblers::StokesPressureRHSCompatibilityModification<dim> >());
 
     if (SimulatorAccess<dim> *p = dynamic_cast<SimulatorAccess<dim>* >(assemblers->stokes_system[0].get()))
-       p->initialize_simulator(*this);
+      p->initialize_simulator(*this);
 
 
     // I moved this over from assembly.cc

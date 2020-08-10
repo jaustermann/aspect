@@ -18,8 +18,8 @@
   <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _aspect_adjoint_h
-#define _aspect_adjoint_h
+#ifndef _aspect_simulator_assemblers_adjoint_h
+#define _aspect_simulator_assemblers_adjoint_h
 
 
 #include <aspect/simulator/assemblers/interface.h>
@@ -30,8 +30,8 @@ namespace aspect
   namespace Assemblers
   {
 
-/**
-     */
+    /**
+         */
     template <int dim>
     class StokesAdjointRHS : public Assemblers::Interface<dim>,
       public SimulatorAccess<dim>

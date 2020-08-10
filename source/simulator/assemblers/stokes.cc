@@ -957,7 +957,7 @@ namespace aspect
   template class StokesProjectedDensityFieldTerm<dim>; \
   template class StokesPressureRHSCompatibilityModification<dim>; \
   template class StokesBoundaryTraction<dim>; \
-    ASPECT_INSTANTIATE(INSTANTIATE)
+  ASPECT_INSTANTIATE(INSTANTIATE)
 
 #undef INSTANTIATE
   }

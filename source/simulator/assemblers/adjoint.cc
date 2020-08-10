@@ -22,7 +22,7 @@
 #include <aspect/simulator_access.h>
 #include <aspect/utilities.h>
 
-#include <aspect/adjoint.h>
+#include <aspect/simulator/assemblers/adjoint.h>
 #include <aspect/postprocess/dynamic_topography.h>
 
 namespace aspect
@@ -210,7 +210,9 @@ namespace aspect
   {
 #define INSTANTIATE(dim) \
   template class StokesAdjointRHS<dim>;
+
     ASPECT_INSTANTIATE(INSTANTIATE)
 
 #undef INSTANTIATE
-
+  }
+}
