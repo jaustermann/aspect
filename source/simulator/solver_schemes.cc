@@ -25,6 +25,7 @@
 #include <aspect/volume_of_fluid/handler.h>
 #include <aspect/newton.h>
 #include <aspect/melt.h>
+#include <aspect/adjoint.h>
 
 #include <deal.II/numerics/vector_tools.h>
 
@@ -1470,6 +1471,7 @@ namespace aspect
 
     pcout << "   Forward problem ... " << std::endl;
 
+    // I think at this point this flag only affects postprocessing
     adjoint_problem = false;
 
     // set the assemblers for the RHS
@@ -1498,16 +1500,33 @@ namespace aspect
     pcout << "   Adjoint problem ... " << std::endl;
 
     // only do adjoint if final (refined) mesh is reached
+    // I think at this point this flag only affects postprocessing
     adjoint_problem = true;
 
-    // clear all RHS assemblers and only assemble the Adjoint RHS;
+    // clear all RHS assemblers and only do pressure rhs compatibility and assemble the Adjoint RHS;
     assemblers->stokes_system.clear();
     assemblers->stokes_system_on_boundary_face.clear();
+
+
+    assemblers->stokes_system.push_back(
+        std_cxx14::make_unique<aspect::Assemblers::StokesPressureRHSCompatibilityModification<dim> >());
+
+    if (SimulatorAccess<dim> *p = dynamic_cast<SimulatorAccess<dim>* >(assemblers->stokes_system[0].get()))
+       p->initialize_simulator(*this);
+
+
+    // I moved this over from assembly.cc
+    assemblers->stokes_system_assembler_on_boundary_face_properties.needed_update_flags = (update_values  | update_quadrature_points | update_normal_vectors | update_gradients | update_JxW_values);
+
+    assemblers->stokes_system_assembler_on_boundary_face_properties.need_face_material_model_data = true;
+    assemblers->stokes_system_assembler_on_boundary_face_properties.need_viscosity = true;
+
     assemblers->stokes_system_on_boundary_face.push_back(
       std_cxx14::make_unique<aspect::Assemblers::StokesAdjointRHS<dim> >());
 
     if (SimulatorAccess<dim> *p = dynamic_cast<SimulatorAccess<dim>* >(assemblers->stokes_system_on_boundary_face[0].get()))
       p->initialize_simulator(*this);
+
 
     // Don't need to reassmble the stokes system because it's the same as for the forward problem
     rebuild_stokes_matrix = rebuild_stokes_preconditioner = false;
