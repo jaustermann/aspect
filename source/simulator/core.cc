@@ -1951,12 +1951,12 @@ namespace aspect
           start_timestep ();
         }
 
-      // since the default for num_it_adjoint i 0, this won't do anything if this isn't run in adjoint mode
-      for (unsigned int i=0; i<parameters.num_it_adjoint; ++i)
-      {
+        // since the default for num_it_adjoint i 0, this won't do anything if this isn't run in adjoint mode
+        for (unsigned int i=0; i<parameters.num_it_adjoint; ++i)
+          {
 
-       if (parameters.nonlinear_solver == NonlinearSolver::Stokes_adjoint) 
-          pcout << " ^^ Adjoint iteration number " << i  << std::endl;
+            if (parameters.nonlinear_solver == NonlinearSolver::Stokes_adjoint)
+              pcout << " ^^ Adjoint iteration number " << i  << std::endl;
 
         // Only solve if we are not in pre-refinement, or we do not want to skip
         // solving in pre-refinement.
@@ -1967,20 +1967,20 @@ namespace aspect
             solve_timestep ();
           }
 
-        // See if we have to start over with a new adaptive refinement cycle
-        // at the beginning of the simulation. If so, set the
-        // simulator_is_past_initialization variable back to false because we will
-        // have to re-initialize some variables such as the size of vectors,
-        // the initial state, etc.
-        if (timestep_number == 0)
-          {
-            const bool initial_refinement_done = maybe_do_initial_refinement(max_refinement_level);
-            if (initial_refinement_done)
+            // See if we have to start over with a new adaptive refinement cycle
+            // at the beginning of the simulation. If so, set the
+            // simulator_is_past_initialization variable back to false because we will
+            // have to re-initialize some variables such as the size of vectors,
+            // the initial state, etc.
+            if (timestep_number == 0)
               {
-                simulator_is_past_initialization = false;
-                goto start_time_iteration;
+                const bool initial_refinement_done = maybe_do_initial_refinement(max_refinement_level);
+                if (initial_refinement_done)
+                  {
+                    simulator_is_past_initialization = false;
+                    goto start_time_iteration;
+                  }
               }
-          }
 
         // Prepare the next time step:
         time_stepping_manager.update();
@@ -2021,8 +2021,8 @@ namespace aspect
             continue; // repeat time step loop
           }
 
-        // see if we want to write a timing summary
-        maybe_write_timing_output();
+            // see if we want to write a timing summary
+            maybe_write_timing_output();
 
         // update values for timestep, increment time step by one.
         advance_time(new_time_step_size);
