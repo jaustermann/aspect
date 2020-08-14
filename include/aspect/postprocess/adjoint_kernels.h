@@ -32,7 +32,7 @@ namespace aspect
   {
 
     /**
-     * A postprocessor that computes dynamic topography at the surface.
+     * A postprocessor that computes the adjoint density and viscosity sensitivity kernel.
      *
      * @ingroup Postprocessing
      */

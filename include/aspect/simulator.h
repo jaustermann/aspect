@@ -373,10 +373,6 @@ namespace aspect
         unsigned int polynomial_degree(const Introspection<dim> &introspection) const;
       };
 
-      virtual
-      std::list<std::string>
-      required_other_postprocessors() const;
-
 
     private:
 

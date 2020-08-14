@@ -799,7 +799,7 @@ namespace aspect
           case Parameters<dim>::NonlinearSolver::Kind::iterated_Advection_and_Newton_Stokes:
           case Parameters<dim>::NonlinearSolver::Kind::single_Advection_iterated_Newton_Stokes:
           case Parameters<dim>::NonlinearSolver::Kind::single_Advection_no_Stokes:
-          case Parameters<dim>::NonlinearSolver::Kind::Stokes_adjoint: // is that right?
+          case Parameters<dim>::NonlinearSolver::Kind::Stokes_adjoint:
             return true;
 
           case Parameters<dim>::NonlinearSolver::Kind::no_Advection_iterated_Stokes:
@@ -831,7 +831,7 @@ namespace aspect
           case Parameters<dim>::NonlinearSolver::Kind::iterated_Advection_and_Newton_Stokes:
           case Parameters<dim>::NonlinearSolver::Kind::single_Advection_iterated_Newton_Stokes:
           case Parameters<dim>::NonlinearSolver::Kind::first_timestep_only_single_Stokes:
-          case Parameters<dim>::NonlinearSolver::Kind::Stokes_adjoint: // is that right?
+          case Parameters<dim>::NonlinearSolver::Kind::Stokes_adjoint:
             return true;
 
           case Parameters<dim>::NonlinearSolver::Kind::single_Advection_no_Stokes:
@@ -1944,6 +1944,10 @@ namespace aspect
     simulator_is_past_initialization = true;
     do
       {
+        // Only solve if we are not in pre-refinement, or we do not want to skip
+        // solving in pre-refinement.
+        if (! (parameters.skip_solvers_on_initial_refinement
+               && pre_refinement_step < parameters.initial_adaptive_refinement))
 
       if (! (parameters.skip_solvers_on_initial_refinement
              && pre_refinement_step < parameters.initial_adaptive_refinement))

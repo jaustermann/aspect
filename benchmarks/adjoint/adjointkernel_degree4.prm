@@ -11,9 +11,8 @@ set Surface pressure                      = 0
 set Nonlinear solver scheme = Stokes adjoint
 
 subsection Adjoint problem
-  set Input filename for ajoint points      = /Users/jackyaustermann/Sync/Aspect_code/aspect_laptop/data/adjoint_observations/plume_observations.txt
-  set Read points in from file             = false #true
-  set Number of iterations in adjoint inversion  =  1
+  set Read points from file             = false #true
+  set Number of iterations in adjoint inversion  =  0
   set Factor to update the density properties    =  1
   set Factor to update the viscosity properties  =  1
 end

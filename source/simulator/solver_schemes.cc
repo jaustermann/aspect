@@ -1459,12 +1459,11 @@ namespace aspect
   template <int dim>
   void Simulator<dim>::solve_stokes_adjoint ()
   {
-    // TODO iterate
-    // todo make number of interations a parameter and change Do iterations for inversion parameter
-//    for (unsigned int i=0; i<parameters.num_it_adjoint; ++i)
-//      {
 
-//        pcout << " ^^ Adjoint iteration number " << i  << std::endl;
+    for (unsigned int i=0; i<=parameters.num_it_adjoint; ++i)
+       {
+
+        pcout << " ^^ Adjoint iteration number " << i  << std::endl;
 
     // -------------------------------------------------------------
     // SOLVE FORWARD PROBLEM
@@ -1507,9 +1506,10 @@ namespace aspect
     assemblers->stokes_system.clear();
     assemblers->stokes_system_on_boundary_face.clear();
 
-
-    assemblers->stokes_system.push_back(
-      std_cxx14::make_unique<aspect::Assemblers::StokesPressureRHSCompatibilityModification<dim> >());
+    // add the terms necessary to normalize the pressure
+    if (do_pressure_rhs_compatibility_modification)
+      assemblers->stokes_system.push_back(
+        std_cxx14::make_unique<aspect::Assemblers::StokesPressureRHSCompatibilityModification<dim> >());
 
     if (SimulatorAccess<dim> *p = dynamic_cast<SimulatorAccess<dim>* >(assemblers->stokes_system[0].get()))
       p->initialize_simulator(*this);
@@ -1567,7 +1567,9 @@ namespace aspect
     // solve system for gradients in eta and rho
     compute_parameter_update();
 
-//      }
+ //    postprocess ();
+
+    }
   }
 
 

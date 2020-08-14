@@ -1245,21 +1245,14 @@ namespace aspect
   }
 
 
-
-  template <int dim>
-  std::list<std::string>
-  Simulator<dim>::required_other_postprocessors() const
-  {
-    std::list<std::string> deps;
-    deps.push_back("dynamic topography");
-    return deps;
-  }
-
-
   template <int dim>
   void
   Simulator<dim>::compute_parameter_update ()
   {
+    // This calculation requires that the DT postprocessor is selected
+    AssertThrow(postprocess_manager.template has_matching_postprocessor<const Postprocess::DynamicTopography<dim>> (), 
+   ExcMessage("The dynamic topography postprocessor has to be active for adjoint computations."));
+
     // INTERIOR TERM
     system_matrix = 0.;
     system_rhs = 0.;
@@ -1525,7 +1518,6 @@ namespace aspect
                                                                       const bool                                             compute_strainrate, \
                                                                       MaterialModel::MaterialModelInputs<dim>               &material_model_inputs) const; \
   template void Simulator<dim>::compute_parameter_update (); \
-  template std::list<std::string> Simulator<dim>::required_other_postprocessors () const;
 
   ASPECT_INSTANTIATE(INSTANTIATE)
 
