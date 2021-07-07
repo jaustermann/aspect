@@ -2413,7 +2413,7 @@ namespace aspect
   {
     // This calculation requires that the DT postprocessor is selected
     AssertThrow(postprocess_manager.template has_matching_postprocessor<const Postprocess::DynamicTopography<dim>> (),
-   ExcMessage("The dynamic topography postprocessor has to be active for adjoint computations."));
+                ExcMessage("The dynamic topography postprocessor has to be active for adjoint computations."));
 
     // INTERIOR TERM
     system_matrix = 0.;
@@ -2676,7 +2676,7 @@ namespace aspect
                                                                             const double stokes_residual, \
                                                                             const double newton_residual, \
                                                                             const double newton_residual_old); \
-  template void Simulator<dim>::compute_parameter_update (); 
+  template void Simulator<dim>::compute_parameter_update ();
   ASPECT_INSTANTIATE(INSTANTIATE)
 
 #undef INSTANTIATE

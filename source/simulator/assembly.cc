@@ -1282,7 +1282,7 @@ namespace aspect
                                                                       const FEValuesBase<dim,dim>                           &input_finite_element_values, \
                                                                       const DoFHandler<dim>::active_cell_iterator  &cell, \
                                                                       const bool                                             compute_strainrate, \
-                                                                      MaterialModel::MaterialModelInputs<dim>               &material_model_inputs) const; 
+                                                                      MaterialModel::MaterialModelInputs<dim>               &material_model_inputs) const;
 
   ASPECT_INSTANTIATE(INSTANTIATE)
 

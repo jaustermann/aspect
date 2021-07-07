@@ -51,8 +51,8 @@ namespace aspect
       const double density_above = 0.;
 
       // Get a pointer to the dynamic topography postprocessor.
-      const Postprocess::DynamicTopography<dim> &dynamic_topography =
-        this->get_postprocess_manager().template get_matching_postprocessor<Postprocess::DynamicTopography<dim> >();
+      Postprocess::DynamicTopography<dim> &dynamic_topography = const_cast<Postprocess::DynamicTopography<dim> &> (
+                                                                  this->get_postprocess_manager().template get_matching_postprocessor<Postprocess::DynamicTopography<dim> >());
 
       // Get the already-computed dynamic topography solution.
       const LinearAlgebra::BlockVector &topography_vector = dynamic_topography.topography_vector();
@@ -92,7 +92,7 @@ namespace aspect
               for (unsigned int i=0; i<stokes_dofs_per_cell; ++i)
                 {
                   data.local_rhs(i) += topo_values[q] * (2.0*eta *(n_hat * (scratch.grads_phi_u[i] * n_hat))
-                                                           - pressure_scaling *scratch.phi_p[i]) / ((density-density_above)* gravity.norm())
+                                                         - pressure_scaling *scratch.phi_p[i]) / ((density-density_above)* gravity.norm())
                                        * JxW;
                 }
             }

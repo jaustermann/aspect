@@ -48,7 +48,14 @@ namespace aspect
     Additive<dim>::evaluate(const typename Interface<dim>::MaterialModelInputs &in,
                             typename Interface<dim>::MaterialModelOutputs &out) const
     {
-      const unsigned int density_idx = this->introspection().compositional_index_for_name("density_term");
+
+      // This material model is only useful when iterating on the stokes equations so throw
+      // an exception if a different solver is chosen.
+      if (this->get_parameters().nonlinear_solver != Parameters<dim>::NonlinearSolver::Stokes_adjoint)
+        AssertThrow(false, ExcMessage("Error: Material model Additive is only sensible with the Stokes adjoint nonlinear solver."))
+
+
+        const unsigned int density_idx = this->introspection().compositional_index_for_name("density_term");
       const unsigned int viscosity_idx = this->introspection().compositional_index_for_name("viscosity_factor");
 
       base_model_add -> evaluate(in,out);

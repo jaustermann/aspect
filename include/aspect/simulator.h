@@ -2107,10 +2107,8 @@ namespace aspect
 
       /** Parameters for the adjoint problem
        */
-      bool                                                      adjoint_problem;
       LinearAlgebra::BlockVector                                current_adjoint_solution;
       void solve_stokes_adjoint ();
-
       void compute_parameter_update ();
 
   };

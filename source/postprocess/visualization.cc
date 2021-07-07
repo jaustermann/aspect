@@ -648,34 +648,29 @@ namespace aspect
     Visualization<dim>::execute (TableHandler &statistics)
     {
 
-      // do this otherwise there is no graphical output after the first iteration
-      if (this->get_parameters().nonlinear_solver == Parameters<dim>::NonlinearSolver::Stokes_adjoint) {}
-      else
+
+      // if this is the first time we get here, set the last output time
+      // to the current time - output_interval. this makes sure we
+      // always produce data during the first time step
+      if (std::isnan(last_output_time))
         {
-
-          // if this is the first time we get here, set the last output time
-          // to the current time - output_interval. this makes sure we
-          // always produce data during the first time step
-          if (std::isnan(last_output_time))
-            {
-              last_output_time = this->get_time() - output_interval;
-              last_output_timestep = this->get_timestep_number();
-            }
-
-          // Return if graphical output is not requested at this time. Do not
-          // return in the first timestep, or if the last output was more than
-          // output_interval in time ago, or maximum_timesteps_between_outputs in
-          // number of timesteps ago.
-          // The comparison in number of timesteps is safe from integer overflow for
-          // at most 2 billion timesteps, which is not likely to
-          // be ever reached (both values are unsigned int,
-          // and the default value of maximum_timesteps_between_outputs is
-          // set to numeric_limits<int>::max())
-          if ((this->get_time() < last_output_time + output_interval)
-              && (this->get_timestep_number() < last_output_timestep + maximum_timesteps_between_outputs)
-              && (this->get_timestep_number() != 0))
-            return std::pair<std::string,std::string>();
+          last_output_time = this->get_time() - output_interval;
+          last_output_timestep = this->get_timestep_number();
         }
+
+      // Return if graphical output is not requested at this time. Do not
+      // return in the first timestep, or if the last output was more than
+      // output_interval in time ago, or maximum_timesteps_between_outputs in
+      // number of timesteps ago.
+      // The comparison in number of timesteps is safe from integer overflow for
+      // at most 2 billion timesteps, which is not likely to
+      // be ever reached (both values are unsigned int,
+      // and the default value of maximum_timesteps_between_outputs is
+      // set to numeric_limits<int>::max())
+      if ((this->get_time() < last_output_time + output_interval)
+          && (this->get_timestep_number() < last_output_timestep + maximum_timesteps_between_outputs)
+          && (this->get_timestep_number() != 0))
+        return std::pair<std::string,std::string>();
 
       // up the counter of the number of the file by one, but not in
       // the very first output step. if we run postprocessors on all
@@ -697,8 +692,6 @@ namespace aspect
       add_data_names_to_set(base_variables.get_names(), visualization_field_names);
 
       std::unique_ptr<internal::MeshDeformationPostprocessor<dim> > mesh_deformation_variables;
-      internal::BaseAdjointVariablePostprocessor<dim> adjoint_base_variables;
-      adjoint_base_variables.initialize_simulator (this->get_simulator());
 
       DataOut<dim> data_out;
       data_out.attach_dof_handler (this->get_dof_handler());
@@ -720,11 +713,15 @@ namespace aspect
                 (p.get()) != nullptr);
       })
       != postprocessors.end());
- 
+
       // If we want to visualize the solution of the adjoint problem
-      if (this->get_adjoint_problem() == true)
+      internal::BaseAdjointVariablePostprocessor<dim> adjoint_base_variables;
+      adjoint_base_variables.initialize_simulator (this->get_simulator());
+      if (this->get_parameters().nonlinear_solver == Parameters<dim>::NonlinearSolver::Stokes_adjoint) {}
+      {
         data_out.add_data_vector (this->get_current_adjoint_solution(),
                                   adjoint_base_variables);
+      }
 
       // If there is a deforming mesh, also attach the mesh velocity object
       if ( this->get_parameters().mesh_deformation_enabled && output_mesh_velocity)
