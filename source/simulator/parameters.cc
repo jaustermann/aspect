@@ -1292,32 +1292,6 @@ namespace aspect
 
     VolumeOfFluidHandler<dim>::declare_parameters(prm);
 
-
-    prm.enter_subsection("Adjoint problem");
-    {
-      prm.declare_entry ("Input filename for adjoint points", "$ASPECT_SOURCE_DIR/data/adjoint-observations/dynamic_topography_observations.txt",
-                         Patterns::Anything(),
-                         "");
-      prm.declare_entry ("Read points from file", "false",
-                         Patterns::Bool (),
-                         "");
-      prm.declare_entry ("Number of iterations in adjoint inversion", "1",
-                         Patterns::Integer (),
-                         "");
-      prm.declare_entry ("Use fixed surface value", "false",
-                         Patterns::Bool (),
-                         "");
-      prm.declare_entry ("Factor to update the density properties", "0.",
-                         Patterns::Double (),
-                         "");
-      prm.declare_entry ("Factor to update the viscosity properties", "0.",
-                         Patterns::Double (),
-                         "");
-    }
-    prm.leave_subsection();
-
-
-
     // then, finally, let user additions that do not go through the usual
     // plugin mechanism, declare their parameters if they have subscribed
     // to the relevant signals
@@ -1977,16 +1951,6 @@ namespace aspect
       material_averaging
         = MaterialModel::MaterialAveraging::parse_averaging_operation_name
           (prm.get ("Material averaging"));
-    }
-    prm.leave_subsection ();
-
-    prm.enter_subsection("Adjoint problem");
-    {
-      adjoint_input_file              = prm.get ("Input filename for adjoint points");
-      read_in_points                  = prm.get_bool ("Read points from file");
-      use_fixed_surface_value         = prm.get_bool ("Use fixed surface value");
-      update_factor_rho               = prm.get_double ("Factor to update the density properties");
-      update_factor_eta               = prm.get_double ("Factor to update the viscosity properties");
     }
     prm.leave_subsection ();
 

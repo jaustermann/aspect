@@ -2411,11 +2411,8 @@ namespace aspect
   void
   Simulator<dim>::compute_parameter_update ()
   {
-    // This calculation requires that the DT postprocessor is selected
-    AssertThrow(postprocess_manager.template has_matching_postprocessor<const Postprocess::DynamicTopography<dim>> (),
-                ExcMessage("The dynamic topography postprocessor has to be active for adjoint computations."));
 
-    // INTERIOR TERM
+    // interior term
     system_matrix = 0.;
     system_rhs = 0.;
 
@@ -2476,9 +2473,9 @@ namespace aspect
 
     // Get the already-computed dynamic topography solution.
     const LinearAlgebra::BlockVector topo_vector = dynamic_topography.topography_vector();
-
     std::vector<double> topo_values( quadrature_formula.size() );
 
+    // TODO: get this from dynamic topography postprocessor
     const double density_above = 0;
 
     for (; cell!=endc; ++cell)
@@ -2497,13 +2494,16 @@ namespace aspect
           local_rhs = 0.;
           local_mass_matrix = 0.;
 
+              
+          // VOLUME TERM
+
           for (unsigned int q=0; q<n_q_points; ++q)
             {
-              // for density kernel
+              // Get parameters for the density kernel
               const Tensor<1,dim> velocity_adjoint = in_adjoint.velocity[q];
               const Tensor<1,dim> gravity = gravity_model->gravity_vector(in.position[q]);
 
-              // for viscosity kernel
+              // Get parameters for the viscosity kernel
               const double eta = out.viscosities[q];
               const SymmetricTensor<2,dim> strain_rate_forward = in.strain_rate[q] - 1./3 * trace(in.strain_rate[q]) * unit_symmetric_tensor<dim>();
               const SymmetricTensor<2,dim> strain_rate_adjoint = in_adjoint.strain_rate[q] - 1./3 * trace(in_adjoint.strain_rate[q]) * unit_symmetric_tensor<dim>();
@@ -2516,10 +2516,10 @@ namespace aspect
 
               for (unsigned int i = 0; i<dofs_per_cell; ++i)
                 {
-                  // density kernel
+                  // Calculate the density kernel
                   local_rhs(i) += -(gravity * velocity_adjoint) * phi_rho[i] * fe_values.JxW(q);
 
-                  // viscosity kernel
+                  // Calculate the viscosity kernel
                   local_rhs(i) += (2 * eta * strain_rate_forward * strain_rate_adjoint) * phi_eta[i] * fe_values.JxW(q);
                   // it's fine to add both of them because only one of them at a time is nonzero
 
@@ -2540,6 +2540,8 @@ namespace aspect
 
 
           // SURFACE TERM
+          // TODO: the solution at the surface does not agree with the benchmark. 
+          // this could be because of the calculation here or the assembly of the RHS in assemblers/adjoint.cc
 
           // see if the cell is at the *top* boundary and if so start surface term calculation
           unsigned int top_face_idx = numbers::invalid_unsigned_int;
@@ -2552,25 +2554,20 @@ namespace aspect
 
           if (top_face_idx != numbers::invalid_unsigned_int)
             {
-              //fe_values.reinit (cell); //(cell,top_face_idx);
               fe_face_values.reinit (cell,top_face_idx);
 
-              // Evaluate the material properties and the solution within the cell
-              //MaterialModel::MaterialModelInputs<dim> in(fe_values, cell, introspection, solution);
-              //MaterialModel::MaterialModelOutputs<dim> out(fe_values.n_quadrature_points, introspection.n_compositional_fields);
-              //material_model->evaluate(in, out);
-
+              // Evaluate the material properties and the solution at the cell boundary
               MaterialModel::MaterialModelInputs<dim> in_face(fe_face_values, cell, introspection, solution);
               MaterialModel::MaterialModelOutputs<dim> out_face(fe_face_values.n_quadrature_points, introspection.n_compositional_fields);
               material_model->evaluate(in_face, out_face);
 
               fe_face_values[introspection.extractors.temperature].get_function_values(topo_vector, topo_values);
 
-
               for (unsigned int q=0; q<n_q_face_points; ++q)
                 {
                   Point<dim> location = fe_face_values.quadrature_point(q);
 
+		  // get the relevant parameters
                   const double density   = out_face.densities[q];
                   const double eta       = out_face.viscosities[q];
 
@@ -2584,13 +2581,12 @@ namespace aspect
                       phi_eta[k] = fe_values[introspection.extractors.compositional_fields[1]].value(k,q);
                     }
 
-                  // TODO: does this need to be integrated across the surface? I think so ..
                   for (unsigned int i = 0; i<dofs_per_cell; ++i)
                     {
-                      // density kernel
+                      // calculate the density term
                       local_rhs(i) += - topo_values[q] * topo_values[q] / (density - density_above) * phi_eta[i] * fe_face_values.JxW(q);
 
-                      // viscosity kernel
+                      // calculate the viscosity term
                       local_rhs(i) += topo_values[q] * n_hat * (2 * eta * strain_rate  * n_hat)
                                       / ((density - density_above)*gravity.norm()) * phi_eta[i] * fe_face_values.JxW(q);
                       // it's fine to add both of them because only one of them at a time is nonzero
@@ -2598,7 +2594,6 @@ namespace aspect
                     }
                 }
             }
-
 
 
           // get local dofs for this compositional fields
@@ -2632,8 +2627,8 @@ namespace aspect
                      system_rhs.block(eta_comp_block),
                      PreconditionIdentity());
 
-    solution.block(rho_comp_block).add (parameters.update_factor_rho, delta.block(rho_comp_block));
-    solution.block(eta_comp_block).add (parameters.update_factor_eta, delta.block(eta_comp_block));
+    solution.block(rho_comp_block).add (1, delta.block(rho_comp_block));
+    solution.block(eta_comp_block).add (1, delta.block(eta_comp_block));
 
   }
 

@@ -55,13 +55,16 @@ namespace aspect
         AssertThrow(false, ExcMessage("Error: Material model Additive is only sensible with the Stokes adjoint nonlinear solver."))
 
 
-        const unsigned int density_idx = this->introspection().compositional_index_for_name("density_term");
+      const unsigned int density_idx = this->introspection().compositional_index_for_name("density_term");
       const unsigned int viscosity_idx = this->introspection().compositional_index_for_name("viscosity_factor");
 
       base_model_add -> evaluate(in,out);
 
       for (unsigned int i=0; i<in.position.size(); ++i)
         {
+          // add / multiply the values from the compositional field to the density / viscosity to update 
+          // the paarameters. This allows material properties to change over several adjoint iterations.
+          // Note that a more sophisticated gradient descent method will lead to faster convergence. 
           out.densities[i] += in.composition[i][density_idx];
           out.viscosities[i] *= in.composition[i][viscosity_idx];
 
@@ -148,7 +151,15 @@ namespace aspect
   {
     ASPECT_REGISTER_MATERIAL_MODEL(Additive,
                                    "additive",
-                                   " Explanation ")
+				   "This material model is only sensible with the adjoint "
+				   "Stokes nonlinear solver scheme. "
+                                   "The material model allows the density and viscosity "
+                                   "to change over several iterations within the same "
+                                   "timestep. The change in parameters is given by the "
+                                   "the two compositional fields. This material model "
+                                   "therefore needs to be run with 2 compositional fields. "
+                                   "The compositional fields are updated to minimize "
+                                   "the objective functional in the adjoint equations.")
   }
 }
 

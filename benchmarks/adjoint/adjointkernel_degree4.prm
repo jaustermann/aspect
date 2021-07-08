@@ -1,6 +1,7 @@
-# A simple setup for convection in a quarter of a 2d shell. See the
-# manual for more information.
-
+# This file calculates the sensitivity kernel for density and viscosity
+# given a degree 4 spherical harmonic perturbation. There exists a solution
+# for the density kernel from spectral codes that require spherically 
+# symmetric Earth models.
 
 set Dimension                              = 2
 set Use years in output instead of seconds = true
@@ -8,15 +9,11 @@ set End time                               = 0 #1.5e9
 set Output directory                       = output_4
 set Pressure normalization                = surface
 set Surface pressure                      = 0
+
+# Choose the adjoint solver scheme and set the number of iterations to 1
+# (i.e. don't iterate over the parameters)
 set Nonlinear solver scheme = Stokes adjoint
 set Max nonlinear iterations = 1
-
-subsection Adjoint problem
-  set Read points from file             = false #true
-  set Factor to update the density properties    =  1
-  set Factor to update the viscosity properties  =  1
-end
-
 
 
 subsection Material model
@@ -26,7 +23,6 @@ subsection Material model
   set Model name = additive
 
   subsection Additive model
-#    set Base model = simple
      set Base model additive = simple
   end
 

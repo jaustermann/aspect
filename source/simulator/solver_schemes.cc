@@ -1462,6 +1462,19 @@ namespace aspect
   void Simulator<dim>::solve_stokes_adjoint ()
   {
 
+    // This solver scheme only works with a specific material model and number of compositional fiels. Check that 
+    // both is chosen correctly. TODO add Assert for material model       
+    Assert(introspection.n_compositional_fields == 2,
+             ExcMessage ("This solver scheme requires two compositional fields for the density and viscosity kernels."));
+
+    // This calculation requires that the DT postprocessor is selected
+    AssertThrow(postprocess_manager.template has_matching_postprocessor<const Postprocess::DynamicTopography<dim>> (),
+                ExcMessage("The dynamic topography postprocessor has to be active for the current adjoint computations."));
+
+    // This calculation only works for instantaneous calculations
+    // TODO: add Assert if end time is not 0
+
+    // determine how often to iterate over the forward & adjoint stokes equations
     const unsigned int max_nonlinear_iterations =
       (pre_refinement_step < parameters.initial_adaptive_refinement)
       ?
@@ -1471,6 +1484,7 @@ namespace aspect
       parameters.max_nonlinear_iterations;
 
 
+    // start the iteration
     for (unsigned int i=0; i<max_nonlinear_iterations; ++i)
       {
 
@@ -1478,55 +1492,59 @@ namespace aspect
 
         // -------------------------------------------------------------
         // SOLVE FORWARD PROBLEM
+        // -------------------------------------------------------------
 
         pcout << "   Forward problem ... " << std::endl;
 
         // set the assemblers for the RHS
         set_assemblers();
 
+        // build the stokes system
         rebuild_stokes_matrix = rebuild_stokes_preconditioner = true;
 
         assemble_stokes_system();
         build_stokes_preconditioner();
+    
+        // solve the stokes system and put the solution (x in Ax=b) into 'solution'
+        solve_stokes(); 
 
-        solve_stokes(); // solves Ax=b, puts x into 'solution'
-        // put 'solution' into 'current_linearization_point' (=u/p)
+        // save the solution from overwriting during the adjoint problem by 
+        // storing it in 'current_linearization_point'
         current_linearization_point.block(introspection.block_indices.velocities)
           = solution.block(introspection.block_indices.velocities);
         if (introspection.block_indices.velocities != introspection.block_indices.pressure)
           current_linearization_point.block(introspection.block_indices.pressure)
             = solution.block(introspection.block_indices.pressure);
 
-        // postprocess forward solution to calculate DT and global statistics (and in the future - geoid)
-
-        // Get a pointer to the dynamic topography postprocessor.
+        // calculate the dynamic topography based on the forward solution, 
+        // which will be needed for the new RHS assembly of the adjoint system
         Postprocess::DynamicTopography<dim> &dynamic_topography = const_cast<Postprocess::DynamicTopography<dim> &> (
-                                                                    postprocess_manager.template get_matching_postprocessor<Postprocess::DynamicTopography<dim> >());
+           postprocess_manager.template get_matching_postprocessor<Postprocess::DynamicTopography<dim> >());
 
-        // execute dynamic topography postprocessor
         dynamic_topography.execute(statistics);
 
-
-        // Get a pointer to the global statistics postprocessor.
+        // save the global statics output of the forward solution 
         Postprocess::GlobalStatistics<dim> &global_statistics = const_cast<Postprocess::GlobalStatistics<dim> &> (
-                                                                  postprocess_manager.template get_matching_postprocessor<Postprocess::GlobalStatistics<dim> >());
+           postprocess_manager.template get_matching_postprocessor<Postprocess::GlobalStatistics<dim> >());
 
-        // execute global statistics postprocessor so that we have the statistics of the forward calculation saved
         global_statistics.execute(statistics);
 
 
         // -------------------------------------------------------------
         // SOLVE ADJOINT PROBLEM
+        // -------------------------------------------------------------
 
         pcout << "   Adjoint problem ... " << std::endl;
 
-        // clear all RHS assemblers and only do pressure rhs compatibility and assemble the Adjoint RHS;
+
+        // clear all RHS assemblers
         assemblers->stokes_system.clear();
         assemblers->stokes_system_on_boundary_face.clear();
 
 
         // assemble the Stokes RHS - this is done on the boundary since it's a surface force
-        assemblers->stokes_system_assembler_on_boundary_face_properties.needed_update_flags = (update_values  | update_quadrature_points | update_normal_vectors | update_gradients | update_JxW_values);
+        assemblers->stokes_system_assembler_on_boundary_face_properties.needed_update_flags = 
+          (update_values | update_quadrature_points | update_normal_vectors | update_gradients | update_JxW_values);
 
         assemblers->stokes_system_assembler_on_boundary_face_properties.need_face_material_model_data = true;
         assemblers->stokes_system_assembler_on_boundary_face_properties.need_viscosity = true;
@@ -1538,7 +1556,7 @@ namespace aspect
           p->initialize_simulator(*this);
 
 
-        // add the terms necessary to normalize the pressure
+        // do pressure rhs compatibility
         if (do_pressure_rhs_compatibility_modification)
           assemblers->stokes_system.push_back(
             std_cxx14::make_unique<aspect::Assemblers::StokesPressureRHSCompatibilityModification<dim> >());
@@ -1550,18 +1568,19 @@ namespace aspect
         // Don't need to reassmble the stokes system because it's the same as for the forward problem
         rebuild_stokes_matrix = rebuild_stokes_preconditioner = false;
 
-        // the right hand side is assembled differently when adjoint_problem is true
+        // Assemble and solve the adjoint stokes system
         assemble_stokes_system();
-        solve_stokes();  // solve Ax=b_adj
+        solve_stokes();  
 
-        // put 'solution' into 'current_adjoint_solution' (=lambda_u/lambda_p)
+        // save the solution in 'current_adjoint_solution'. This will be accessed during visualization and
+        // to calculate the sensitivity kernels
         current_adjoint_solution.block(introspection.block_indices.velocities)
           = solution.block(introspection.block_indices.velocities);
         if (introspection.block_indices.velocities != introspection.block_indices.pressure)
           current_adjoint_solution.block(introspection.block_indices.pressure)
             = solution.block(introspection.block_indices.pressure);
 
-        // put forward solution back into solution vector for postprocessing output
+        // put forward solution back into solution vector so that the forward equation is processed during postprocessing
         solution.block(introspection.block_indices.velocities) =
           current_linearization_point.block(introspection.block_indices.velocities);
         if (introspection.block_indices.velocities != introspection.block_indices.pressure)
@@ -1570,24 +1589,20 @@ namespace aspect
 
 
         // -------------------------------------------------------------
-        // COMPUTE UPDATES FOR ETA AND RHO
+        // COMPUTE PARAMETER UPDATES
+        // -------------------------------------------------------------
 
-        // the inversion only works with a specific material model
-        // this doesn't actually check the material model yet just the number of comp fields, but okay
-        Assert(introspection.n_compositional_fields == 2,
-               ExcMessage ("You're not using the right material model for the adjoint problem. "
-                           "The only model that is consistent is the additive material model."));
-
-        // set up rhs and mass matrix
-        // solve system for gradients in eta and rho
+        // calculate the sensitivity kernels and use them to update the initial guess of density and viscosity
+        // through simple steepest descent. Note: this means the initial density and viscosity is overwritten
+        // for the visualization
         compute_parameter_update();
-
-// might want to postprocess if any of the information within iterations should be saved
-//    postprocess ();
+      
+        // postprocess unless this is the last iteration because then it will be postprocessed outside of this solver scheme
+        if(i<max_nonlinear_iterations-1)
+          postprocess ();
 
       }
   }
-
 
 }
 

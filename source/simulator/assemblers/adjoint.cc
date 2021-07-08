@@ -47,18 +47,18 @@ namespace aspect
 
       const double pressure_scaling = this->get_pressure_scaling();
 
-      // TODO: make this consistent with input eventually
+      // TODO: make this consistent with input. This is called density_above in the dynamic topography postprocessor
       const double density_above = 0.;
 
       // Get a pointer to the dynamic topography postprocessor.
       Postprocess::DynamicTopography<dim> &dynamic_topography = const_cast<Postprocess::DynamicTopography<dim> &> (
                                                                   this->get_postprocess_manager().template get_matching_postprocessor<Postprocess::DynamicTopography<dim> >());
 
-      // Get the already-computed dynamic topography solution.
+      // Get the alreadycomputed dynamic topography solution.
       const LinearAlgebra::BlockVector &topography_vector = dynamic_topography.topography_vector();
       std::vector<double> topo_values( n_face_q_points );
 
-      // check that the cell is at the top and that the cell is at the top
+      // check that the cell is at the top and that the boundary is at the top
       if (scratch.cell->face(scratch.face_number)->at_boundary()
           &&
           this->get_geometry_model().depth (scratch.cell->face(scratch.face_number)->center()) < scratch.cell->face(scratch.face_number)->minimum_vertex_distance()/3)
@@ -91,6 +91,7 @@ namespace aspect
 
               for (unsigned int i=0; i<stokes_dofs_per_cell; ++i)
                 {
+                  // The new RHS is the derivative of the objective functional with respect to pressure and velocity
                   data.local_rhs(i) += topo_values[q] * (2.0*eta *(n_hat * (scratch.grads_phi_u[i] * n_hat))
                                                          - pressure_scaling *scratch.phi_p[i]) / ((density-density_above)* gravity.norm())
                                        * JxW;
