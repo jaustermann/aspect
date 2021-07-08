@@ -1462,10 +1462,10 @@ namespace aspect
   void Simulator<dim>::solve_stokes_adjoint ()
   {
 
-    // This solver scheme only works with a specific material model and number of compositional fiels. Check that 
-    // both is chosen correctly. TODO add Assert for material model       
+    // This solver scheme only works with a specific material model and number of compositional fiels. Check that
+    // both is chosen correctly. TODO add Assert for material model
     Assert(introspection.n_compositional_fields == 2,
-             ExcMessage ("This solver scheme requires two compositional fields for the density and viscosity kernels."));
+           ExcMessage ("This solver scheme requires two compositional fields for the density and viscosity kernels."));
 
     // This calculation requires that the DT postprocessor is selected
     AssertThrow(postprocess_manager.template has_matching_postprocessor<const Postprocess::DynamicTopography<dim>> (),
@@ -1504,11 +1504,11 @@ namespace aspect
 
         assemble_stokes_system();
         build_stokes_preconditioner();
-    
-        // solve the stokes system and put the solution (x in Ax=b) into 'solution'
-        solve_stokes(); 
 
-        // save the solution from overwriting during the adjoint problem by 
+        // solve the stokes system and put the solution (x in Ax=b) into 'solution'
+        solve_stokes();
+
+        // save the solution from overwriting during the adjoint problem by
         // storing it in 'current_linearization_point'
         current_linearization_point.block(introspection.block_indices.velocities)
           = solution.block(introspection.block_indices.velocities);
@@ -1516,16 +1516,16 @@ namespace aspect
           current_linearization_point.block(introspection.block_indices.pressure)
             = solution.block(introspection.block_indices.pressure);
 
-        // calculate the dynamic topography based on the forward solution, 
+        // calculate the dynamic topography based on the forward solution,
         // which will be needed for the new RHS assembly of the adjoint system
         Postprocess::DynamicTopography<dim> &dynamic_topography = const_cast<Postprocess::DynamicTopography<dim> &> (
-           postprocess_manager.template get_matching_postprocessor<Postprocess::DynamicTopography<dim> >());
+                                                                    postprocess_manager.template get_matching_postprocessor<Postprocess::DynamicTopography<dim> >());
 
         dynamic_topography.execute(statistics);
 
-        // save the global statics output of the forward solution 
+        // save the global statics output of the forward solution
         Postprocess::GlobalStatistics<dim> &global_statistics = const_cast<Postprocess::GlobalStatistics<dim> &> (
-           postprocess_manager.template get_matching_postprocessor<Postprocess::GlobalStatistics<dim> >());
+                                                                  postprocess_manager.template get_matching_postprocessor<Postprocess::GlobalStatistics<dim> >());
 
         global_statistics.execute(statistics);
 
@@ -1543,7 +1543,7 @@ namespace aspect
 
 
         // assemble the Stokes RHS - this is done on the boundary since it's a surface force
-        assemblers->stokes_system_assembler_on_boundary_face_properties.needed_update_flags = 
+        assemblers->stokes_system_assembler_on_boundary_face_properties.needed_update_flags =
           (update_values | update_quadrature_points | update_normal_vectors | update_gradients | update_JxW_values);
 
         assemblers->stokes_system_assembler_on_boundary_face_properties.need_face_material_model_data = true;
@@ -1570,7 +1570,7 @@ namespace aspect
 
         // Assemble and solve the adjoint stokes system
         assemble_stokes_system();
-        solve_stokes();  
+        solve_stokes();
 
         // save the solution in 'current_adjoint_solution'. This will be accessed during visualization and
         // to calculate the sensitivity kernels
@@ -1596,9 +1596,9 @@ namespace aspect
         // through simple steepest descent. Note: this means the initial density and viscosity is overwritten
         // for the visualization
         compute_parameter_update();
-      
+
         // postprocess unless this is the last iteration because then it will be postprocessed outside of this solver scheme
-        if(i<max_nonlinear_iterations-1)
+        if (i<max_nonlinear_iterations-1)
           postprocess ();
 
       }

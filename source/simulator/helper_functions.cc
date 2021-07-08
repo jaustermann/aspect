@@ -2494,7 +2494,7 @@ namespace aspect
           local_rhs = 0.;
           local_mass_matrix = 0.;
 
-              
+
           // VOLUME TERM
 
           for (unsigned int q=0; q<n_q_points; ++q)
@@ -2540,7 +2540,7 @@ namespace aspect
 
 
           // SURFACE TERM
-          // TODO: the solution at the surface does not agree with the benchmark. 
+          // TODO: the solution at the surface does not agree with the benchmark.
           // this could be because of the calculation here or the assembly of the RHS in assemblers/adjoint.cc
 
           // see if the cell is at the *top* boundary and if so start surface term calculation
@@ -2567,7 +2567,7 @@ namespace aspect
                 {
                   Point<dim> location = fe_face_values.quadrature_point(q);
 
-		  // get the relevant parameters
+                  // get the relevant parameters
                   const double density   = out_face.densities[q];
                   const double eta       = out_face.viscosities[q];
 
